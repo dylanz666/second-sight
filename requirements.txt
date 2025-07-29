@@ -1,0 +1,6 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pillow==10.1.0
+pywin32==306
+psutil==5.9.6
+python-multipart==0.0.6 
