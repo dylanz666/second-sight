@@ -166,7 +166,32 @@ class DesktopScreenshotGenerator:
         self.last_screenshot = None
         self.last_screenshot_time = None
         self.monitors = []
+        # 截图质量配置
+        self.quality_settings = {
+            'single_monitor': {'max_width': 1400, 'max_height': 1050},
+            'desktop': {'max_width': 1920, 'max_height': 1200},
+            'png_quality': 95,
+            'optimize': False
+        }
         self.update_monitor_info()
+    
+    def _should_resize_image(self, img, max_width, max_height):
+        """检查是否需要调整图像大小"""
+        return img.width > max_width or img.height > max_height
+    
+    def _resize_image_high_quality(self, img, max_width, max_height):
+        """高质量调整图像大小"""
+        # 如果图像已经小于等于目标尺寸，不进行缩放
+        if not self._should_resize_image(img, max_width, max_height):
+            return img
+        
+        # 计算缩放比例
+        ratio = min(max_width / img.width, max_height / img.height)
+        new_width = int(img.width * ratio)
+        new_height = int(img.height * ratio)
+        
+        # 使用LANCZOS重采样进行高质量缩放
+        return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     
     def update_monitor_info(self):
         """更新显示器信息"""
@@ -401,17 +426,10 @@ class DesktopScreenshotGenerator:
             
             print(f"成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}")
             
-            # 调整图像大小以适合显示（保持宽高比）
-            max_width = 800
-            max_height = 600
-            
-            # 计算缩放比例
-            ratio = min(max_width / img.width, max_height / img.height)
-            new_width = int(img.width * ratio)
-            new_height = int(img.height * ratio)
-            
-            # 使用LANCZOS重采样进行高质量缩放
-            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            # 高质量调整图像大小
+            max_width = self.quality_settings['single_monitor']['max_width']
+            max_height = self.quality_settings['single_monitor']['max_height']
+            img = self._resize_image_high_quality(img, max_width, max_height)
             
             return img
             
@@ -434,17 +452,10 @@ class DesktopScreenshotGenerator:
             
             print(f"备用方法成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}")
             
-            # 调整图像大小以适合显示（保持宽高比）
-            max_width = 800
-            max_height = 600
-            
-            # 计算缩放比例
-            ratio = min(max_width / img.width, max_height / img.height)
-            new_width = int(img.width * ratio)
-            new_height = int(img.height * ratio)
-            
-            # 使用LANCZOS重采样进行高质量缩放
-            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            # 高质量调整图像大小
+            max_width = self.quality_settings['single_monitor']['max_width']
+            max_height = self.quality_settings['single_monitor']['max_height']
+            img = self._resize_image_high_quality(img, max_width, max_height)
             
             return img
             
@@ -512,17 +523,10 @@ class DesktopScreenshotGenerator:
             srcdc.DeleteDC()
             win32gui.ReleaseDC(hwin, hwindc)
             
-            # 调整图像大小以适合显示（保持宽高比）
-            max_width = 1600
-            max_height = 1000
-            
-            # 计算缩放比例
-            ratio = min(max_width / img.width, max_height / img.height)
-            new_width = int(img.width * ratio)
-            new_height = int(img.height * ratio)
-            
-            # 使用LANCZOS重采样进行高质量缩放
-            img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            # 高质量调整图像大小
+            max_width = self.quality_settings['desktop']['max_width']
+            max_height = self.quality_settings['desktop']['max_height']
+            img = self._resize_image_high_quality(img, max_width, max_height)
             
             self.counter += 1
             self.last_screenshot = img
@@ -546,17 +550,10 @@ class DesktopScreenshotGenerator:
             # 捕获整个屏幕（包括所有显示器）
             screenshot = ImageGrab.grab(bbox=None)  # bbox=None 表示捕获整个虚拟桌面
             
-            # 调整大小（保持宽高比）
-            max_width = 1600
-            max_height = 1000
-            
-            # 计算缩放比例
-            ratio = min(max_width / screenshot.width, max_height / screenshot.height)
-            new_width = int(screenshot.width * ratio)
-            new_height = int(screenshot.height * ratio)
-            
-            # 使用LANCZOS重采样进行高质量缩放
-            screenshot = screenshot.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            # 高质量调整图像大小
+            max_width = self.quality_settings['desktop']['max_width']
+            max_height = self.quality_settings['desktop']['max_height']
+            screenshot = self._resize_image_high_quality(screenshot, max_width, max_height)
             
             self.counter += 1
             self.last_screenshot = screenshot
@@ -599,9 +596,9 @@ async def get_screenshot():
         # 捕获桌面截图
         img = ui_generator.capture_desktop_screenshot()
         
-        # 转换为base64
+        # 转换为base64，使用高质量PNG
         buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format='PNG', optimize=ui_generator.quality_settings['optimize'], quality=ui_generator.quality_settings['png_quality'])
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
         
         return {"image": img_base64, "timestamp": datetime.now().isoformat()}
@@ -622,9 +619,9 @@ async def get_single_monitor_screenshot(monitor_index: int):
         # 捕获指定显示器的截图
         img = ui_generator.capture_single_monitor(monitor_index)
         
-        # 转换为base64
+        # 转换为base64，使用高质量PNG
         buffer = io.BytesIO()
-        img.save(buffer, format='PNG')
+        img.save(buffer, format='PNG', optimize=ui_generator.quality_settings['optimize'], quality=ui_generator.quality_settings['png_quality'])
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
         
         monitor = ui_generator.monitors[monitor_index]
@@ -653,9 +650,9 @@ async def get_all_monitor_screenshots():
         for i, monitor in enumerate(ui_generator.monitors):
             img = ui_generator.capture_single_monitor(i)
             
-            # 转换为base64
+            # 转换为base64，使用高质量PNG
             buffer = io.BytesIO()
-            img.save(buffer, format='PNG')
+            img.save(buffer, format='PNG', optimize=ui_generator.quality_settings['optimize'], quality=ui_generator.quality_settings['png_quality'])
             img_base64 = base64.b64encode(buffer.getvalue()).decode()
             
             screenshots.append({
@@ -887,6 +884,35 @@ async def debug_monitor_screenshot(monitor_index: int):
         }
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/quality-settings")
+async def update_quality_settings(settings: dict):
+    """更新截图质量设置"""
+    try:
+        if 'single_monitor' in settings:
+            ui_generator.quality_settings['single_monitor'].update(settings['single_monitor'])
+        if 'desktop' in settings:
+            ui_generator.quality_settings['desktop'].update(settings['desktop'])
+        if 'png_quality' in settings:
+            ui_generator.quality_settings['png_quality'] = settings['png_quality']
+        if 'optimize' in settings:
+            ui_generator.quality_settings['optimize'] = settings['optimize']
+        
+        return {
+            "message": "质量设置更新成功",
+            "current_settings": ui_generator.quality_settings,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/quality-settings")
+async def get_quality_settings():
+    """获取当前截图质量设置"""
+    return {
+        "settings": ui_generator.quality_settings,
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.get("/force-redetect")
 async def force_redetect_monitors():
