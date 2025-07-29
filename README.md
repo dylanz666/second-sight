@@ -1,4 +1,4 @@
-# Second Sight - 远程桌面查看器
+# Second Sight - 远程桌面系统
 
 一个基于FastAPI和WebSocket的实时Windows桌面截图和监控工具，支持多显示器独立显示。
 
