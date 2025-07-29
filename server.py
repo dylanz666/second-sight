@@ -15,6 +15,9 @@ import psutil  # 添加psutil用于系统监控
 
 app = FastAPI(title="Remote Viewer Server", version="1.0.0")
 
+# 添加静态文件服务
+app.mount("/static", StaticFiles(directory="."), name="static")
+
 # 添加CORS中间件
 app.add_middleware(
     CORSMiddleware,
