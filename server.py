@@ -1040,14 +1040,24 @@ async def get_screenshot_info():
         return {"error": str(e)}
 
 # 文件上传相关功能
-# 使用系统Downloads文件夹作为上传目录
-UPLOAD_DIR = str(Path.home() / "Downloads")
+# 使用系统Downloads文件夹作为默认上传目录
+DEFAULT_UPLOAD_DIR = str(Path.home() / "Downloads")
 ALLOWED_EXTENSIONS = {'.txt', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.rar', '.7z'}
 UPLOAD_FILE_SIZE_LIMIT = 100
 
-# 确保Downloads目录存在（通常已经存在）
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+# 确保默认Downloads目录存在（通常已经存在）
+if not os.path.exists(DEFAULT_UPLOAD_DIR):
+    os.makedirs(DEFAULT_UPLOAD_DIR, exist_ok=True)
+
+def get_upload_dir(folder_path=None):
+    """获取上传目录路径"""
+    if folder_path:
+        # 如果指定了文件夹路径，在Downloads目录下创建子文件夹
+        upload_dir = os.path.join(DEFAULT_UPLOAD_DIR, folder_path)
+        os.makedirs(upload_dir, exist_ok=True)
+        return upload_dir
+    else:
+        return DEFAULT_UPLOAD_DIR
 
 def is_allowed_file(filename: str) -> bool:
     """检查文件扩展名是否允许"""
@@ -1057,18 +1067,21 @@ def is_allowed_file(filename: str) -> bool:
     return file_ext in ALLOWED_EXTENSIONS
 
 @app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), folder_path: str = None):
     """上传单个文件"""
     try:        
         # 检查文件大小 (限制为 UPLOAD_FILE_SIZE_LIMIT MB)
         if file.size and file.size > UPLOAD_FILE_SIZE_LIMIT * 1024 * 1024:
             raise HTTPException(status_code=400, detail=f"文件大小超过{UPLOAD_FILE_SIZE_LIMIT}MB限制")
         
+        # 获取上传目录
+        upload_dir = get_upload_dir(folder_path)
+        
         # 生成安全的文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_ext = os.path.splitext(file.filename)[1].lower()
         safe_filename = f"{timestamp}_{file.filename}"
-        file_path = os.path.join(UPLOAD_DIR, safe_filename)
+        file_path = os.path.join(upload_dir, safe_filename)
         
         # 保存文件
         with open(file_path, "wb") as buffer:
@@ -1085,7 +1098,8 @@ async def upload_file(file: UploadFile = File(...)):
             "original_name": file.filename,
             "size_mb": file_size_mb,
             "upload_time": datetime.now().isoformat(),
-            "file_path": file_path
+            "file_path": file_path,
+            "upload_dir": upload_dir
         })
         
     except HTTPException:
@@ -1094,7 +1108,7 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
 
 @app.post("/upload/multiple")
-async def upload_multiple_files(files: List[UploadFile] = File(...)):
+async def upload_multiple_files(files: List[UploadFile] = File(...), folder_path: str = None):
     """上传多个文件"""
     try:
         if not files:
@@ -1102,6 +1116,9 @@ async def upload_multiple_files(files: List[UploadFile] = File(...)):
         
         if len(files) > 10:
             raise HTTPException(status_code=400, detail="一次最多只能上传10个文件")
+        
+        # 获取上传目录
+        upload_dir = get_upload_dir(folder_path)
         
         uploaded_files = []
         total_size = 0
@@ -1115,7 +1132,7 @@ async def upload_multiple_files(files: List[UploadFile] = File(...)):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             file_ext = os.path.splitext(file.filename)[1].lower()
             safe_filename = f"{timestamp}_{file.filename}"
-            file_path = os.path.join(UPLOAD_DIR, safe_filename)
+            file_path = os.path.join(upload_dir, safe_filename)
             
             # 保存文件
             content = await file.read()
@@ -1135,7 +1152,8 @@ async def upload_multiple_files(files: List[UploadFile] = File(...)):
             "message": f"成功上传 {len(uploaded_files)} 个文件",
             "files": uploaded_files,
             "total_size_mb": round(total_size / (1024 * 1024), 2),
-            "upload_time": datetime.now().isoformat()
+            "upload_time": datetime.now().isoformat(),
+            "upload_dir": upload_dir
         })
         
     except HTTPException:
@@ -1144,13 +1162,16 @@ async def upload_multiple_files(files: List[UploadFile] = File(...)):
         raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
 
 @app.get("/files")
-async def list_uploaded_files():
+async def list_uploaded_files(folder: str = None):
     """获取已上传文件列表"""
     try:
+        # 获取要列出的目录
+        list_dir = get_upload_dir(folder)
+        
         files = []
-        if os.path.exists(UPLOAD_DIR):
-            for filename in os.listdir(UPLOAD_DIR):
-                file_path = os.path.join(UPLOAD_DIR, filename)
+        if os.path.exists(list_dir):
+            for filename in os.listdir(list_dir):
+                file_path = os.path.join(list_dir, filename)
                 if os.path.isfile(file_path):
                     file_stat = os.stat(file_path)
                     files.append({
@@ -1166,23 +1187,26 @@ async def list_uploaded_files():
         return JSONResponse({
             "files": files,
             "total_count": len(files),
-            "total_size_mb": round(sum(f["size_mb"] for f in files), 2)
+            "total_size_mb": round(sum(f["size_mb"] for f in files), 2),
+            "current_folder": folder or "Downloads"
         })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取文件列表失败: {str(e)}")
 
 @app.get("/files/{filename}")
-async def download_uploaded_file(filename: str):
+async def download_uploaded_file(filename: str, folder: str = None):
     """下载上传的文件"""
     try:
-        file_path = os.path.join(UPLOAD_DIR, filename)
+        # 获取文件所在目录
+        file_dir = get_upload_dir(folder)
+        file_path = os.path.join(file_dir, filename)
         
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="文件不存在")
         
         # 安全检查：确保文件在Downloads目录内
-        if not os.path.abspath(file_path).startswith(os.path.abspath(UPLOAD_DIR)):
+        if not os.path.abspath(file_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
             raise HTTPException(status_code=400, detail="无效的文件路径")
         
         # 返回文件流
@@ -1198,16 +1222,18 @@ async def download_uploaded_file(filename: str):
         raise HTTPException(status_code=500, detail=f"文件下载失败: {str(e)}")
 
 @app.delete("/files/{filename}")
-async def delete_uploaded_file(filename: str):
+async def delete_uploaded_file(filename: str, folder: str = None):
     """删除上传的文件"""
     try:
-        file_path = os.path.join(UPLOAD_DIR, filename)
+        # 获取文件所在目录
+        file_dir = get_upload_dir(folder)
+        file_path = os.path.join(file_dir, filename)
         
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="文件不存在")
         
         # 安全检查：确保文件在Downloads目录内
-        if not os.path.abspath(file_path).startswith(os.path.abspath(UPLOAD_DIR)):
+        if not os.path.abspath(file_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
             raise HTTPException(status_code=400, detail="无效的文件路径")
         
         os.remove(file_path)

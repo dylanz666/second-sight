@@ -2,6 +2,10 @@ let ws = null;
 let autoRefreshInterval = null;
 let isConnected = false;
 
+// 文件管理相关变量
+let selectedFiles = []; // 当前选择的文件列表
+let selectedPath = null; // 当前选择的目标路径
+
 // 趋势图数据管理
 let memoryTrendData = [];
 let cpuTrendData = [];
@@ -1080,16 +1084,37 @@ function toggleMonitorImage(monitorIndex) {
 
 // ==================== 文件上传功能 ====================
 
-// 全局变量
-let selectedFiles = [];
-
 // 文件选择事件监听
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('fileInput');
+    const pathInput = document.getElementById('pathInput');
+    
     if (fileInput) {
         fileInput.addEventListener('change', handleFileSelection);
     }
+    
+    if (pathInput) {
+        pathInput.addEventListener('change', handlePathSelectionEvent);
+    }
+    
+    // 初始化上传按钮状态
+    updateFileSelectionUI();
+    
+    // 自动加载文件列表，无需点击刷新按钮
+    loadFileList();
 });
+
+// 处理合并后的文件上传按钮
+function handleFileUpload() {
+    // 如果没有选择文件，先触发文件选择
+    if (selectedFiles.length === 0) {
+        document.getElementById('fileInput').click();
+        return;
+    }
+    
+    // 如果已经有文件选择，直接上传
+    uploadFiles();
+}
 
 // 处理文件选择
 function handleFileSelection(event) {
@@ -1097,8 +1122,8 @@ function handleFileSelection(event) {
     const oversizedFiles = [];
     
     selectedFiles = files.filter(file => {
-        // 检查文件大小 (50MB限制)
-        if (file.size > 50 * 1024 * 1024) {
+        // 检查文件大小 (100MB限制)
+        if (file.size > 100 * 1024 * 1024) {
             oversizedFiles.push(file.name);
             return false;
         }
@@ -1107,7 +1132,7 @@ function handleFileSelection(event) {
     
     // 显示超大文件的警告
     if (oversizedFiles.length > 0) {
-        const warningMsg = `文件 ${oversizedFiles.join(', ')} 超过50MB限制，已跳过`;
+        const warningMsg = `文件 ${oversizedFiles.join(', ')} 超过100MB限制，已跳过`;
         addLog('文件上传', warningMsg, 'warning');
         showNotification(warningMsg, 'warning', 4000);
     }
@@ -1115,27 +1140,160 @@ function handleFileSelection(event) {
     updateFileSelectionUI();
 }
 
+// 处理路径选择按钮点击
+function handlePathSelection() {
+    // 使用prompt让用户输入目标路径
+    const customPath = prompt('请输入目标文件路径 (例如: Documents/MyFiles 或留空使用默认Downloads目录):');
+    
+    if (customPath !== null) { // 用户点击了确定
+        if (customPath.trim() === '') {
+            // 用户输入了空路径，清除选择
+            clearSelectedPath();
+        } else {
+            // 设置选中的路径
+            selectedPath = customPath.trim();
+            
+            // 更新UI显示
+            updatePathSelectionUI();
+            
+            // 显示成功消息
+            const successMsg = `已设置目标路径: ${selectedPath}`;
+            addLog('路径选择', successMsg, 'success');
+            showNotification(successMsg, 'success', 3000);
+            
+            // 自动刷新文件列表
+            loadFileList();
+        }
+    }
+}
+
+// 处理路径选择事件 (保留用于文件选择的情况)
+function handlePathSelectionEvent(event) {
+    const file = event.target.files[0];
+    
+    if (!file) {
+        return;
+    }
+    
+    // 获取文件名作为路径提示
+    const fileName = file.name;
+    
+    // 使用prompt让用户确认或修改路径
+    const customPath = prompt(`检测到文件: ${fileName}\n请输入目标路径 (例如: Documents/MyFiles 或留空使用默认Downloads目录):`);
+    
+    if (customPath !== null) { // 用户点击了确定
+        if (customPath.trim() === '') {
+            // 用户输入了空路径，清除选择
+            clearSelectedPath();
+        } else {
+            // 设置选中的路径
+            selectedPath = customPath.trim();
+            
+            // 更新UI显示
+            updatePathSelectionUI();
+            
+            // 显示成功消息
+            const successMsg = `已设置目标路径: ${selectedPath}`;
+            addLog('路径选择', successMsg, 'success');
+            showNotification(successMsg, 'success', 3000);
+            
+            // 自动刷新文件列表
+            loadFileList();
+        }
+    }
+    
+    // 清除文件选择，避免影响后续操作
+    event.target.value = '';
+}
+
+// 更新路径选择UI
+function updatePathSelectionUI() {
+    const pathInfo = document.getElementById('pathInfo');
+    const currentPath = document.getElementById('currentPath');
+    const pathBtn = document.getElementById('pathBtn');
+    
+    if (selectedPath) {
+        pathInfo.style.display = 'block';
+        currentPath.textContent = selectedPath;
+        pathBtn.innerHTML = '📁 已选择';
+        pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+        pathBtn.onclick = clearSelectedPath; // 点击已选择的路径按钮时清除选择
+    } else {
+        pathInfo.style.display = 'none';
+        pathBtn.innerHTML = '📁 设置路径';
+        pathBtn.style.background = '';
+        pathBtn.onclick = handlePathSelection; // 恢复选择路径功能
+    }
+}
+
+// 清除选中的路径
+function clearSelectedPath() {
+    selectedPath = null;
+    updatePathSelectionUI();
+    
+    const successMsg = '已清除路径设置，返回默认Downloads目录';
+    addLog('路径选择', successMsg, 'info');
+    showNotification(successMsg, 'info', 3000);
+    
+    // 自动刷新文件列表
+    loadFileList();
+}
+
+// 删除选中的文件
+function removeSelectedFile(fileIndex) {
+    if (fileIndex >= 0 && fileIndex < selectedFiles.length) {
+        const removedFile = selectedFiles[fileIndex];
+        selectedFiles.splice(fileIndex, 1);
+        
+        // 显示删除成功消息
+        const successMsg = `已从上传列表中移除: ${removedFile.name}`;
+        addLog('文件管理', successMsg, 'info');
+        showNotification(successMsg, 'info', 2000);
+        
+        // 更新UI
+        updateFileSelectionUI();
+    }
+}
+
 // 更新文件选择UI
 function updateFileSelectionUI() {
     const uploadBtn = document.getElementById('uploadBtn');
     const uploadInfo = document.getElementById('uploadInfo');
-    const selectedFilesCount = document.getElementById('selectedFilesCount');
     
     if (selectedFiles.length > 0) {
         uploadBtn.disabled = false;
         uploadInfo.style.display = 'block';
-        selectedFilesCount.textContent = selectedFiles.length;
         
-        // 显示文件信息
-        const fileInfoText = selectedFiles.map(file => {
+        // 创建文件列表HTML
+        let fileListHTML = `<div style="margin-bottom: 8px;"><span style="font-weight: bold;">已选择 ${selectedFiles.length} 个文件:</span></div>`;
+        
+        selectedFiles.forEach((file, index) => {
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            return `${file.name} (${sizeMB}MB)`;
-        }).join(', ');
+            fileListHTML += `
+                <div class="selected-file-item">
+                    <div class="file-name" title="${file.name}">${file.name}</div>
+                    <div class="file-size">(${sizeMB}MB)</div>
+                    <button 
+                        class="delete-btn"
+                        onclick="removeSelectedFile(${index})" 
+                        title="删除此文件"
+                    >
+                        ✕
+                    </button>
+                </div>
+            `;
+        });
         
-        uploadInfo.innerHTML = `<span id="selectedFilesCount">${selectedFiles.length}</span> 个文件已选择<br><small>${fileInfoText}</small>`;
+        uploadInfo.innerHTML = fileListHTML;
+        
+        // 更新按钮文本，表示可以上传
+        uploadBtn.innerHTML = '⬆️ 上传';
     } else {
-        uploadBtn.disabled = true;
+        uploadBtn.disabled = false; // 按钮不再禁用，而是用于选择文件
         uploadInfo.style.display = 'none';
+        
+        // 更新按钮文本，表示可以选择文件
+        uploadBtn.innerHTML = '选择文件';
     }
 }
 
@@ -1155,13 +1313,18 @@ async function uploadFiles() {
     
     try {
         uploadBtn.disabled = true;
-        uploadBtn.textContent = '⏳ 上传中...';
+        uploadBtn.innerHTML = '⏳ 上传中...';
         uploadProgress.style.display = 'block';
         
         const formData = new FormData();
         selectedFiles.forEach(file => {
             formData.append('files', file);
         });
+        
+        // 如果有选择的文件夹，添加到请求中
+        if (selectedPath) {
+            formData.append('folder_path', selectedPath);
+        }
         
         const xhr = new XMLHttpRequest();
         
@@ -1202,11 +1365,10 @@ async function uploadFiles() {
             }
             
             // 重置UI
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = '⬆️ 上传文件';
             uploadProgress.style.display = 'none';
             progressFill.style.width = '0%';
             progressText.textContent = '0%';
+            updateFileSelectionUI();
         });
         
         // 监听上传错误
@@ -1214,9 +1376,8 @@ async function uploadFiles() {
             const errorMsg = '网络错误，上传失败';
             addLog('文件上传', errorMsg, 'error');
             showNotification(errorMsg, 'error', 5000);
-            uploadBtn.disabled = false;
-            uploadBtn.textContent = '⬆️ 上传文件';
             uploadProgress.style.display = 'none';
+            updateFileSelectionUI();
         });
         
         // 发送请求
@@ -1227,9 +1388,8 @@ async function uploadFiles() {
         const errorMsg = '上传失败: ' + error.message;
         addLog('文件上传', errorMsg, 'error');
         showNotification(errorMsg, 'error', 5000);
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = '⬆️ 上传文件';
         uploadProgress.style.display = 'none';
+        updateFileSelectionUI();
     }
 }
 
@@ -1240,11 +1400,23 @@ async function loadFileList() {
     try {
         fileList.innerHTML = '<div class="file-list-placeholder">加载中...</div>';
         
-        const response = await fetch(getServerBaseUrl() + '/files');
+        // 构建请求URL，包含文件夹路径参数
+        let url = getServerBaseUrl() + '/files';
+        if (selectedPath) {
+            url += `?folder=${encodeURIComponent(selectedPath)}`;
+        }
+        
+        const response = await fetch(url);
         const data = await response.json();
         
         if (data.files && data.files.length > 0) {
             fileList.innerHTML = '';
+            
+            // 显示当前文件夹信息
+            const folderHeader = document.createElement('div');
+            folderHeader.style.cssText = 'padding: 8px; background: #e9ecef; border-radius: 4px; margin-bottom: 8px; font-size: 12px; color: #495057;';
+            folderHeader.innerHTML = `📁 当前文件夹: ${data.current_folder || 'Downloads'} (${data.files.length} 个文件)`;
+            fileList.appendChild(folderHeader);
             
             data.files.forEach(file => {
                 const fileItem = createFileItem(file);
@@ -1253,7 +1425,8 @@ async function loadFileList() {
             
             addLog('文件管理', `已加载 ${data.files.length} 个文件`, 'info');
         } else {
-            fileList.innerHTML = '<div class="file-list-placeholder">暂无文件</div>';
+            const folderInfo = data.current_folder || 'Downloads';
+            fileList.innerHTML = `<div class="file-list-placeholder">📁 ${folderInfo} 文件夹中暂无文件</div>`;
         }
         
     } catch (error) {
@@ -1267,14 +1440,14 @@ function createFileItem(file) {
     const fileItem = document.createElement('div');
     fileItem.className = 'file-item';
     
-    const uploadTime = new Date(file.upload_time).toLocaleString();
+    const uploadTime = new Date(file.upload_time).toLocaleString('zh-CN', { hour12: false });
     
     fileItem.innerHTML = `
         <div class="file-info">
             <div class="file-name">${file.filename}</div>
             <div class="file-details">
                 <span>大小: ${file.size_mb}MB</span>
-                <span>上传: ${uploadTime}</span>
+                <span>日期: ${uploadTime}</span>
             </div>
         </div>
         <div class="file-actions">
@@ -1293,7 +1466,13 @@ function createFileItem(file) {
 // 下载文件
 async function downloadFile(filename) {
     try {
-        const response = await fetch(getServerBaseUrl() + `/files/${filename}`);
+        // 构建请求URL，包含文件夹路径参数
+        let url = getServerBaseUrl() + `/files/${filename}`;
+        if (selectedPath) {
+            url += `?folder=${encodeURIComponent(selectedPath)}`;
+        }
+        
+        const response = await fetch(url);
         
         if (response.ok) {
             const blob = await response.blob();
@@ -1328,7 +1507,13 @@ async function deleteFile(filename) {
     }
     
     try {
-        const response = await fetch(getServerBaseUrl() + `/files/${filename}`, {
+        // 构建请求URL，包含文件夹路径参数
+        let url = getServerBaseUrl() + `/files/${filename}`;
+        if (selectedPath) {
+            url += `?folder=${encodeURIComponent(selectedPath)}`;
+        }
+        
+        const response = await fetch(url, {
             method: 'DELETE'
         });
         

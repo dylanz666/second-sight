@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250730">
+    <link rel="stylesheet" href="/static/styles.css?v=20250730-4">
 </head>
 <body>
     <div class="container">
@@ -105,11 +105,12 @@
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div class="file-input-wrapper" style="display: flex; gap: 4px;">
                                 <input type="file" id="fileInput" multiple accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z" style="display: none;">
-                                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
-                                    📂 选择
+                                <input type="file" id="pathInput" style="display: none;">
+                                <button class="btn btn-primary" onclick="handlePathSelection()" id="pathBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                    设置路径
                                 </button>
-                                <button class="btn btn-success" onclick="uploadFiles()" id="uploadBtn" disabled style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
-                                    ⬆️ 上传
+                                <button class="btn btn-success" onclick="handleFileUpload()" id="uploadBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                    选择文件
                                 </button>
                             </div>
                             <button 
@@ -121,6 +122,10 @@
                             >刷新</button>
                         </div>
                     </h3>
+                    <div class="path-info" id="pathInfo" style="display: none; margin-bottom: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">
+                        <span style="font-weight: bold;">目标路径:</span>
+                        <span id="currentPath" style="color: #007bff; word-break: break-all;"></span>
+                    </div>
                     <div class="upload-info" id="uploadInfo" style="display: none; margin-bottom: 8px;">
                         <span id="selectedFilesCount">0</span> 个文件已选择
                     </div>
@@ -172,6 +177,6 @@
         </div>
     </div>
 
-    <script src="/static/index.js?v=20250730-1"></script>
+    <script src="/static/index.js?v=20250730-4"></script>
 </body>
 </html>
