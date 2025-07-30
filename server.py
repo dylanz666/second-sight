@@ -1165,8 +1165,20 @@ async def upload_multiple_files(files: List[UploadFile] = File(...), folder_path
 async def list_uploaded_files(folder: str = None):
     """获取已上传文件列表"""
     try:
-        # 获取要列出的目录
-        list_dir = get_upload_dir(folder)
+        # 检查是否是系统路径
+        if folder and (folder.startswith('/') or folder.startswith('C:\\')):
+            # 系统路径
+            list_dir = folder
+            if not os.path.exists(list_dir):
+                return JSONResponse({
+                    "files": [],
+                    "total_count": 0,
+                    "total_size_mb": 0,
+                    "current_folder": folder
+                })
+        else:
+            # Downloads路径
+            list_dir = get_upload_dir(folder)
         
         files = []
         if os.path.exists(list_dir):
@@ -1199,7 +1211,13 @@ async def download_uploaded_file(filename: str, folder: str = None):
     """下载上传的文件"""
     try:
         # 获取文件所在目录
-        file_dir = get_upload_dir(folder)
+        if folder and (folder.startswith('/') or folder.startswith('C:\\')):
+            # 系统路径 - 出于安全考虑，不允许下载系统文件
+            raise HTTPException(status_code=403, detail="出于安全考虑，不允许下载系统文件")
+        else:
+            # Downloads路径
+            file_dir = get_upload_dir(folder)
+        
         file_path = os.path.join(file_dir, filename)
         
         if not os.path.exists(file_path):
@@ -1225,17 +1243,25 @@ async def download_uploaded_file(filename: str, folder: str = None):
 async def delete_uploaded_file(filename: str, folder: str = None):
     """删除上传的文件"""
     try:
-        # 获取文件所在目录
-        file_dir = get_upload_dir(folder)
+        # 获取文件目录
+        if folder and (folder.startswith('/') or folder.startswith('C:\\')):
+            # 系统路径 - 出于安全考虑，不允许删除系统文件
+            raise HTTPException(status_code=403, detail="出于安全考虑，不允许删除系统文件")
+        else:
+            # Downloads路径
+            file_dir = get_upload_dir(folder)
+        
         file_path = os.path.join(file_dir, filename)
         
+        # 安全检查：确保文件在允许的目录内
+        if not os.path.abspath(file_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
+            raise HTTPException(status_code=403, detail="访问被拒绝")
+        
+        # 检查文件是否存在
         if not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="文件不存在")
         
-        # 安全检查：确保文件在Downloads目录内
-        if not os.path.abspath(file_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
-            raise HTTPException(status_code=400, detail="无效的文件路径")
-        
+        # 删除文件
         os.remove(file_path)
         
         return JSONResponse({
@@ -1247,6 +1273,264 @@ async def delete_uploaded_file(filename: str, folder: str = None):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件删除失败: {str(e)}")
+
+@app.get("/directories")
+async def list_available_directories(path: str = ""):
+    """浏览Downloads目录下的文件系统"""
+    try:
+        # 构建目标路径
+        if path:
+            # 确保路径在Downloads目录内
+            target_path = os.path.join(DEFAULT_UPLOAD_DIR, path)
+            if not os.path.abspath(target_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
+                raise HTTPException(status_code=403, detail="访问被拒绝")
+        else:
+            target_path = DEFAULT_UPLOAD_DIR
+        
+        if not os.path.exists(target_path):
+            raise HTTPException(status_code=404, detail="路径不存在")
+        
+        if not os.path.isdir(target_path):
+            raise HTTPException(status_code=400, detail="指定路径不是目录")
+        
+        # 获取当前路径相对于Downloads的路径
+        relative_path = os.path.relpath(target_path, DEFAULT_UPLOAD_DIR)
+        if relative_path == ".":
+            relative_path = ""
+        
+        # 获取父目录路径
+        parent_path = ""
+        if relative_path:
+            parent_dir = os.path.dirname(relative_path)
+            if parent_dir == ".":
+                parent_path = ""
+            else:
+                parent_path = parent_dir
+        
+        # 获取目录内容
+        items = []
+        try:
+            for item in os.listdir(target_path):
+                item_path = os.path.join(target_path, item)
+                
+                # 只包含目录
+                if os.path.isdir(item_path):
+                    try:
+                        # 获取子目录中的文件数量
+                        file_count = len([f for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f))])
+                    except PermissionError:
+                        file_count = 0
+                    
+                    # 构建相对路径
+                    if relative_path:
+                        item_relative_path = os.path.join(relative_path, item)
+                    else:
+                        item_relative_path = item
+                    
+                    items.append({
+                        "name": item,
+                        "path": item_relative_path,
+                        "file_count": file_count,
+                        "full_path": item_path,
+                        "type": "directory"
+                    })
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="没有权限访问此目录")
+        
+        # 按名称排序
+        items.sort(key=lambda x: x["name"].lower())
+        
+        return JSONResponse({
+            "items": items,
+            "current_path": relative_path,
+            "parent_path": parent_path,
+            "base_path": DEFAULT_UPLOAD_DIR,
+            "total_count": len(items),
+            "can_go_up": relative_path != ""
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取目录列表失败: {str(e)}")
+
+@app.get("/system-directories")
+async def list_system_directories(path: str = ""):
+    """浏览系统根目录下的文件系统"""
+    try:
+        # print(f"DEBUG: Received path parameter: '{path}'")
+        
+        # 构建目标路径
+        if path:
+            # 处理Windows路径的特殊情况
+            if os.name == 'nt':
+                # 首先进行URL解码
+                import urllib.parse
+                try:
+                    decoded_path = urllib.parse.unquote(path)
+                    # print(f"DEBUG: URL decoded path: '{decoded_path}'")
+                    path = decoded_path
+                except Exception as e:
+                    print(f"DEBUG: URL decode failed: {e}")
+                
+                # 处理Windows路径格式问题 - 支持所有盘符
+                import re
+                # 匹配盘符模式：如 "C:", "D:", "E:" 等
+                drive_pattern = re.match(r'^([A-Za-z]:)(.+)$', path)
+                if drive_pattern:
+                    drive_letter = drive_pattern.group(1)
+                    remaining_path = drive_pattern.group(2)
+                    # 如果盘符后没有反斜杠，添加反斜杠
+                    if not remaining_path.startswith("\\"):
+                        path = drive_letter + "\\" + remaining_path
+                        # print(f"DEBUG: Fixed drive path to: '{path}'")
+                
+                # 确保路径中的反斜杠是正确的 - 支持所有盘符
+                if re.match(r'^[A-Za-z]:\\', path):
+                    # 替换所有正斜杠为反斜杠（如果存在）
+                    path = path.replace("/", "\\")
+                    # print(f"DEBUG: Normalized path separators: '{path}'")
+            
+            # 确保路径是绝对路径且安全
+            if os.path.isabs(path):
+                target_path = path
+                # print(f"DEBUG: Path is absolute: '{target_path}'")
+            else:
+                target_path = os.path.abspath(path)
+                # print(f"DEBUG: Made path absolute: '{target_path}'")
+        else:
+            # 根目录 - 在Windows上列出所有可用盘符
+            if os.name == 'nt':
+                # 获取所有可用盘符
+                import string
+                available_drives = []
+                for drive_letter in string.ascii_uppercase:
+                    drive_path = f"{drive_letter}:\\"
+                    if os.path.exists(drive_path):
+                        available_drives.append(drive_path)
+                
+                if available_drives:
+                    # 如果有可用盘符，返回盘符列表
+                    items = []
+                    for drive in available_drives:
+                        try:
+                            # 获取盘符的卷标（如果可用）
+                            import subprocess
+                            try:
+                                result = subprocess.run(['vol', drive], capture_output=True, text=True, shell=True)
+                                volume_label = result.stdout.strip().split('\n')[-1] if result.stdout else ""
+                            except:
+                                volume_label = ""
+                            
+                            items.append({
+                                "name": f"{drive} {volume_label}".strip(),
+                                "path": drive,
+                                "file_count": 0,
+                                "full_path": drive,
+                                "type": "drive"
+                            })
+                        except:
+                            items.append({
+                                "name": drive,
+                                "path": drive,
+                                "file_count": 0,
+                                "full_path": drive,
+                                "type": "drive"
+                            })
+                    
+                    return JSONResponse({
+                        "items": items,
+                        "current_path": "",
+                        "parent_path": "",
+                        "base_path": "",
+                        "total_count": len(items),
+                        "can_go_up": False
+                    })
+                else:
+                    # 如果没有可用盘符，使用C盘作为默认
+                    target_path = "C:\\"
+            else:
+                target_path = "/"
+            # print(f"DEBUG: Using root directory: '{target_path}'")
+        
+        # 安全检查：防止访问系统关键目录
+        forbidden_paths = [
+            os.path.expanduser("~/.ssh"),
+            "/etc/passwd",
+            "/etc/shadow",
+            "/proc",
+            "/sys",
+            "/dev"
+        ]
+        
+        for forbidden in forbidden_paths:
+            if target_path.startswith(forbidden):
+                raise HTTPException(status_code=403, detail="访问被拒绝")
+        
+        if not os.path.exists(target_path):
+            raise HTTPException(status_code=404, detail="路径不存在")
+        
+        if not os.path.isdir(target_path):
+            raise HTTPException(status_code=400, detail="指定路径不是目录")
+        
+        # 获取当前路径
+        current_path = target_path
+        
+        # 获取父目录路径
+        parent_path = ""
+        if current_path != "/" and not (os.name == 'nt' and re.match(r'^[A-Za-z]:\\$', current_path)):
+            parent_dir = os.path.dirname(current_path)
+            # print(f"DEBUG: Current path: '{current_path}', Parent dir: '{parent_dir}'")
+            if parent_dir == current_path:  # 已经是根目录
+                parent_path = ""
+                # print(f"DEBUG: Parent dir same as current, setting parent_path to empty")
+            else:
+                parent_path = parent_dir
+                # print(f"DEBUG: Setting parent_path to: '{parent_path}'")
+        else:
+            # print(f"DEBUG: At root directory, parent_path remains empty")
+            pass
+        
+        # 获取目录内容
+        items = []
+        try:
+            for item in os.listdir(target_path):
+                item_path = os.path.join(target_path, item)
+                
+                # 只包含目录
+                if os.path.isdir(item_path):
+                    try:
+                        # 获取子目录中的文件数量
+                        file_count = len([f for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f))])
+                    except PermissionError:
+                        file_count = 0
+                    
+                    items.append({
+                        "name": item,
+                        "path": item_path,
+                        "file_count": file_count,
+                        "full_path": item_path,
+                        "type": "directory"
+                    })
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="没有权限访问此目录")
+        
+        # 按名称排序
+        items.sort(key=lambda x: x["name"].lower())
+        
+        return JSONResponse({
+            "items": items,
+            "current_path": current_path,
+            "parent_path": parent_path,
+            "base_path": "/" if os.name != 'nt' else "",
+            "total_count": len(items),
+            "can_go_up": current_path != "/" and not (os.name == 'nt' and re.match(r'^[A-Za-z]:\\$', current_path))
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取系统目录列表失败: {str(e)}")
 
 if __name__ == "__main__":
     print("Starting Remote Viewer Server...")

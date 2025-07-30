@@ -103,7 +103,7 @@ body {
     background: white;
     border-radius: 12px;
     padding: 10px;
-    padding-top: 30px;
+    padding-top: 35px;
     box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     text-align: center;
     transition: all 0.3s ease;
@@ -706,10 +706,270 @@ body {
     box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
 }
 
+/* 按钮尺寸变体 */
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 12px;
+    height: 28px;
+    line-height: 1.2;
+    border-radius: 4px;
+}
+
+.btn-lg {
+    padding: 12px 24px;
+    font-size: 16px;
+    height: 48px;
+    line-height: 1.5;
+    border-radius: 8px;
+}
+
+/* 轮廓按钮样式 */
+.btn-outline-primary {
+    background: transparent;
+    color: #007bff;
+    border: 1px solid #007bff;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-primary:hover {
+    background: #007bff;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    color: white;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-outline-success {
+    background: transparent;
+    color: #28a745;
+    border: 1px solid #28a745;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-success:hover {
+    background: #28a745;
+    color: white;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-outline-danger {
+    background: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-danger:hover {
+    background: #dc3545;
+    color: white;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
 /* 路径信息显示样式 */
 .path-info {
     border-left: 3px solid #007bff;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* 路径选择模态框样式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #495057;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.modal-close:hover {
+    background-color: #e9ecef;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.path-navigation {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.current-path {
+    flex: 1;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #495057;
+    word-break: break-all;
+}
+
+.path-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.path-list {
+    flex: 1;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow-y: auto;
+    max-height: 300px;
+    background: white;
+}
+
+.path-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f3f4;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+}
+
+.path-item:hover {
+    background-color: #f8f9fa;
+}
+
+.path-item:last-child {
+    border-bottom: none;
+}
+
+.path-item .path-name {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.path-item .path-name::before {
+    content: "📁";
+    font-size: 14px;
+}
+
+.path-item .file-count {
+    background: #6c757d;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.loading-placeholder {
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.empty-placeholder {
+    padding: 20px;
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .upload-controls {
@@ -1143,4 +1403,4 @@ body {
         height: 20px;
         margin-left: 8px;
     }
-} 
+}

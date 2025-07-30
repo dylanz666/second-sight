@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250730-4">
+    <link rel="stylesheet" href="/static/styles.css?v=20250730-15">
 </head>
 <body>
     <div class="container">
@@ -106,11 +106,11 @@
                             <div class="file-input-wrapper" style="display: flex; gap: 4px;">
                                 <input type="file" id="fileInput" multiple accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z" style="display: none;">
                                 <input type="file" id="pathInput" style="display: none;">
-                                <button class="btn btn-primary" onclick="handlePathSelection()" id="pathBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                <button class="btn btn-primary" id="pathBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
                                     设置路径
                                 </button>
                                 <button class="btn btn-success" onclick="handleFileUpload()" id="uploadBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
-                                    选择文件
+                                    文件上传
                                 </button>
                             </div>
                             <button 
@@ -147,7 +147,7 @@
                     </div>
                 </div>
 
-                <div class="status-card">
+                <!-- <div class="status-card">
                     <h3>💡 使用说明</h3>
                     <div style="font-size: 12px; line-height: 1.4;">
                         <p><strong>方式1：直接打开HTML文件</strong></p>
@@ -172,11 +172,43 @@
                         <p>• 自动刷新：每2秒更新所有显示器截图</p>
                         <p>• 系统日志：记录所有操作和错误</p>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
 
-    <script src="/static/index.js?v=20250730-4"></script>
+    <!-- 路径选择模态框 -->
+    <div id="pathModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📁 选择目标路径</h3>
+                <button class="modal-close" onclick="closePathModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="path-navigation">
+                    <div class="current-path" id="modalCurrentPath">
+                        <span>📂 Downloads</span>
+                    </div>
+                    <div class="path-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="navigateUp()" id="upButton">
+                            ⬆️ 上级目录
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="refreshPathList()">
+                            🔄 刷新
+                        </button>
+                    </div>
+                </div>
+                <div class="path-list" id="modalPathList">
+                    <div class="loading-placeholder">正在加载目录列表...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="selectCurrentPath()">确定</button>
+                <button class="btn btn-outline-secondary" onclick="closePathModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/index.js?v=20250730-15"></script>
 </body>
 </html>
