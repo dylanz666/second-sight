@@ -111,11 +111,12 @@ body {
     overflow: hidden;
 }
 
-.monitor-item:hover {
+/* 移除显示器悬停效果 */
+/* .monitor-item:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(0,0,0,0.15);
     border-color: #27aea9;
-}
+} */
 
 .monitor-item::before {
     content: attr(data-resolution);
@@ -663,5 +664,360 @@ body {
     
     .monitor-item.collapsed .monitor-controls {
         margin-top: 0;
+    }
+}
+
+/* 文件上传样式 */
+
+/* 文件管理卡片中的上传按钮样式 */
+.status-card h3 .file-input-wrapper {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.status-card h3 .file-input-wrapper .btn {
+    padding: 2px 8px;
+    font-size: 12px;
+    height: 28px;
+    line-height: 1.2;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.status-card h3 .file-input-wrapper .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.upload-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.file-input-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.upload-info {
+    font-size: 14px;
+    color: #666;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+}
+
+.upload-progress {
+    margin-top: 15px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 10px;
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+}
+
+/* 文件列表样式 */
+.file-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-list-placeholder {
+    text-align: center;
+    color: #95a5a6;
+    font-style: italic;
+    padding: 20px;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background 0.2s ease;
+}
+
+.file-item:hover {
+    background: #f8f9fa;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 13px;
+    margin-bottom: 3px;
+    word-break: break-all;
+}
+
+.file-details {
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    gap: 15px;
+}
+
+.file-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.file-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.file-btn-delete {
+    background: #e74c3c;
+    color: white;
+}
+
+.file-btn-delete:hover {
+    background: #c0392b;
+    transform: scale(1.05);
+}
+
+.file-btn-download {
+    background: #3498db;
+    color: white;
+}
+
+.file-btn-download:hover {
+    background: #2980b9;
+    transform: scale(1.05);
+}
+
+/* 响应式文件上传样式 */
+@media (max-width: 768px) {
+    .status-card h3 {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .status-card h3 .file-input-wrapper {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .upload-controls {
+        gap: 10px;
+    }
+    
+    .file-input-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .file-input-wrapper .btn {
+        width: 100%;
+    }
+    
+    .file-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .file-actions {
+        align-self: flex-end;
+    }
+}
+
+@media (max-width: 480px) {
+    .file-details {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .file-actions {
+        gap: 3px;
+    }
+    
+    .file-btn {
+        padding: 3px 6px;
+        font-size: 9px;
+    }
+} 
+
+/* ==================== 通知提示样式 ==================== */
+
+.notification-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: 400px;
+    min-width: 300px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid #3498db;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+}
+
+.notification-popup.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.notification-popup.success {
+    border-left-color: #27ae60;
+    background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+}
+
+.notification-popup.error {
+    border-left-color: #e74c3c;
+    background: linear-gradient(135deg, #fff8f8 0%, #ffffff 100%);
+}
+
+.notification-popup.warning {
+    border-left-color: #f39c12;
+    background: linear-gradient(135deg, #fffbf0 0%, #ffffff 100%);
+}
+
+.notification-popup.info {
+    border-left-color: #3498db;
+    background: linear-gradient(135deg, #f0f8ff 0%, #ffffff 100%);
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    position: relative;
+}
+
+.notification-icon {
+    font-size: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.notification-message {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #95a5a6;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.notification-close:hover {
+    background: rgba(149, 165, 166, 0.1);
+    color: #7f8c8d;
+}
+
+.notification-close:active {
+    transform: scale(0.9);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .notification-popup {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        min-width: auto;
+        transform: translateY(-100%);
+    }
+    
+    .notification-popup.show {
+        transform: translateY(0);
+    }
+    
+    .notification-content {
+        padding: 14px 16px;
+    }
+    
+    .notification-message {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .notification-popup {
+        top: 5px;
+        right: 5px;
+        left: 5px;
+    }
+    
+    .notification-content {
+        padding: 12px 14px;
+    }
+    
+    .notification-icon {
+        font-size: 18px;
+        margin-right: 10px;
+    }
+    
+    .notification-message {
+        font-size: 12px;
+    }
+    
+    .notification-close {
+        font-size: 16px;
+        width: 20px;
+        height: 20px;
+        margin-left: 8px;
     }
 } 

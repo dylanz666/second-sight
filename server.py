@@ -1,5 +1,5 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, HTTPException
+from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -7,11 +7,13 @@ import json
 import base64
 import io
 import time
+import os
 from datetime import datetime
 import uvicorn
 from typing import List
 from PIL import Image, ImageDraw
 import psutil  # 添加psutil用于系统监控
+from pathlib import Path
 
 app = FastAPI(title="Remote Viewer Server", version="1.0.0")
 
@@ -1036,6 +1038,189 @@ async def get_screenshot_info():
         }
     except Exception as e:
         return {"error": str(e)}
+
+# 文件上传相关功能
+# 使用系统Downloads文件夹作为上传目录
+UPLOAD_DIR = str(Path.home() / "Downloads")
+ALLOWED_EXTENSIONS = {'.txt', '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.zip', '.rar', '.7z'}
+UPLOAD_FILE_SIZE_LIMIT = 100
+
+# 确保Downloads目录存在（通常已经存在）
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def is_allowed_file(filename: str) -> bool:
+    """检查文件扩展名是否允许"""
+    if not filename:
+        return False
+    file_ext = os.path.splitext(filename)[1].lower()
+    return file_ext in ALLOWED_EXTENSIONS
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """上传单个文件"""
+    try:        
+        # 检查文件大小 (限制为 UPLOAD_FILE_SIZE_LIMIT MB)
+        if file.size and file.size > UPLOAD_FILE_SIZE_LIMIT * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"文件大小超过{UPLOAD_FILE_SIZE_LIMIT}MB限制")
+        
+        # 生成安全的文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        safe_filename = f"{timestamp}_{file.filename}"
+        file_path = os.path.join(UPLOAD_DIR, safe_filename)
+        
+        # 保存文件
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        # 获取文件信息
+        file_size = len(content)
+        file_size_mb = round(file_size / (1024 * 1024), 2)
+        
+        return JSONResponse({
+            "message": "文件上传成功",
+            "filename": safe_filename,
+            "original_name": file.filename,
+            "size_mb": file_size_mb,
+            "upload_time": datetime.now().isoformat(),
+            "file_path": file_path
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+
+@app.post("/upload/multiple")
+async def upload_multiple_files(files: List[UploadFile] = File(...)):
+    """上传多个文件"""
+    try:
+        if not files:
+            raise HTTPException(status_code=400, detail="没有选择文件")
+        
+        if len(files) > 10:
+            raise HTTPException(status_code=400, detail="一次最多只能上传10个文件")
+        
+        uploaded_files = []
+        total_size = 0
+        
+        for file in files:            
+            # 检查文件大小
+            if file.size and file.size > UPLOAD_FILE_SIZE_LIMIT * 1024 * 1024:
+                continue  # 跳过过大的文件
+            
+            # 生成安全的文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_ext = os.path.splitext(file.filename)[1].lower()
+            safe_filename = f"{timestamp}_{file.filename}"
+            file_path = os.path.join(UPLOAD_DIR, safe_filename)
+            
+            # 保存文件
+            content = await file.read()
+            with open(file_path, "wb") as buffer:
+                buffer.write(content)
+            
+            file_size = len(content)
+            total_size += file_size
+            
+            uploaded_files.append({
+                "filename": safe_filename,
+                "original_name": file.filename,
+                "size_mb": round(file_size / (1024 * 1024), 2)
+            })
+        
+        return JSONResponse({
+            "message": f"成功上传 {len(uploaded_files)} 个文件",
+            "files": uploaded_files,
+            "total_size_mb": round(total_size / (1024 * 1024), 2),
+            "upload_time": datetime.now().isoformat()
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+
+@app.get("/files")
+async def list_uploaded_files():
+    """获取已上传文件列表"""
+    try:
+        files = []
+        if os.path.exists(UPLOAD_DIR):
+            for filename in os.listdir(UPLOAD_DIR):
+                file_path = os.path.join(UPLOAD_DIR, filename)
+                if os.path.isfile(file_path):
+                    file_stat = os.stat(file_path)
+                    files.append({
+                        "filename": filename,
+                        "size_mb": round(file_stat.st_size / (1024 * 1024), 2),
+                        "upload_time": datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                        "file_path": file_path
+                    })
+        
+        # 按上传时间倒序排列
+        files.sort(key=lambda x: x["upload_time"], reverse=True)
+        
+        return JSONResponse({
+            "files": files,
+            "total_count": len(files),
+            "total_size_mb": round(sum(f["size_mb"] for f in files), 2)
+        })
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取文件列表失败: {str(e)}")
+
+@app.get("/files/{filename}")
+async def download_uploaded_file(filename: str):
+    """下载上传的文件"""
+    try:
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="文件不存在")
+        
+        # 安全检查：确保文件在Downloads目录内
+        if not os.path.abspath(file_path).startswith(os.path.abspath(UPLOAD_DIR)):
+            raise HTTPException(status_code=400, detail="无效的文件路径")
+        
+        # 返回文件流
+        return StreamingResponse(
+            open(file_path, "rb"),
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件下载失败: {str(e)}")
+
+@app.delete("/files/{filename}")
+async def delete_uploaded_file(filename: str):
+    """删除上传的文件"""
+    try:
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="文件不存在")
+        
+        # 安全检查：确保文件在Downloads目录内
+        if not os.path.abspath(file_path).startswith(os.path.abspath(UPLOAD_DIR)):
+            raise HTTPException(status_code=400, detail="无效的文件路径")
+        
+        os.remove(file_path)
+        
+        return JSONResponse({
+            "message": "文件删除成功",
+            "filename": filename
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件删除失败: {str(e)}")
 
 if __name__ == "__main__":
     print("Starting Remote Viewer Server...")

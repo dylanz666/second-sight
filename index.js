@@ -962,6 +962,53 @@ function addLog(source, message, type = 'info') {
     }
 }
 
+// 显示通知提示
+function showNotification(message, type = 'info', duration = 3000) {
+    // 移除现有的通知
+    const existingNotification = document.querySelector('.notification-popup');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `notification-popup ${type}`;
+    
+    // 设置图标和样式
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    else if (type === 'error') icon = '❌';
+    else if (type === 'warning') icon = '⚠️';
+    
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${icon}</span>
+            <span class="notification-message">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    // 添加到页面
+    document.body.appendChild(notification);
+    
+    // 显示动画
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // 自动隐藏
+    if (duration > 0) {
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }, duration);
+    }
+}
+
 // 页面卸载时清理
 window.addEventListener('beforeunload', function () {
     if (ws) {
@@ -1028,5 +1075,279 @@ function toggleMonitorImage(monitorIndex) {
         toggleBtn.innerHTML = '👁️ 展开';
         toggleBtn.classList.add('collapsed');
         addLog('截图', `收起显示器 ${monitorIndex + 1}`, 'info');
+    }
+}
+
+// ==================== 文件上传功能 ====================
+
+// 全局变量
+let selectedFiles = [];
+
+// 文件选择事件监听
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelection);
+    }
+});
+
+// 处理文件选择
+function handleFileSelection(event) {
+    const files = Array.from(event.target.files);
+    const oversizedFiles = [];
+    
+    selectedFiles = files.filter(file => {
+        // 检查文件大小 (50MB限制)
+        if (file.size > 50 * 1024 * 1024) {
+            oversizedFiles.push(file.name);
+            return false;
+        }
+        return true;
+    });
+    
+    // 显示超大文件的警告
+    if (oversizedFiles.length > 0) {
+        const warningMsg = `文件 ${oversizedFiles.join(', ')} 超过50MB限制，已跳过`;
+        addLog('文件上传', warningMsg, 'warning');
+        showNotification(warningMsg, 'warning', 4000);
+    }
+    
+    updateFileSelectionUI();
+}
+
+// 更新文件选择UI
+function updateFileSelectionUI() {
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadInfo = document.getElementById('uploadInfo');
+    const selectedFilesCount = document.getElementById('selectedFilesCount');
+    
+    if (selectedFiles.length > 0) {
+        uploadBtn.disabled = false;
+        uploadInfo.style.display = 'block';
+        selectedFilesCount.textContent = selectedFiles.length;
+        
+        // 显示文件信息
+        const fileInfoText = selectedFiles.map(file => {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            return `${file.name} (${sizeMB}MB)`;
+        }).join(', ');
+        
+        uploadInfo.innerHTML = `<span id="selectedFilesCount">${selectedFiles.length}</span> 个文件已选择<br><small>${fileInfoText}</small>`;
+    } else {
+        uploadBtn.disabled = true;
+        uploadInfo.style.display = 'none';
+    }
+}
+
+// 上传文件
+async function uploadFiles() {
+    if (selectedFiles.length === 0) {
+        const warningMsg = '没有选择文件';
+        addLog('文件上传', warningMsg, 'warning');
+        showNotification(warningMsg, 'warning', 3000);
+        return;
+    }
+    
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    try {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = '⏳ 上传中...';
+        uploadProgress.style.display = 'block';
+        
+        const formData = new FormData();
+        selectedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        const xhr = new XMLHttpRequest();
+        
+        // 监听上传进度
+        xhr.upload.addEventListener('progress', function(event) {
+            if (event.lengthComputable) {
+                const percentComplete = (event.loaded / event.total) * 100;
+                progressFill.style.width = percentComplete + '%';
+                progressText.textContent = Math.round(percentComplete) + '%';
+            }
+        });
+        
+        // 监听上传完成
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    addLog('文件上传', response.message, 'success');
+                    showNotification(response.message, 'success', 5000);
+                    
+                    // 清空选择
+                    selectedFiles = [];
+                    document.getElementById('fileInput').value = '';
+                    updateFileSelectionUI();
+                    
+                    // 刷新文件列表
+                    loadFileList();
+                    
+                } catch (error) {
+                    const errorMsg = '解析响应失败: ' + error.message;
+                    addLog('文件上传', errorMsg, 'error');
+                    showNotification(errorMsg, 'error', 5000);
+                }
+            } else {
+                const errorMsg = '上传失败: HTTP ' + xhr.status;
+                addLog('文件上传', errorMsg, 'error');
+                showNotification(errorMsg, 'error', 5000);
+            }
+            
+            // 重置UI
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '⬆️ 上传文件';
+            uploadProgress.style.display = 'none';
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+        });
+        
+        // 监听上传错误
+        xhr.addEventListener('error', function() {
+            const errorMsg = '网络错误，上传失败';
+            addLog('文件上传', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '⬆️ 上传文件';
+            uploadProgress.style.display = 'none';
+        });
+        
+        // 发送请求
+        xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
+        xhr.send(formData);
+        
+    } catch (error) {
+        const errorMsg = '上传失败: ' + error.message;
+        addLog('文件上传', errorMsg, 'error');
+        showNotification(errorMsg, 'error', 5000);
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = '⬆️ 上传文件';
+        uploadProgress.style.display = 'none';
+    }
+}
+
+// 加载文件列表
+async function loadFileList() {
+    const fileList = document.getElementById('fileList');
+    
+    try {
+        fileList.innerHTML = '<div class="file-list-placeholder">加载中...</div>';
+        
+        const response = await fetch(getServerBaseUrl() + '/files');
+        const data = await response.json();
+        
+        if (data.files && data.files.length > 0) {
+            fileList.innerHTML = '';
+            
+            data.files.forEach(file => {
+                const fileItem = createFileItem(file);
+                fileList.appendChild(fileItem);
+            });
+            
+            addLog('文件管理', `已加载 ${data.files.length} 个文件`, 'info');
+        } else {
+            fileList.innerHTML = '<div class="file-list-placeholder">暂无文件</div>';
+        }
+        
+    } catch (error) {
+        fileList.innerHTML = '<div class="file-list-placeholder">加载失败: ' + error.message + '</div>';
+        addLog('文件管理', '加载文件列表失败: ' + error.message, 'error');
+    }
+}
+
+// 创建文件项
+function createFileItem(file) {
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item';
+    
+    const uploadTime = new Date(file.upload_time).toLocaleString();
+    
+    fileItem.innerHTML = `
+        <div class="file-info">
+            <div class="file-name">${file.filename}</div>
+            <div class="file-details">
+                <span>大小: ${file.size_mb}MB</span>
+                <span>上传: ${uploadTime}</span>
+            </div>
+        </div>
+        <div class="file-actions">
+            <button class="file-btn file-btn-download" onclick="downloadFile('${file.filename}')" title="下载">
+                📥
+            </button>
+            <button class="file-btn file-btn-delete" onclick="deleteFile('${file.filename}')" title="删除">
+                🗑️
+            </button>
+        </div>
+    `;
+    
+    return fileItem;
+}
+
+// 下载文件
+async function downloadFile(filename) {
+    try {
+        const response = await fetch(getServerBaseUrl() + `/files/${filename}`);
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            const successMsg = `文件 ${filename} 下载成功`;
+            addLog('文件管理', successMsg, 'success');
+            showNotification(successMsg, 'success', 3000);
+        } else {
+            const errorMsg = `下载文件 ${filename} 失败: HTTP ${response.status}`;
+            addLog('文件管理', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+        }
+    } catch (error) {
+        const errorMsg = `下载文件 ${filename} 失败: ${error.message}`;
+        addLog('文件管理', errorMsg, 'error');
+        showNotification(errorMsg, 'error', 5000);
+    }
+}
+
+// 删除文件
+async function deleteFile(filename) {
+    if (!confirm(`确定要删除文件 ${filename} 吗？`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(getServerBaseUrl() + `/files/${filename}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            addLog('文件管理', data.message, 'success');
+            showNotification(data.message, 'success', 3000);
+            
+            // 刷新文件列表
+            loadFileList();
+        } else {
+            const errorData = await response.json();
+            const errorMsg = `删除文件失败: ${errorData.detail}`;
+            addLog('文件管理', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+        }
+    } catch (error) {
+        const errorMsg = `删除文件失败: ${error.message}`;
+        addLog('文件管理', errorMsg, 'error');
+        showNotification(errorMsg, 'error', 5000);
     }
 }

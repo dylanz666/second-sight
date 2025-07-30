@@ -46,7 +46,7 @@
 
             <div class="sidebar">
                 <div class="status-card">
-                    <h3 style="display: flex; align-items: center;">
+                    <h3 style="display: flex; align-items: center; justify-content: space-between;">
                         🔌 设备情况
                         <button 
                             class="btn btn-info" 
@@ -95,6 +95,43 @@
                     <div class="status-item">
                         <span class="status-label">最后更新:</span>
                         <span class="status-value" id="last-update">-</span>
+                    </div>
+                </div>
+
+                <!-- 文件管理卡片 -->
+                <div class="status-card">
+                    <h3 style="display: flex; align-items: center; justify-content: space-between;">
+                        📁 文件管理
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="file-input-wrapper" style="display: flex; gap: 4px;">
+                                <input type="file" id="fileInput" multiple accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z" style="display: none;">
+                                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                    📂 选择
+                                </button>
+                                <button class="btn btn-success" onclick="uploadFiles()" id="uploadBtn" disabled style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                    ⬆️ 上传
+                                </button>
+                            </div>
+                            <button 
+                                class="btn btn-info" 
+                                style="padding: 2px 14px; font-size: 13px; height: 28px; line-height: 1.2; border-radius: 6px; transition: background 0.2s, color 0.2s, box-shadow 0.2s; cursor: pointer;"
+                                onclick="loadFileList()"
+                                onmouseover="this.style.background='#17a2b8'; this.style.color='#fff'; this.style.boxShadow='0 2px 8px rgba(23,162,184,0.15)';"
+                                onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';"
+                            >刷新</button>
+                        </div>
+                    </h3>
+                    <div class="upload-info" id="uploadInfo" style="display: none; margin-bottom: 8px;">
+                        <span id="selectedFilesCount">0</span> 个文件已选择
+                    </div>
+                    <div class="upload-progress" id="uploadProgress" style="display: none; margin-bottom: 8px;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-text" id="progressText">0%</div>
+                    </div>
+                    <div id="fileList" class="file-list">
+                        <div class="file-list-placeholder">点击刷新按钮加载文件列表</div>
                     </div>
                 </div>
 
