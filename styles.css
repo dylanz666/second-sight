@@ -891,15 +891,60 @@ body {
     padding: 10px 12px;
     border-bottom: 1px solid #f1f3f4;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
+    position: relative;
+    border-left: 4px solid transparent;
 }
 
-.path-item:hover {
+.path-item:hover:not(.selected) {
     background-color: #f8f9fa;
+}
+
+.path-item.selected {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    padding-left: 8px;
+    box-shadow: inset 0 0 0 1px #2196f3 !important;
+    position: relative;
+    font-weight: 500 !important;
+    z-index: 1;
+}
+
+.path-item.selected:hover {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    box-shadow: inset 0 0 0 1px #2196f3 !important;
+    font-weight: 500 !important;
+}
+
+/* 确保选中状态在所有情况下都保持 */
+.path-item.selected:focus {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    box-shadow: inset 0 0 0 1px #2196f3 !important;
+    font-weight: 500 !important;
+}
+
+.path-item.selected:active {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    box-shadow: inset 0 0 0 1px #2196f3 !important;
+    font-weight: 500 !important;
+}
+
+.path-item.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #2196f3;
+    font-weight: bold;
+    font-size: 14px;
 }
 
 .path-item:last-child {
@@ -916,6 +961,11 @@ body {
 .path-item .path-name::before {
     content: "📁";
     font-size: 14px;
+}
+
+.path-item .folder-icon {
+    font-size: 14px;
+    margin-right: 8px;
 }
 
 .path-item .file-count {

@@ -5,6 +5,7 @@ let isConnected = false;
 // 文件管理相关变量
 let selectedFiles = []; // 当前选择的文件列表
 let selectedPath = null; // 当前选择的目标路径
+let selectedPathName = null; // 当前选择的路径名称
 
 // 趋势图数据管理
 let memoryTrendData = [];
@@ -1202,6 +1203,12 @@ function openPathModal() {
     console.log('Setting modal display to flex'); // Debug log
     modal.style.display = 'flex';
     
+    // 重新显示目标路径元素
+    const pathInfo = document.getElementById('pathInfo');
+    if (pathInfo) {
+        pathInfo.style.display = 'block';
+    }
+    
     // 重置路径导航历史
     pathHistory = [];
     console.log('Reset path history:', pathHistory);
@@ -1215,6 +1222,12 @@ function openPathModal() {
 function closePathModal() {
     const modal = document.getElementById('pathModal');
     modal.style.display = 'none';
+    
+    // 隐藏目标路径元素
+    const pathInfo = document.getElementById('pathInfo');
+    if (pathInfo) {
+        pathInfo.style.display = 'none';
+    }
 }
 
 // 加载系统目录列表
@@ -1225,6 +1238,10 @@ async function loadSystemDirectories(path = '') {
         const pathList = document.getElementById('modalPathList');
         const currentPathElement = document.getElementById('modalCurrentPath');
         const upButton = document.getElementById('upButton');
+        
+        // 保存当前选中的路径信息，用于在加载后恢复选中状态
+        const currentSelectedPath = selectedPath;
+        const currentSelectedPathName = selectedPathName;
         
         // 显示加载状态
         pathList.innerHTML = '<div class="loading-placeholder">正在加载系统目录列表...</div>';
@@ -1263,10 +1280,10 @@ async function loadSystemDirectories(path = '') {
             };
             console.log('Showing up button for system directories');
         } else if (!data.current_path || data.current_path === '') {
-            // 在根目录时显示"返回根目录"按钮
+            // 在根目录时显示"跳转到根目录"按钮
             upButton.style.display = 'inline-block';
-            upButton.title = '返回根目录';
-            upButton.innerText = '🏠 返回根目录';
+            upButton.title = '跳转到根目录';
+            upButton.innerText = '🏠 跳转到根目录';
             upButton.onclick = function() {
                 loadSystemDirectories('');
             };
@@ -1277,7 +1294,7 @@ async function loadSystemDirectories(path = '') {
         }
         
         // 填充路径列表
-        populateSystemPathList(data.items);
+        populateSystemPathList(data.items, currentSelectedPath);
         
     } catch (error) {
         console.error('加载系统目录列表失败:', error);
@@ -1302,11 +1319,11 @@ async function loadSystemDirectories(path = '') {
 }
 
 // 填充系统路径列表
-function populateSystemPathList(items) {
+function populateSystemPathList(items, currentSelectedPath) {
     const pathList = document.getElementById('modalPathList');
     
     if (!items || items.length === 0) {
-        pathList.innerHTML = '<div class="empty-placeholder">当前目录为空</div>';
+        pathList.innerHTML = '<div class="empty-placeholder">当前目录下无文件夹</div>';
         return;
     }
     
@@ -1320,9 +1337,9 @@ function populateSystemPathList(items) {
         
         html += `
             <div class="path-item" 
-                 onclick="navigateToSystemPath('${item.path}')" 
+                 onclick="selectSystemPathItem(this, '${item.path}', '${item.name}')" 
                  ondblclick="navigateToSystemPath('${item.path}')"
-                 title="单击或双击进入: ${item.name}">
+                 title="单击选择，双击进入: ${item.name}">
                 <div class="path-name">
                     ${item.name}
                 </div>
@@ -1332,6 +1349,40 @@ function populateSystemPathList(items) {
     });
     
     pathList.innerHTML = html;
+    
+    // 恢复选中状态
+    if (currentSelectedPath && currentSelectedPath.trim() !== '') {
+        const pathItems = pathList.querySelectorAll('.path-item');
+        pathItems.forEach(item => {
+            try {
+                const itemPath = item.getAttribute('onclick').match(/'([^']+)'/)[1];
+                if (itemPath === currentSelectedPath) {
+                    item.classList.add('selected');
+                }
+            } catch (e) {
+                // 忽略解析错误
+            }
+        });
+    }
+}
+
+// 选中系统路径项
+function selectSystemPathItem(element, path, name) {
+    // 移除所有其他项的选中状态
+    const allItems = document.querySelectorAll('.path-item');
+    allItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // 添加当前项的选中状态
+    element.classList.add('selected');
+    
+    // 存储选中的路径信息
+    selectedPath = path;
+    selectedPathName = name;
+    
+    // 更新路径选择UI
+    updatePathSelectionUI();
 }
 
 // 导航到系统路径
@@ -1349,6 +1400,10 @@ async function loadModalPathList(path = '') {
         const currentPathElement = document.getElementById('modalCurrentPath');
         const upButton = document.getElementById('upButton');
         
+        // 保存当前选中的路径信息，用于在加载后恢复选中状态
+        const currentSelectedPath = selectedPath;
+        const currentSelectedPathName = selectedPathName;
+        
         // 显示加载状态
         pathList.innerHTML = '<div class="loading-placeholder">正在加载目录列表...</div>';
         
@@ -1357,7 +1412,7 @@ async function loadModalPathList(path = '') {
         if (path === '') {
             console.log('path is empty');
             upButton.style.display = 'inline-block';
-            upButton.innerText = '返回根目录';
+            upButton.innerText = '跳转到根目录';
             upButton.onclick = function() {
                 loadSystemDirectories('');
             };
@@ -1393,7 +1448,7 @@ async function loadModalPathList(path = '') {
         }
         
         // 填充路径列表
-        populateModalPathList(data.items);
+        populateModalPathList(data.items, currentSelectedPath);
         
     } catch (error) {
         console.error('加载路径列表失败:', error);
@@ -1418,7 +1473,7 @@ async function loadModalPathList(path = '') {
 }
 
 // 填充模态框路径列表
-function populateModalPathList(items) {
+function populateModalPathList(items, currentSelectedPath) {
     const pathList = document.getElementById('modalPathList');
     
     if (!items || items.length === 0) {
@@ -1431,9 +1486,9 @@ function populateModalPathList(items) {
         const itemPath = currentModalPath ? `${currentModalPath}/${item.name}` : item.name;
         html += `
             <div class="path-item" 
-                 onclick="navigateToPath('${itemPath}')" 
+                 onclick="selectModalPathItem(this, '${itemPath}', '${item.name}')" 
                  ondblclick="navigateToPath('${itemPath}')"
-                 title="单击或双击进入: ${item.name}">
+                 title="单击选择，双击进入: ${item.name}">
                 <div class="path-name">
                     ${item.name}
                 </div>
@@ -1443,6 +1498,40 @@ function populateModalPathList(items) {
     });
     
     pathList.innerHTML = html;
+    
+    // 恢复选中状态
+    if (currentSelectedPath && currentSelectedPath.trim() !== '') {
+        const pathItems = pathList.querySelectorAll('.path-item');
+        pathItems.forEach(item => {
+            try {
+                const itemPath = item.getAttribute('onclick').match(/'([^']+)'/)[1];
+                if (itemPath === currentSelectedPath) {
+                    item.classList.add('selected');
+                }
+            } catch (e) {
+                // 忽略解析错误
+            }
+        });
+    }
+}
+
+// 选中模态框路径项
+function selectModalPathItem(element, path, name) {
+    // 移除所有其他项的选中状态
+    const allItems = document.querySelectorAll('.path-item');
+    allItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // 添加当前项的选中状态
+    element.classList.add('selected');
+    
+    // 存储选中的路径信息
+    selectedPath = path;
+    selectedPathName = name;
+    
+    // 更新路径选择UI
+    updatePathSelectionUI();
 }
 
 // 导航到指定路径
@@ -1477,19 +1566,29 @@ function refreshPathList() {
 // 选择当前路径并关闭模态框
 function selectCurrentPath() {
     console.log('Selecting current path:', currentModalPath);
+    console.log('Currently selected path:', selectedPath);
+    
+    // 如果用户已经选中了某个路径，使用选中的路径；否则使用当前浏览的路径
+    const finalSelectedPath = selectedPath || currentModalPath || '';
     
     // 设置选中的路径
-    selectedPath = currentModalPath || '';
+    selectedPath = finalSelectedPath;
     
     // 更新UI
     updatePathSelectionUI();
+    
+    // 隐藏目标路径元素
+    const pathInfo = document.getElementById('pathInfo');
+    if (pathInfo) {
+        pathInfo.style.display = 'none';
+    }
     
     // 关闭模态框
     closePathModal();
     
     // 显示成功消息
     let pathDisplay;
-    if (selectedPath && selectedPath.startsWith('/') || selectedPath.startsWith('C:\\')) {
+    if (selectedPath && (selectedPath.startsWith('/') || selectedPath.startsWith('C:\\'))) {
         // 系统路径
         pathDisplay = selectedPath;
     } else {
@@ -1566,7 +1665,7 @@ function updatePathSelectionUI() {
         } else {
             // Downloads路径
             displayPath = selectedPath ? `Downloads/${selectedPath}` : 'Downloads';
-            pathBtn.innerHTML = '📁 已选择';
+            pathBtn.innerHTML = '已选择';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         }
         
@@ -1581,7 +1680,21 @@ function updatePathSelectionUI() {
 // 清除选中的路径
 function clearSelectedPath() {
     selectedPath = null;
+    selectedPathName = null;
+    
+    // 清除所有路径项的选中状态
+    const allItems = document.querySelectorAll('.path-item');
+    allItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
     updatePathSelectionUI();
+    
+    // 隐藏目标路径元素
+    const pathInfo = document.getElementById('pathInfo');
+    if (pathInfo) {
+        pathInfo.style.display = 'none';
+    }
     
     const successMsg = '已清除路径设置，返回默认Downloads目录';
     addLog('路径选择', successMsg, 'info');
@@ -1767,7 +1880,16 @@ async function loadFileList() {
             // 显示当前文件夹信息
             const folderHeader = document.createElement('div');
             folderHeader.style.cssText = 'padding: 8px; background: #e9ecef; border-radius: 4px; margin-bottom: 8px; font-size: 12px; color: #495057;';
-            folderHeader.innerHTML = `📁 当前文件夹: ${data.current_folder || 'Downloads'} (${data.files.length} 个文件)`;
+            
+            // 构建完整的文件夹路径显示
+            let folderDisplay;
+            if (data.current_folder && data.current_folder !== 'Downloads') {
+                folderDisplay = `Downloads/${data.current_folder}`;
+            } else {
+                folderDisplay = 'Downloads';
+            }
+            
+            folderHeader.innerHTML = `📁 当前文件夹: ${folderDisplay} (${data.files.length} 个文件)`;
             fileList.appendChild(folderHeader);
             
             data.files.forEach(file => {
@@ -1777,8 +1899,14 @@ async function loadFileList() {
             
             addLog('文件管理', `已加载 ${data.files.length} 个文件`, 'info');
         } else {
-            const folderInfo = data.current_folder || 'Downloads';
-            fileList.innerHTML = `<div class="file-list-placeholder">📁 ${folderInfo} 文件夹中暂无文件</div>`;
+            // 构建完整的文件夹路径显示
+            let folderDisplay;
+            if (data.current_folder && data.current_folder !== 'Downloads') {
+                folderDisplay = `Downloads/${data.current_folder}`;
+            } else {
+                folderDisplay = 'Downloads';
+            }
+            fileList.innerHTML = `<div class="file-list-placeholder">📁 ${folderDisplay} 文件夹中暂无文件</div>`;
         }
         
     } catch (error) {
