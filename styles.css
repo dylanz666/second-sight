@@ -217,6 +217,148 @@ body {
     box-shadow: 0 3px 10px rgba(86, 171, 47, 0.3);
 }
 
+.monitor-btn-toggle {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.monitor-btn-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
+}
+
+.monitor-btn-toggle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.monitor-btn-toggle:active::before {
+    width: 100px;
+    height: 100px;
+}
+
+/* 按钮点击时的缩放效果 */
+.monitor-btn-toggle:active {
+    transform: scale(0.95);
+}
+
+/* 收起状态下的脉冲动画 */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 按钮状态切换动画 */
+.monitor-btn-toggle {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.monitor-btn-toggle.collapsed {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    animation: pulse 2s infinite;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.monitor-btn-toggle.collapsed:hover {
+    box-shadow: 0 3px 12px rgba(52, 152, 219, 0.4);
+    animation: none;
+    transform: translateY(-2px);
+}
+
+/* 按钮图标动画 */
+.monitor-btn-toggle::after {
+    content: '';
+    display: inline-block;
+    margin-left: 5px;
+    transition: transform 0.3s ease;
+}
+
+.monitor-btn-toggle.collapsed::after {
+    transform: rotate(180deg);
+}
+
+/* 收起状态的显示器容器样式 */
+.monitor-item.collapsed .monitor-image {
+    display: none;
+}
+
+.monitor-item.collapsed {
+    min-height: 120px;
+    transition: min-height 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.monitor-item.collapsed::after {
+    content: '📷 显示器已收起';
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    color: #95a5a6;
+    font-size: 14px;
+    font-weight: 500;
+    background: rgba(149, 165, 166, 0.1);
+    padding: 20px 30px;
+    border-radius: 8px;
+    border: 2px dashed #bdc3c7;
+    pointer-events: none;
+    margin-bottom: 15px;
+}
+
+/* 收起状态下的标题样式 */
+.monitor-item.collapsed .monitor-title {
+    margin-bottom: 5px;
+    opacity: 0.8;
+}
+
+/* 收起状态下的信息样式 */
+.monitor-item.collapsed .monitor-info {
+    opacity: 0.6;
+}
+
+/* 收起状态下的控制按钮样式 */
+.monitor-item.collapsed .monitor-controls {
+    margin-top: 0;
+    order: 2;
+}
+
+/* 展开动画 */
+.monitor-image {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.monitor-image.expanding {
+    transform: scale(0.95);
+    opacity: 0;
+}
+
+.monitor-image.expanded {
+    transform: scale(1);
+    opacity: 1;
+}
+
 .monitors-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
@@ -463,5 +605,63 @@ body {
     
     .controls {
         flex-direction: column;
+    }
+    
+    /* 移动端收起/展开按钮样式 */
+    .monitor-controls {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .monitor-btn {
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+    
+    .monitor-btn-toggle {
+        order: 1;
+    }
+    
+    /* 移动端收起状态样式 */
+    .monitor-item.collapsed {
+        padding: 15px;
+    }
+    
+    .monitor-item.collapsed::after {
+        font-size: 12px;
+        padding: 15px 20px;
+        margin-bottom: 10px;
+    }
+    
+    .monitor-item.collapsed .monitor-controls {
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .monitor-controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .monitor-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+        min-width: 80px;
+    }
+    
+    .monitor-item.collapsed {
+        padding: 10px;
+    }
+    
+    .monitor-item.collapsed::after {
+        font-size: 11px;
+        padding: 10px 15px;
+        margin-bottom: 8px;
+    }
+    
+    .monitor-item.collapsed .monitor-controls {
+        margin-top: 0;
     }
 } 

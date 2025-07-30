@@ -752,13 +752,36 @@ function displayMultiMonitors(screenshots) {
         const controls = document.createElement('div');
         controls.className = 'monitor-controls';
         controls.innerHTML = `
-                    <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${screenshot.monitor_index})">
-                        🔄 刷新
-                    </button>
-                    <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${screenshot.monitor_index})">
-                        ⛶ 全屏
-                    </button>
-                `;
+            <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${screenshot.monitor_index})">
+                🔄 刷新
+            </button>
+            <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${screenshot.monitor_index})">
+                ⛶ 全屏
+            </button>
+            <button class="monitor-btn monitor-btn-toggle" id="toggle-btn-${screenshot.monitor_index}" onclick="toggleMonitorImage(${screenshot.monitor_index})">
+                📷 收起
+            </button>
+        `;
+
+        // 添加收起/展开功能
+        setTimeout(() => {
+            const imgElem = monitorDiv.querySelector('.monitor-image');
+            const toggleBtn = controls.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
+            if (imgElem && toggleBtn) {
+                toggleBtn.dataset.expanded = "true";
+                toggleBtn.addEventListener('click', function () {
+                    if (toggleBtn.dataset.expanded === "true") {
+                        imgElem.style.display = "none";
+                        toggleBtn.textContent = "展开";
+                        toggleBtn.dataset.expanded = "false";
+                    } else {
+                        imgElem.style.display = "";
+                        toggleBtn.textContent = "收起";
+                        toggleBtn.dataset.expanded = "true";
+                    }
+                });
+            }
+        }, 0);
 
         monitorDiv.appendChild(img);
         monitorDiv.appendChild(controls);
@@ -955,3 +978,55 @@ document.addEventListener('fullscreenchange', function () {
         addLog('截图', '已退出全屏模式', 'info');
     }
 });
+
+// 切换显示器图片的收起/展开状态
+function toggleMonitorImage(monitorIndex) {
+    const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
+    if (!monitorDiv) {
+        addLog('截图', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+        return;
+    }
+
+    const img = monitorDiv.querySelector('.monitor-image');
+    const toggleBtn = document.getElementById(`toggle-btn-${monitorIndex}`);
+    
+    if (!img || !toggleBtn) {
+        addLog('截图', `显示器 ${monitorIndex + 1} 的元素不完整`, 'error');
+        return;
+    }
+
+    // 检查当前状态
+    const isCollapsed = img.style.display === 'none' || monitorDiv.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+        // 展开：显示图片
+        monitorDiv.classList.remove('collapsed');
+        img.style.display = 'block';
+        img.classList.add('expanding');
+        
+        // 使用requestAnimationFrame确保动画流畅
+        requestAnimationFrame(() => {
+            img.classList.remove('expanding');
+            img.classList.add('expanded');
+            img.style.opacity = '1';
+        });
+        
+        toggleBtn.innerHTML = '📷 收起';
+        toggleBtn.classList.remove('collapsed');
+        addLog('截图', `展开显示器 ${monitorIndex + 1}`, 'info');
+    } else {
+        // 收起：隐藏图片
+        img.style.opacity = '0';
+        img.classList.remove('expanded');
+        img.classList.add('expanding');
+        
+        setTimeout(() => {
+            img.style.display = 'none';
+            monitorDiv.classList.add('collapsed');
+        }, 300);
+        
+        toggleBtn.innerHTML = '👁️ 展开';
+        toggleBtn.classList.add('collapsed');
+        addLog('截图', `收起显示器 ${monitorIndex + 1}`, 'info');
+    }
+}
