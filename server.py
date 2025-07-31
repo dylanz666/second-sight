@@ -1284,72 +1284,56 @@ async def delete_uploaded_file(filename: str, folder: str = None):
 
 @app.get("/directories")
 async def list_available_directories(path: str = ""):
-    """浏览Downloads目录下的文件系统"""
+    """获取指定路径下的目录列表"""
     import time
     start_time = time.time()
     timeout_seconds = 10
     
     try:
-        # 处理URL编码的路径参数
+        # URL解码路径参数
+        import urllib.parse
         if path:
-            import urllib.parse
-            try:
-                decoded_path = urllib.parse.unquote(path)
-                path = decoded_path
-            except Exception as e:
-                print(f"DEBUG: URL decode failed: {e}")
+            path = urllib.parse.unquote(path)
         
-        # 构建目标路径
+        # 构建完整路径
         if path:
+            full_path = os.path.join(DEFAULT_UPLOAD_DIR, path)
             # 确保路径在Downloads目录内
-            target_path = os.path.join(DEFAULT_UPLOAD_DIR, path)
-            if not os.path.abspath(target_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
+            if not os.path.abspath(full_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
                 raise HTTPException(status_code=403, detail="访问被拒绝")
         else:
-            target_path = DEFAULT_UPLOAD_DIR
+            full_path = DEFAULT_UPLOAD_DIR
         
-        if not os.path.exists(target_path):
+        # 确保路径存在
+        if not os.path.exists(full_path):
             raise HTTPException(status_code=404, detail="路径不存在")
         
-        if not os.path.isdir(target_path):
+        if not os.path.isdir(full_path):
             raise HTTPException(status_code=400, detail="指定路径不是目录")
         
-        # 获取当前路径相对于Downloads的路径
-        relative_path = os.path.relpath(target_path, DEFAULT_UPLOAD_DIR)
-        if relative_path == ".":
-            relative_path = ""
+        # 获取相对路径和父路径
+        relative_path = path
+        parent_path = os.path.dirname(relative_path) if relative_path else ""
         
-        # 确保路径使用正斜杠（前端期望的格式）
-        relative_path = relative_path.replace("\\", "/")
-        
-        # 获取父目录路径
-        parent_path = ""
-        if relative_path:
-            parent_dir = os.path.dirname(relative_path)
-            if parent_dir == ".":
-                parent_path = ""
-            else:
-                parent_path = parent_dir
-                # 确保父路径也使用正斜杠
-                parent_path = parent_path.replace("\\", "/")
-        
-        # 获取目录内容
-        items = []
+        # 获取目录列表
         try:
-            for item in os.listdir(target_path):
+            items = []
+            for item in os.listdir(full_path):
+                item_path = os.path.join(full_path, item)
+                
                 # 检查超时
                 if time.time() - start_time > timeout_seconds:
                     raise HTTPException(status_code=408, detail="请求超时")
                 
-                item_path = os.path.join(target_path, item)
-                
-                # 只包含目录
                 if os.path.isdir(item_path):
+                    # 计算文件夹数量，带超时处理
                     try:
-                        # 获取子目录中的文件数量
-                        file_count = len([f for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f))])
+                        folder_count = len([f for f in os.listdir(item_path) if os.path.isdir(os.path.join(item_path, f))])
                     except PermissionError:
-                        file_count = 0
+                        folder_count = 0
+                    except Exception as e:
+                        # 如果计算文件夹数量时出错（可能是超时或其他问题），返回特殊值
+                        folder_count = -1  # 使用-1表示超时或错误
                     
                     # 构建相对路径
                     if relative_path:
@@ -1363,7 +1347,7 @@ async def list_available_directories(path: str = ""):
                     items.append({
                         "name": item,
                         "path": item_relative_path,
-                        "file_count": file_count,
+                        "file_count": folder_count,
                         "full_path": item_path,
                         "type": "directory"
                     })
@@ -1450,6 +1434,10 @@ async def list_system_directories(path: str = ""):
                     # 如果有可用盘符，返回盘符列表
                     items = []
                     for drive in available_drives:
+                        # 检查超时
+                        if time.time() - start_time > timeout_seconds:
+                            raise HTTPException(status_code=408, detail="请求超时")
+                        
                         try:
                             # 获取盘符的卷标（如果可用）
                             import subprocess
@@ -1459,18 +1447,36 @@ async def list_system_directories(path: str = ""):
                             except:
                                 volume_label = ""
                             
+                            # 计算该盘符下的文件夹数量，带超时处理
+                            try:
+                                folder_count = len([f for f in os.listdir(drive) if os.path.isdir(os.path.join(drive, f))])
+                            except PermissionError:
+                                folder_count = 0
+                            except Exception as e:
+                                # 如果计算文件夹数量时出错（可能是超时或其他问题），返回特殊值
+                                folder_count = -1  # 使用-1表示超时或错误
+                            
                             items.append({
                                 "name": f"{drive} {volume_label}".strip(),
                                 "path": drive,
-                                "file_count": 0,
+                                "file_count": folder_count,
                                 "full_path": drive,
                                 "type": "drive"
                             })
                         except:
+                            # 如果获取卷标失败，仍然尝试计算文件夹数量
+                            try:
+                                folder_count = len([f for f in os.listdir(drive) if os.path.isdir(os.path.join(drive, f))])
+                            except PermissionError:
+                                folder_count = 0
+                            except Exception as e:
+                                # 如果计算文件夹数量时出错，返回特殊值
+                                folder_count = -1
+                            
                             items.append({
                                 "name": drive,
                                 "path": drive,
-                                "file_count": 0,
+                                "file_count": folder_count,
                                 "full_path": drive,
                                 "type": "drive"
                             })
@@ -1525,32 +1531,31 @@ async def list_system_directories(path: str = ""):
             else:
                 parent_path = parent_dir
                 # print(f"DEBUG: Setting parent_path to: '{parent_path}'")
-        else:
-            # print(f"DEBUG: At root directory, parent_path remains empty")
-            pass
         
-        # 获取目录内容
-        items = []
+        # 获取目录列表
         try:
-            for item in os.listdir(target_path):
+            items = []
+            for item in os.listdir(current_path):
+                item_path = os.path.join(current_path, item)
+                
                 # 检查超时
                 if time.time() - start_time > timeout_seconds:
                     raise HTTPException(status_code=408, detail="请求超时")
                 
-                item_path = os.path.join(target_path, item)
-                
-                # 只包含目录
                 if os.path.isdir(item_path):
+                    # 计算文件夹数量，带超时处理
                     try:
-                        # 获取子目录中的文件数量
-                        file_count = len([f for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f))])
+                        folder_count = len([f for f in os.listdir(item_path) if os.path.isdir(os.path.join(item_path, f))])
                     except PermissionError:
-                        file_count = 0
+                        folder_count = 0
+                    except Exception as e:
+                        # 如果计算文件夹数量时出错（可能是超时或其他问题），返回特殊值
+                        folder_count = -1  # 使用-1表示超时或错误
                     
                     items.append({
                         "name": item,
                         "path": item_path,
-                        "file_count": file_count,
+                        "file_count": folder_count,
                         "full_path": item_path,
                         "type": "directory"
                     })
@@ -1564,9 +1569,9 @@ async def list_system_directories(path: str = ""):
             "items": items,
             "current_path": current_path,
             "parent_path": parent_path,
-            "base_path": "/" if os.name != 'nt' else "",
+            "base_path": "",
             "total_count": len(items),
-            "can_go_up": current_path != "/" and not (os.name == 'nt' and re.match(r'^[A-Za-z]:\\$', current_path))
+            "can_go_up": parent_path != ""
         })
         
     except HTTPException:

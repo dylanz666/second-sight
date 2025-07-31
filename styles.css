@@ -1039,7 +1039,7 @@ body {
     font-size: 11px;
     min-width: 24px;
     text-align: center;
-    /* 确保与图片中的灰色椭圆显示一致 */
+    /* 显示文件夹数量，确保与图片中的灰色椭圆显示一致 */
     display: inline-flex;
     align-items: center;
     justify-content: center;
