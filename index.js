@@ -1280,10 +1280,10 @@ async function loadSystemDirectories(path = '') {
             };
             console.log('Showing up button for system directories');
         } else if (!data.current_path || data.current_path === '') {
-            // 在根目录时显示"跳转到根目录"按钮
+            // 在根目录时显示"跳至根目录"按钮
             upButton.style.display = 'inline-block';
-            upButton.title = '跳转到根目录';
-            upButton.innerText = '🏠 跳转到根目录';
+            upButton.title = '跳至根目录';
+            upButton.innerText = '🏠 跳至根目录';
             upButton.onclick = function() {
                 loadSystemDirectories('');
             };
@@ -1412,7 +1412,7 @@ async function loadModalPathList(path = '') {
         if (path === '') {
             console.log('path is empty');
             upButton.style.display = 'inline-block';
-            upButton.innerText = '跳转到根目录';
+            upButton.innerText = '🏠 跳至根目录';
             upButton.onclick = function() {
                 loadSystemDirectories('');
             };
