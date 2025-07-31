@@ -1477,13 +1477,14 @@ function populateModalPathList(items, currentSelectedPath) {
     const pathList = document.getElementById('modalPathList');
     
     if (!items || items.length === 0) {
-        pathList.innerHTML = '<div class="empty-placeholder">当前目录为空</div>';
+        pathList.innerHTML = '<div class="empty-placeholder">当前目录下无文件夹</div>';
         return;
     }
     
     let html = '';
     items.forEach(item => {
-        const itemPath = currentModalPath ? `${currentModalPath}/${item.name}` : item.name;
+        // 使用服务器返回的 path，它已经包含了正确的相对路径
+        const itemPath = item.path || (currentModalPath ? `${currentModalPath}/${item.name}` : item.name);
         html += `
             <div class="path-item" 
                  onclick="selectModalPathItem(this, '${itemPath}', '${item.name}')" 
@@ -1665,7 +1666,7 @@ function updatePathSelectionUI() {
         } else {
             // Downloads路径
             displayPath = selectedPath ? `Downloads/${selectedPath}` : 'Downloads';
-            pathBtn.innerHTML = '已选择';
+            pathBtn.innerHTML = '已选路径';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         }
         

@@ -1278,6 +1278,15 @@ async def delete_uploaded_file(filename: str, folder: str = None):
 async def list_available_directories(path: str = ""):
     """浏览Downloads目录下的文件系统"""
     try:
+        # 处理URL编码的路径参数
+        if path:
+            import urllib.parse
+            try:
+                decoded_path = urllib.parse.unquote(path)
+                path = decoded_path
+            except Exception as e:
+                print(f"DEBUG: URL decode failed: {e}")
+        
         # 构建目标路径
         if path:
             # 确保路径在Downloads目录内
@@ -1298,6 +1307,9 @@ async def list_available_directories(path: str = ""):
         if relative_path == ".":
             relative_path = ""
         
+        # 确保路径使用正斜杠（前端期望的格式）
+        relative_path = relative_path.replace("\\", "/")
+        
         # 获取父目录路径
         parent_path = ""
         if relative_path:
@@ -1306,6 +1318,8 @@ async def list_available_directories(path: str = ""):
                 parent_path = ""
             else:
                 parent_path = parent_dir
+                # 确保父路径也使用正斜杠
+                parent_path = parent_path.replace("\\", "/")
         
         # 获取目录内容
         items = []
@@ -1326,6 +1340,9 @@ async def list_available_directories(path: str = ""):
                         item_relative_path = os.path.join(relative_path, item)
                     else:
                         item_relative_path = item
+                    
+                    # 确保路径使用正斜杠（前端期望的格式）
+                    item_relative_path = item_relative_path.replace("\\", "/")
                     
                     items.append({
                         "name": item,
