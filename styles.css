@@ -737,6 +737,19 @@ body {
     box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
 }
 
+.btn-outline-info {
+    background: transparent;
+    color: #17a2b8;
+    border: 1px solid #17a2b8;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-info:hover {
+    background: #17a2b8;
+    color: white;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+}
+
 .btn-outline-secondary {
     background: transparent;
     color: #6c757d;
@@ -797,6 +810,43 @@ body {
     animation: modalFadeIn 0.3s ease-out;
 }
 
+/* 模态框Loading遮罩样式 */
+.modal-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+}
+
+.modal-loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-loading-content .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e9ecef;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.modal-loading-content .loading-text {
+    color: #6c757d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 .modal-content {
     background: white;
     border-radius: 8px;
@@ -852,6 +902,7 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .path-navigation {
@@ -898,6 +949,9 @@ body {
     font-size: 13px;
     position: relative;
     border-left: 4px solid transparent;
+    /* 确保与图片中的布局一致 */
+    min-height: 48px;
+    box-sizing: border-box;
 }
 
 .path-item:hover:not(.selected) {
@@ -912,6 +966,9 @@ body {
     position: relative;
     font-weight: 500 !important;
     z-index: 1;
+    /* 确保选中效果与图片一致 */
+    border-radius: 4px;
+    margin: 2px 0;
 }
 
 .path-item.selected:hover {
@@ -936,7 +993,8 @@ body {
     font-weight: 500 !important;
 }
 
-.path-item.selected::after {
+/* 移除选中状态的勾选图标，与图片保持一致 */
+/* .path-item.selected::after {
     content: '✓';
     position: absolute;
     right: 12px;
@@ -945,7 +1003,7 @@ body {
     color: #2196f3;
     font-weight: bold;
     font-size: 14px;
-}
+} */
 
 .path-item:last-child {
     border-bottom: none;
@@ -956,11 +1014,16 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    /* 确保与图片中的显示一致 */
+    font-weight: normal;
+    color: #333;
 }
 
 .path-item .path-name::before {
     content: "📁";
     font-size: 14px;
+    /* 确保文件夹图标与图片一致 */
+    margin-right: 4px;
 }
 
 .path-item .folder-icon {
@@ -976,6 +1039,11 @@ body {
     font-size: 11px;
     min-width: 24px;
     text-align: center;
+    /* 确保与图片中的灰色椭圆显示一致 */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
 }
 
 .loading-placeholder {
@@ -983,6 +1051,18 @@ body {
     text-align: center;
     color: #6c757d;
     font-style: italic;
+}
+
+/* 错误提示样式 */
+.error-placeholder {
+    padding: 20px;
+    text-align: center;
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin: 10px 0;
+    font-weight: 500;
 }
 
 .empty-placeholder {

@@ -1164,6 +1164,10 @@ async def upload_multiple_files(files: List[UploadFile] = File(...), folder_path
 @app.get("/files")
 async def list_uploaded_files(folder: str = None):
     """获取已上传文件列表"""
+    import time
+    start_time = time.time()
+    timeout_seconds = 15
+    
     try:
         # 检查是否是系统路径
         if folder and (folder.startswith('/') or folder.startswith('C:\\')):
@@ -1183,6 +1187,10 @@ async def list_uploaded_files(folder: str = None):
         files = []
         if os.path.exists(list_dir):
             for filename in os.listdir(list_dir):
+                # 检查超时
+                if time.time() - start_time > timeout_seconds:
+                    raise HTTPException(status_code=408, detail="请求超时")
+                
                 file_path = os.path.join(list_dir, filename)
                 if os.path.isfile(file_path):
                     file_stat = os.stat(file_path)
@@ -1277,6 +1285,10 @@ async def delete_uploaded_file(filename: str, folder: str = None):
 @app.get("/directories")
 async def list_available_directories(path: str = ""):
     """浏览Downloads目录下的文件系统"""
+    import time
+    start_time = time.time()
+    timeout_seconds = 10
+    
     try:
         # 处理URL编码的路径参数
         if path:
@@ -1325,6 +1337,10 @@ async def list_available_directories(path: str = ""):
         items = []
         try:
             for item in os.listdir(target_path):
+                # 检查超时
+                if time.time() - start_time > timeout_seconds:
+                    raise HTTPException(status_code=408, detail="请求超时")
+                
                 item_path = os.path.join(target_path, item)
                 
                 # 只包含目录
@@ -1374,6 +1390,10 @@ async def list_available_directories(path: str = ""):
 @app.get("/system-directories")
 async def list_system_directories(path: str = ""):
     """浏览系统根目录下的文件系统"""
+    import time
+    start_time = time.time()
+    timeout_seconds = 10
+    
     try:
         # print(f"DEBUG: Received path parameter: '{path}'")
         
@@ -1470,19 +1490,20 @@ async def list_system_directories(path: str = ""):
                 target_path = "/"
             # print(f"DEBUG: Using root directory: '{target_path}'")
         
-        # 安全检查：防止访问系统关键目录
-        forbidden_paths = [
-            os.path.expanduser("~/.ssh"),
-            "/etc/passwd",
-            "/etc/shadow",
-            "/proc",
-            "/sys",
-            "/dev"
-        ]
-        
-        for forbidden in forbidden_paths:
-            if target_path.startswith(forbidden):
-                raise HTTPException(status_code=403, detail="访问被拒绝")
+        # 安全检查：防止访问系统关键目录（仅在非Windows系统上）
+        if os.name != 'nt':  # 非Windows系统
+            forbidden_paths = [
+                os.path.expanduser("~/.ssh"),
+                "/etc/passwd",
+                "/etc/shadow",
+                "/proc",
+                "/sys",
+                "/dev"
+            ]
+            
+            for forbidden in forbidden_paths:
+                if target_path.startswith(forbidden):
+                    raise HTTPException(status_code=403, detail="访问被拒绝")
         
         if not os.path.exists(target_path):
             raise HTTPException(status_code=404, detail="路径不存在")
@@ -1512,6 +1533,10 @@ async def list_system_directories(path: str = ""):
         items = []
         try:
             for item in os.listdir(target_path):
+                # 检查超时
+                if time.time() - start_time > timeout_seconds:
+                    raise HTTPException(status_code=408, detail="请求超时")
+                
                 item_path = os.path.join(target_path, item)
                 
                 # 只包含目录

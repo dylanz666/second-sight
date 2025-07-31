@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250730-17">
+    <link rel="stylesheet" href="/static/styles.css?v=20250731-3">
+    <script src="/static/index.js?v=20250731-3"></script>
 </head>
 <body>
     <div class="container">
@@ -193,6 +194,9 @@
                         <button class="btn btn-sm btn-outline-primary" onclick="navigateUp()" id="upButton">
                             ⬆️ 上级目录
                         </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="navigateToRoot()" id="rootButton">
+                            🏠 根目录
+                        </button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="refreshPathList()">
                             🔄 刷新
                         </button>
@@ -201,6 +205,13 @@
                 <div class="path-list" id="modalPathList">
                     <div class="loading-placeholder">正在加载目录列表...</div>
                 </div>
+                <!-- Loading遮罩 -->
+                <div id="modalLoadingOverlay" class="modal-loading-overlay" style="display: none;">
+                    <div class="modal-loading-content">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">正在加载...</div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="selectCurrentPath()">确定</button>
@@ -208,7 +219,5 @@
             </div>
         </div>
     </div>
-
-    <script src="/static/index.js?v=20250730-17"></script>
 </body>
 </html>
