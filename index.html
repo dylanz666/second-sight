@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250801-20">
-    <script src="/static/index.js?v=20250801-20"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=20250801-30">
+    <script src="/static/index.js?v=20250801-30"></script>
 </head>
 
 <body>
@@ -193,19 +193,16 @@
                         <div class="copy-indicator">📋</div>
                     </div>
                 </div>
-                <div class="path-navigation">                    
+                <div class="path-navigation">
                     <div class="path-actions">
                         <button class="btn btn-sm btn-outline-primary" onclick="navigateUp()" id="upButton">
                             ⬆️ 上级目录
                         </button>
-                        <button class="btn btn-sm btn-outline-info" onclick="navigateToRoot()" id="rootButton">
-                            🏠 根目录
-                        </button>
                         <button class="btn btn-sm btn-outline-success" onclick="setDefaultPath()" id="defaultButton">
                             📁 默认目录
                         </button>
-                        <button class="btn btn-sm btn-outline-success" onclick="showCreateFolderDialog()" id="createFolderButton">
-                            📁 新建文件夹
+                        <button class="btn btn-sm btn-outline-info" onclick="navigateToRoot()" id="rootButton">
+                            🏠 我的电脑
                         </button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="refreshPathList()">
                             🔄 刷新
@@ -224,6 +221,11 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <!-- fixme -->
+                <button class="btn btn-sm btn-outline-success" onclick="showCreateFolderDialog()"
+                    id="createFolderButton">
+                    📁 新建文件夹
+                </button>
                 <button class="btn btn-primary" onclick="selectCurrentPath()">确定</button>
                 <button class="btn btn-outline-secondary" onclick="closePathModal()">取消</button>
             </div>
@@ -239,13 +241,15 @@
             </div>
             <div class="modal-body">
                 <div style="margin-bottom: 15px;">
-                    <label for="folderNameInput" style="display: block; margin-bottom: 5px; font-weight: bold;">文件夹名称:</label>
-                    <input type="text" id="folderNameInput" placeholder="请输入文件夹名称" 
-                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    <label for="folderNameInput"
+                        style="display: block; margin-bottom: 5px; font-weight: bold;">文件夹名称:</label>
+                    <input type="text" id="folderNameInput" placeholder="请输入文件夹名称"
+                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">创建位置:</label>
-                    <div id="createFolderLocation" style="padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666;">
+                    <div id="createFolderLocation"
+                        style="padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666;">
                         正在获取当前位置...
                     </div>
                 </div>
