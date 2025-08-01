@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250801-2">  
-    <script src="/static/index.js?v=20250801-2"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=20250801-3">
+    <script src="/static/index.js?v=20250801-3"></script>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -14,27 +16,30 @@
         </div>
 
         <div class="main-content">
-            <div class="screenshot-section">                
+            <div class="screenshot-section">
                 <!-- 单显示器容器 -->
                 <div id="single-monitor-container" class="screenshot-container" style="display: none;">
-                    <div id="screenshot-wrapper" style="position: relative; display: flex; justify-content: center; align-items: center; width: 100%;">
-                        <img id="screenshot" class="screenshot-image" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9hZGluZy4uLjwvdGV4dD48L3N2Zz4=" alt="Windows桌面截图">
+                    <div id="screenshot-wrapper"
+                        style="position: relative; display: flex; justify-content: center; align-items: center; width: 100%;">
+                        <img id="screenshot" class="screenshot-image"
+                            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9hZGluZy4uLjwvdGV4dD48L3N2Zz4="
+                            alt="Windows桌面截图">
                         <div id="loading-indicator" class="loading" style="position: absolute; display: none;"></div>
                     </div>
                 </div>
-                
+
                 <!-- 多显示器容器 -->
                 <div id="multi-monitor-container">
                     <div id="monitors-grid" class="monitors-grid">
                         <!-- 显示器截图将在这里动态生成 -->
                     </div>
                 </div>
-                
+
                 <div class="controls">
                     <button class="btn btn-primary" onclick="startAutoRefresh()">开始自动刷新</button>
                     <button class="btn btn-danger" onclick="stopAutoRefresh()">停止自动刷新</button>
                     <button class="btn btn-success" onclick="refreshAllMonitors()">手动刷新</button>
-                    <button class="btn btn-primary" onclick="reconnectServer()">重新连接</button>                    
+                    <button class="btn btn-primary" onclick="reconnectServer()">重新连接</button>
                     <button class="btn btn-primary" onclick="testSystemInfo()">系统信息</button>
                     <!-- <button class="btn btn-primary" onclick="toggleFullscreen()">全屏查看</button> -->
                     <!-- <button class="btn btn-success" onclick="getScreenshotInfo()">截图信息</button> -->
@@ -49,13 +54,11 @@
                 <div class="status-card">
                     <h3 style="display: flex; align-items: center; justify-content: space-between;">
                         🔌 设备情况
-                        <button 
-                            class="btn btn-info" 
+                        <button class="btn btn-info"
                             style="margin-left: 130px; padding: 2px 14px; font-size: 13px; height: 28px; line-height: 1.2; border-radius: 6px; transition: background 0.2s, color 0.2s, box-shadow 0.2s; cursor: pointer;"
                             onclick="testNetwork()"
                             onmouseover="this.style.background='#17a2b8'; this.style.color='#fff'; this.style.boxShadow='0 2px 8px rgba(23,162,184,0.15)';"
-                            onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';"
-                        >刷新</button>
+                            onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';">刷新</button>
                     </h3>
                     <div class="status-item">
                         <span class="status-label">连接状态:</span>
@@ -63,7 +66,7 @@
                             <span class="connection-indicator disconnected"></span>
                             未连接
                         </span>
-                    </div>                  
+                    </div>
                     <div class="status-item">
                         <span class="status-label">内存使用:</span>
                         <div class="trend-chart-container">
@@ -89,7 +92,8 @@
                     <div class="status-item">
                         <span class="status-label">网络延迟:</span>
                         <div class="trend-chart-container">
-                            <canvas id="network-latency-trend-chart" class="trend-chart" width="110" height="30"></canvas>
+                            <canvas id="network-latency-trend-chart" class="trend-chart" width="110"
+                                height="30"></canvas>
                             <span class="status-value" id="status-network-latency">-</span>
                         </div>
                     </div>
@@ -105,25 +109,28 @@
                         📁 文件管理
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div class="file-input-wrapper" style="display: flex; gap: 4px;">
-                                <input type="file" id="fileInput" multiple accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z" style="display: none;">
+                                <input type="file" id="fileInput" multiple
+                                    accept=".txt,.pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
+                                    style="display: none;">
                                 <input type="file" id="pathInput" style="display: none;">
-                                <button class="btn btn-primary" id="pathBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                <button class="btn btn-primary" id="pathBtn"
+                                    style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
                                     设置路径
                                 </button>
-                                <button class="btn btn-success" onclick="handleFileUpload()" id="uploadBtn" style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
+                                <button class="btn btn-success" onclick="handleFileUpload()" id="uploadBtn"
+                                    style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
                                     文件上传
                                 </button>
                             </div>
-                            <button 
-                                class="btn btn-info" 
+                            <button class="btn btn-info"
                                 style="padding: 2px 14px; font-size: 13px; height: 28px; line-height: 1.2; border-radius: 6px; transition: background 0.2s, color 0.2s, box-shadow 0.2s; cursor: pointer;"
                                 onclick="loadFileList()"
                                 onmouseover="this.style.background='#17a2b8'; this.style.color='#fff'; this.style.boxShadow='0 2px 8px rgba(23,162,184,0.15)';"
-                                onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';"
-                            >刷新</button>
+                                onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';">刷新</button>
                         </div>
                     </h3>
-                    <div class="path-info" id="pathInfo" style="display: none; margin-bottom: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">
+                    <div class="path-info" id="pathInfo"
+                        style="display: none; margin-bottom: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">
                         <span style="font-weight: bold;">目标路径:</span>
                         <span id="currentPath" style="color: #007bff; word-break: break-all;"></span>
                     </div>
@@ -223,4 +230,5 @@
         </div>
     </div>
 </body>
+
 </html>
