@@ -1484,7 +1484,7 @@ function populateSystemPathList(items, currentSelectedPath) {
             <div class="path-item" 
                  onclick="selectSystemPathItem(this, '${escapedPath}', '${escapedName}')" 
                  ondblclick="navigateToSystemPath('${escapedPath}')"
-                 title="单击选择，双击进入: ${escapedName}">
+                 title="单击选择/取消选择，双击进入: ${escapedName}">
                 <div class="path-name">
                     ${item.name}
                 </div>
@@ -1516,28 +1516,71 @@ function populateSystemPathList(items, currentSelectedPath) {
 
 // 选中系统路径项
 function selectSystemPathItem(element, path, name) {
+    console.log('=== selectSystemPathItem DEBUG ===');
+    console.log('Element:', element);
+    console.log('Path:', path);
+    console.log('Name:', name);
+    
+    // 检查当前项是否已经被选中
+    const isCurrentlySelected = element.classList.contains('selected');
+    console.log('isCurrentlySelected:', isCurrentlySelected);
+    
     // 移除所有其他项的选中状态
     const allItems = document.querySelectorAll('.path-item');
+    console.log('Found', allItems.length, 'path items');
     allItems.forEach(item => {
         item.classList.remove('selected');
     });
 
-    // 添加当前项的选中状态
-    element.classList.add('selected');
+    if (!isCurrentlySelected) {
+        // 如果当前项未被选中，则选中它
+        console.log('Selecting item...');
+        element.classList.add('selected');
 
-    // 存储选中的路径信息
-    selectedPath = path || '';
-    selectedPathName = name || '';
+        // 存储选中的路径信息
+        selectedPath = path || '';
+        selectedPathName = name || '';
+        console.log('selectedPath set to:', selectedPath);
+        console.log('selectedPathName set to:', selectedPathName);
 
-    // 更新模态框中的当前路径显示
-    const currentPathElement = document.getElementById('modalCurrentPath');
-    if (currentPathElement) {
-        const displayPath = path ? `📂 ${path}` : '📂 系统根目录';
-        currentPathElement.innerHTML = `<span>${displayPath}</span>`;
+        // 更新模态框中的当前路径显示
+        const currentPathElement = document.getElementById('modalCurrentPath');
+        if (currentPathElement) {
+            const displayPath = path ? `📂 ${path}` : '📂 系统根目录';
+            currentPathElement.innerHTML = `<span>${displayPath}</span>`;
+        }
+
+        // 显示选择成功通知
+        const selectMsg = `已选文件夹: ${name || path}`;
+        addLog('路径选择', selectMsg, 'info');
+        showNotification(selectMsg, 'success', 2000);
+    } else {
+        // 如果当前项已经被选中，则取消选择
+        console.log('Unselecting item...');
+        selectedPath = null;
+        selectedPathName = null;
+        console.log('selectedPath set to null');
+        console.log('selectedPathName set to null');
+
+        // 更新模态框中的当前路径显示
+        const currentPathElement = document.getElementById('modalCurrentPath');
+        if (currentPathElement) {
+            currentPathElement.innerHTML = `<span>📂 系统根目录</span>`;
+        }
+
+        // 显示取消选择通知
+        const cancelMsg = '取消选择文件夹';
+        addLog('路径选择', cancelMsg, 'info');
+        showNotification(cancelMsg, 'info', 2000);
+
+        // 自动刷新文件列表
+        loadFileList();
     }
 
     // 更新路径选择UI
+    console.log('Calling updatePathSelectionUI...');
     updatePathSelectionUI();
+    console.log('=== END selectSystemPathItem DEBUG ===');
 }
 
 // 导航到系统路径
@@ -1728,7 +1771,7 @@ function populateModalPathList(items, currentSelectedPath) {
             <div class="path-item" 
                  onclick="selectModalPathItem(this, '${escapedPath}', '${escapedName}')" 
                  ondblclick="navigateToPath('${escapedPath}')"
-                 title="单击选择，双击进入: ${escapedName}">
+                 title="单击选择/取消选择，双击进入: ${escapedName}">
                 <div class="path-name">
                     ${item.name}
                 </div>
@@ -1760,31 +1803,72 @@ function populateModalPathList(items, currentSelectedPath) {
 
 // 选中模态框路径项
 function selectModalPathItem(element, path, name) {
-    console.log('selectModalPathItem called with path:', path, 'name:', name);
+    console.log('=== selectModalPathItem DEBUG ===');
+    console.log('Element:', element);
+    console.log('Path:', path);
+    console.log('Name:', name);
+
+    // 检查当前项是否已经被选中
+    const isCurrentlySelected = element.classList.contains('selected');
+    console.log('isCurrentlySelected:', isCurrentlySelected);
 
     // 移除所有其他项的选中状态
     const allItems = document.querySelectorAll('.path-item');
+    console.log('Found', allItems.length, 'path items');
     allItems.forEach(item => {
         item.classList.remove('selected');
     });
 
-    // 添加当前项的选中状态
-    element.classList.add('selected');
+    if (!isCurrentlySelected) {
+        // 如果当前项未被选中，则选中它
+        console.log('Selecting item...');
+        element.classList.add('selected');
 
-    // 存储选中的路径信息
-    selectedPath = path || '';
-    selectedPathName = name || '';
-    console.log('selectedPath set to:', selectedPath);
+        // 存储选中的路径信息
+        selectedPath = path || '';
+        selectedPathName = name || '';
+        console.log('selectedPath set to:', selectedPath);
+        console.log('selectedPathName set to:', selectedPathName);
 
-    // 更新模态框中的当前路径显示
-    const currentPathElement = document.getElementById('modalCurrentPath');
-    if (currentPathElement) {
-        const displayPath = path ? `📂 Downloads/${path}` : '📂 Downloads';
-        currentPathElement.innerHTML = `<span>${displayPath}</span>`;
+        // 更新模态框中的当前路径显示
+        const currentPathElement = document.getElementById('modalCurrentPath');
+        if (currentPathElement) {
+            const displayPath = path ? `📂 Downloads/${path}` : '📂 Downloads';
+            currentPathElement.innerHTML = `<span>${displayPath}</span>`;
+        }
+
+        // 显示选择成功通知
+        const selectMsg = `已选文件夹: ${name || path}`;
+        addLog('路径选择', selectMsg, 'info');
+        showNotification(selectMsg, 'success', 2000);
+    } else {
+        // 如果当前项已经被选中，则取消选择
+        console.log('Unselecting item...');
+        selectedPath = null;
+        selectedPathName = null;
+        console.log('selectedPath set to null');
+        console.log('selectedPathName set to null');
+
+        // 更新模态框中的当前路径显示
+        const currentPathElement = document.getElementById('modalCurrentPath');
+        if (currentPathElement) {
+            const displayPath = currentModalPath ? `📂 Downloads/${currentModalPath}` : '📂 Downloads';
+            currentPathElement.innerHTML = `<span>${displayPath}</span>`;
+        }
+
+        // 显示取消选择通知
+        const cancelMsg = '取消选择文件夹';
+        addLog('路径选择', cancelMsg, 'info');
+        showNotification(cancelMsg, 'info', 2000);
+
+        // 自动刷新文件列表
+        loadFileList();
     }
 
     // 更新路径选择UI
+    console.log('Calling updatePathSelectionUI...');
     updatePathSelectionUI();
+    console.log('=== END selectModalPathItem DEBUG ===');
 }
 
 // 导航到指定路径
@@ -2010,7 +2094,7 @@ function selectCurrentPath() {
         pathDisplay = selectedPath === '' ? 'Downloads' : `Downloads/${selectedPath}`;
     }
     console.log('pathDisplay:', pathDisplay);
-    const successMsg = `已选择路径: ${pathDisplay}`;
+    const successMsg = `已选文件夹: ${pathDisplay}`;
     addLog('路径选择', successMsg, 'info');
     showNotification(successMsg, 'info', 3000);
 
