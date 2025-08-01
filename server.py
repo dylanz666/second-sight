@@ -1310,6 +1310,61 @@ async def delete_uploaded_file(filename: str, folder: str = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件删除失败: {str(e)}")
 
+@app.post("/delete_folder")
+async def delete_folder(folder_data: dict):
+    """删除文件夹"""
+    try:
+        import shutil
+        
+        folder_path = folder_data.get("folder_path")
+        if not folder_path:
+            raise HTTPException(status_code=400, detail="缺少文件夹路径参数")
+        
+        # 使用统一的路径处理逻辑
+        target_dir = get_upload_dir(folder_path)
+        
+        # 检查文件夹是否存在
+        if not os.path.exists(target_dir):
+            raise HTTPException(status_code=404, detail="文件夹不存在")
+        
+        if not os.path.isdir(target_dir):
+            raise HTTPException(status_code=400, detail="指定路径不是文件夹")
+        
+        # 安全检查：确保文件夹路径是有效的
+        try:
+            # 验证路径是否在允许的范围内
+            abs_target_dir = os.path.abspath(target_dir)
+            
+            # 对于Downloads子目录，确保在Downloads目录内
+            if not folder_path.startswith('/') and ':' not in folder_path:
+                # Downloads子目录
+                abs_downloads_dir = os.path.abspath(DEFAULT_UPLOAD_DIR)
+                if not abs_target_dir.startswith(abs_downloads_dir):
+                    raise HTTPException(status_code=403, detail="不能删除Downloads目录外的文件夹")
+            else:
+                # 系统路径，进行额外的安全检查
+                critical_paths = ['C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root', '/etc', '/usr', '/var']
+                for critical in critical_paths:
+                    if abs_target_dir == critical or abs_target_dir.startswith(critical + os.sep):
+                        raise HTTPException(status_code=403, detail="不能删除系统关键目录")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=400, detail="无效的文件夹路径")
+        
+        # 删除文件夹及其所有内容
+        shutil.rmtree(target_dir)
+        
+        return JSONResponse({
+            "message": "文件夹删除成功",
+            "folder_path": folder_path
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"文件夹删除失败: {str(e)}")
+
 @app.get("/directories")
 async def list_available_directories(path: str = ""):
     """获取指定路径下的目录列表"""

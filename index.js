@@ -1520,11 +1520,11 @@ function selectSystemPathItem(element, path, name) {
     console.log('Element:', element);
     console.log('Path:', path);
     console.log('Name:', name);
-    
+
     // 检查当前项是否已经被选中
     const isCurrentlySelected = element.classList.contains('selected');
     console.log('isCurrentlySelected:', isCurrentlySelected);
-    
+
     // 移除所有其他项的选中状态
     const allItems = document.querySelectorAll('.path-item');
     console.log('Found', allItems.length, 'path items');
@@ -1776,6 +1776,12 @@ function populateModalPathList(items, currentSelectedPath) {
                     ${item.name}
                 </div>
                 <div class="file-count">${folderCountDisplay}</div>
+                <button class="btn btn-danger" 
+                        style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px;"
+                        onclick="event.stopPropagation(); deleteFolder('${encodeURIComponent(itemPath)}')" 
+                        title="删除文件夹: ${escapedName}">
+                    🗑️ 删除
+                </button>
             </div>
         `;
     });
@@ -2434,7 +2440,7 @@ async function loadFileList() {
                 folderDisplay = 'Downloads';
             }
 
-            folderHeader.innerHTML = `📁 当前文件夹: ${folderDisplay} (${data.files.length} 个文件)`;
+            folderHeader.innerHTML = `<span>📁 当前文件夹: ${folderDisplay} (${data.files.length} 个文件)</span>`;
             fileList.appendChild(folderHeader);
 
             data.files.forEach(file => {
@@ -2596,6 +2602,72 @@ async function deleteFile(filename) {
         }
     } catch (error) {
         const errorMsg = `删除文件失败: ${error.message}`;
+        addLog('文件管理', errorMsg, 'error');
+        showNotification(errorMsg, 'error', 5000);
+    }
+}
+
+// 删除文件夹
+async function deleteFolder(folderPath) {
+    // 解码文件夹路径
+    const decodedFolderPath = decodeURIComponent(folderPath);
+
+    // 安全检查：不允许删除根目录或系统关键目录
+    const criticalPaths = ['Downloads', 'C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root'];
+    if (criticalPaths.some(path => decodedFolderPath === path || decodedFolderPath.startsWith(path + '/'))) {
+        showNotification('不能删除系统关键目录', 'error', 3000);
+        addLog('文件管理', `尝试删除关键目录被阻止: ${decodedFolderPath}`, 'warning');
+        return;
+    }
+
+    // 确认删除
+    if (!confirm(`确定要删除文件夹 "${decodedFolderPath}" 吗？\n\n⚠️ 警告：此操作将删除文件夹中的所有文件和子文件夹，且无法恢复！`)) {
+        return;
+    }
+
+    try {
+        // 构建请求URL
+        let url = getServerBaseUrl() + '/delete_folder';
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                folder_path: decodedFolderPath
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            addLog('文件管理', data.message, 'success');
+            showNotification(data.message, 'success', 3000);
+
+            // 如果删除的是当前选中的文件夹，清除选择
+            if (selectedPath && (selectedPath === decodedFolderPath || selectedPath.startsWith(decodedFolderPath + '/'))) {
+                selectedPath = null;
+                selectedPathName = null;
+                updatePathSelectionUI();
+            }
+
+            // 刷新文件列表
+            loadFileList();
+
+            // 如果弹窗是打开的，刷新弹窗中的文件夹列表
+            const modal = document.getElementById('pathModal');
+            if (modal && modal.style.display !== 'none') {
+                console.log('Modal is open, refreshing folder list in modal');
+                refreshPathList();
+            }
+        } else {
+            const errorData = await response.json();
+            const errorMsg = `删除文件夹失败: ${errorData.detail || errorData.message || '未知错误'}`;
+            addLog('文件管理', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+        }
+    } catch (error) {
+        const errorMsg = `删除文件夹失败: ${error.message}`;
         addLog('文件管理', errorMsg, 'error');
         showNotification(errorMsg, 'error', 5000);
     }
