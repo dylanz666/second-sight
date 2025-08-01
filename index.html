@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250801-9">
-    <script src="/static/index.js?v=20250801-9"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=20250801-20">
+    <script src="/static/index.js?v=20250801-20"></script>
 </head>
 
 <body>
@@ -41,12 +41,6 @@
                     <button class="btn btn-success" onclick="refreshAllMonitors()">手动刷新</button>
                     <button class="btn btn-primary" onclick="reconnectServer()">重新连接</button>
                     <button class="btn btn-primary" onclick="testSystemInfo()">系统信息</button>
-                    <!-- <button class="btn btn-primary" onclick="toggleFullscreen()">全屏查看</button> -->
-                    <!-- <button class="btn btn-success" onclick="getScreenshotInfo()">截图信息</button> -->
-                    <!-- <button class="btn btn-primary" onclick="getMonitorsConfig()">显示器配置</button> -->
-                    <!-- <button class="btn btn-success" onclick="debugMonitor(0)">调试显示器1</button> -->
-                    <!-- <button class="btn btn-success" onclick="debugMonitor(1)">调试显示器2</button> -->
-                    <!-- <button class="btn btn-danger" onclick="forceRedetect()">强制重新检测</button> -->
                 </div>
             </div>
 
@@ -194,7 +188,10 @@
             </div>
             <div class="modal-body">
                 <div class="current-path" id="modalCurrentPath">
-                    <span>📂 Downloads</span>
+                    <div class="path-input-wrapper">
+                        <input type="text" id="modalCurrentPathInput" value="📂 Downloads" readonly>
+                        <div class="copy-indicator">📋</div>
+                    </div>
                 </div>
                 <div class="path-navigation">                    
                     <div class="path-actions">

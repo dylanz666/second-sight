@@ -938,6 +938,56 @@ body {
     word-break: break-all;
 }
 
+/* 可复制的路径输入框样式 */
+.path-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+#modalCurrentPathInput {
+    width: 100%;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #495057;
+    padding: 8px 12px;
+    padding-right: 35px;
+    cursor: text;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    outline: none;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+#modalCurrentPathInput:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+#modalCurrentPathInput:hover {
+    border-color: #adb5bd;
+}
+
+.copy-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #6c757d;
+    pointer-events: none;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.path-input-wrapper:hover .copy-indicator {
+    opacity: 1;
+}
+
 .path-actions {
     display: flex;
     gap: 8px;
