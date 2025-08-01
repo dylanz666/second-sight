@@ -789,6 +789,19 @@ body {
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
+.btn-outline-warning {
+    background: transparent;
+    color: #ffc107;
+    border: 1px solid #ffc107;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-warning:hover {
+    background: #ffc107;
+    color: #212529;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
 /* 路径信息显示样式 */
 .path-info {
     border-left: 3px solid #007bff;
@@ -916,6 +929,7 @@ body {
 .current-path {
     flex: 1;
     padding: 8px 12px;
+    margin-bottom: 10px;
     background: #f8f9fa;
     border: 1px solid #dee2e6;
     border-radius: 6px;
@@ -1035,6 +1049,7 @@ body {
     background: #6c757d;
     color: white;
     padding: 2px 8px;
+    margin-right: 5px;
     border-radius: 12px;
     font-size: 11px;
     min-width: 24px;

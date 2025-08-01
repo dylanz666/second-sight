@@ -1365,6 +1365,73 @@ async def delete_folder(folder_data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件夹删除失败: {str(e)}")
 
+@app.post("/create_folder")
+async def create_folder(folder_data: dict):
+    """创建新文件夹"""
+    try:
+        folder_name = folder_data.get("folder_name", "").strip()
+        parent_path = folder_data.get("parent_path", "")
+        
+        if not folder_name:
+            raise HTTPException(status_code=400, detail="文件夹名称不能为空")
+        
+        # 检查文件夹名称是否包含非法字符
+        import re
+        invalid_chars = r'[<>:"/\\|?*]'
+        if re.search(invalid_chars, folder_name):
+            raise HTTPException(status_code=400, detail="文件夹名称包含非法字符")
+        
+        # 构建完整路径
+        if parent_path:
+            # 检查是否是系统路径
+            if parent_path.startswith('/') or re.match(r'^[A-Za-z]:\\', parent_path):
+                # 系统路径
+                full_path = os.path.join(parent_path, folder_name)
+                # 安全检查：确保路径在允许的范围内
+                if os.name == 'nt':  # Windows
+                    # 检查是否在系统关键目录之外
+                    system_dirs = ['C:\\Windows', 'C:\\System32', 'C:\\Program Files', 'C:\\Program Files (x86)']
+                    for sys_dir in system_dirs:
+                        if full_path.startswith(sys_dir):
+                            raise HTTPException(status_code=403, detail="不能在系统目录中创建文件夹")
+                else:  # Linux/Mac
+                    forbidden_paths = ['/etc', '/var', '/usr', '/bin', '/sbin', '/boot', '/dev', '/proc', '/sys']
+                    for forbidden in forbidden_paths:
+                        if full_path.startswith(forbidden):
+                            raise HTTPException(status_code=403, detail="不能在系统目录中创建文件夹")
+            else:
+                # Downloads路径
+                full_path = os.path.join(DEFAULT_UPLOAD_DIR, parent_path, folder_name)
+                # 确保路径在Downloads目录内
+                if not os.path.abspath(full_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
+                    raise HTTPException(status_code=403, detail="访问被拒绝")
+        else:
+            # 在Downloads根目录创建
+            full_path = os.path.join(DEFAULT_UPLOAD_DIR, folder_name)
+        
+        # 检查文件夹是否已存在
+        if os.path.exists(full_path):
+            raise HTTPException(status_code=409, detail="文件夹已存在")
+        
+        # 创建文件夹
+        try:
+            os.makedirs(full_path, exist_ok=False)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="没有权限创建文件夹")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"创建文件夹失败: {str(e)}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"文件夹 '{folder_name}' 创建成功",
+            "folder_path": full_path
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建文件夹失败: {str(e)}")
+
 @app.get("/directories")
 async def list_available_directories(path: str = ""):
     """获取指定路径下的目录列表"""
@@ -1453,6 +1520,73 @@ async def list_available_directories(path: str = ""):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取目录列表失败: {str(e)}")
+
+@app.post("/create_folder")
+async def create_folder(folder_data: dict):
+    """创建新文件夹"""
+    try:
+        folder_name = folder_data.get("folder_name", "").strip()
+        parent_path = folder_data.get("parent_path", "")
+        
+        if not folder_name:
+            raise HTTPException(status_code=400, detail="文件夹名称不能为空")
+        
+        # 检查文件夹名称是否包含非法字符
+        import re
+        invalid_chars = r'[<>:"/\\|?*]'
+        if re.search(invalid_chars, folder_name):
+            raise HTTPException(status_code=400, detail="文件夹名称包含非法字符")
+        
+        # 构建完整路径
+        if parent_path:
+            # 检查是否是系统路径
+            if parent_path.startswith('/') or re.match(r'^[A-Za-z]:\\', parent_path):
+                # 系统路径
+                full_path = os.path.join(parent_path, folder_name)
+                # 安全检查：确保路径在允许的范围内
+                if os.name == 'nt':  # Windows
+                    # 检查是否在系统关键目录之外
+                    system_dirs = ['C:\\Windows', 'C:\\System32', 'C:\\Program Files', 'C:\\Program Files (x86)']
+                    for sys_dir in system_dirs:
+                        if full_path.startswith(sys_dir):
+                            raise HTTPException(status_code=403, detail="不能在系统目录中创建文件夹")
+                else:  # Linux/Mac
+                    forbidden_paths = ['/etc', '/var', '/usr', '/bin', '/sbin', '/boot', '/dev', '/proc', '/sys']
+                    for forbidden in forbidden_paths:
+                        if full_path.startswith(forbidden):
+                            raise HTTPException(status_code=403, detail="不能在系统目录中创建文件夹")
+            else:
+                # Downloads路径
+                full_path = os.path.join(DEFAULT_UPLOAD_DIR, parent_path, folder_name)
+                # 确保路径在Downloads目录内
+                if not os.path.abspath(full_path).startswith(os.path.abspath(DEFAULT_UPLOAD_DIR)):
+                    raise HTTPException(status_code=403, detail="访问被拒绝")
+        else:
+            # 在Downloads根目录创建
+            full_path = os.path.join(DEFAULT_UPLOAD_DIR, folder_name)
+        
+        # 检查文件夹是否已存在
+        if os.path.exists(full_path):
+            raise HTTPException(status_code=409, detail="文件夹已存在")
+        
+        # 创建文件夹
+        try:
+            os.makedirs(full_path, exist_ok=False)
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="没有权限创建文件夹")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"创建文件夹失败: {str(e)}")
+        
+        return JSONResponse({
+            "success": True,
+            "message": f"文件夹 '{folder_name}' 创建成功",
+            "folder_path": full_path
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建文件夹失败: {str(e)}")
 
 @app.get("/system-directories")
 async def list_system_directories(path: str = ""):

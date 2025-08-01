@@ -1381,20 +1381,24 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
             upButton.title = '返回上级目录';
             upButton.innerText = '⬆️ 上级目录';
             upButton.onclick = function () {
-                // 立即更新当前路径显示
-                const currentPathElement = document.getElementById('modalCurrentPath');
-                if (currentPathElement) {
-                    const displayPath = data.parent_path ? `📂 ${data.parent_path}` : '📂 系统根目录';
-                    currentPathElement.innerHTML = `<span>${displayPath}</span>`;
-                }
+                        // 立即更新当前路径显示
+        const currentPathElement = document.getElementById('modalCurrentPath');
+        if (currentPathElement) {
+            const displayPath = data.parent_path ? `📂 ${data.parent_path}` : '📂 系统根目录';
+            currentPathElement.innerHTML = `<span>${displayPath}</span>`;
+        }
 
-                // 更新当前模态框路径
-                currentModalPath = data.parent_path;
+        // 更新当前模态框路径
+        currentModalPath = data.parent_path;
 
-                // 清除选中的路径，避免默认选中文件夹
-                selectedPath = null;
-                selectedPathName = null;
-                loadSystemDirectories(data.parent_path, false);
+        // 清除选中的路径，避免默认选中文件夹
+        selectedPath = null;
+        selectedPathName = null;
+        
+        // 更新创建文件夹位置显示
+        updateCreateFolderLocation();
+        
+        loadSystemDirectories(data.parent_path, false);
             };
             console.log('Showing up button for system directories');
         } else {
@@ -1595,6 +1599,9 @@ function navigateToSystemPath(path) {
 
     // 更新当前模态框路径
     currentModalPath = path;
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
 
     // 显示加载状态
     showModalLoading();
@@ -1896,6 +1903,9 @@ function navigateToPath(path) {
     // 更新当前模态框路径
     currentModalPath = path;
 
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
+
     // 显示加载状态
     showModalLoading();
 
@@ -1935,6 +1945,10 @@ function navigateUp() {
             // 确保在加载新目录列表前清除选中状态
             selectedPath = null;
             selectedPathName = null;
+            
+            // 更新创建文件夹位置显示
+            updateCreateFolderLocation();
+            
             loadModalPathList(parentPath, false);
         } else {
             // 当前路径只有一个部分，导航到根目录（空路径）
@@ -1995,6 +2009,9 @@ function navigateToRoot() {
     selectedPath = null;
     selectedPathName = null;
 
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
+
     showModalLoading();
     loadSystemDirectories('');
 }
@@ -2019,6 +2036,9 @@ function setDefaultPath() {
 
     // 更新文件管理卡片下的路径显示
     updatePathSelectionUI();
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
 
     // 显示用户反馈
     addLog('路径选择', '已切换到默认Downloads目录', 'info');
@@ -2672,3 +2692,146 @@ async function deleteFolder(folderPath) {
         showNotification(errorMsg, 'error', 5000);
     }
 }
+
+// 显示创建文件夹对话框
+function showCreateFolderDialog() {
+    console.log('showCreateFolderDialog() called');
+    
+    const modal = document.getElementById('createFolderModal');
+    if (!modal) {
+        console.error('Create folder modal not found!');
+        return;
+    }
+    
+    // 显示对话框
+    modal.style.display = 'flex';
+    
+    // 清空输入框
+    const folderNameInput = document.getElementById('folderNameInput');
+    if (folderNameInput) {
+        folderNameInput.value = '';
+        folderNameInput.focus();
+    }
+    
+    // 更新创建位置显示
+    updateCreateFolderLocation();
+}
+
+// 关闭创建文件夹对话框
+function closeCreateFolderDialog() {
+    const modal = document.getElementById('createFolderModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 更新创建文件夹位置显示
+function updateCreateFolderLocation() {
+    const locationElement = document.getElementById('createFolderLocation');
+    if (!locationElement) return;
+    
+    // 获取当前路径
+    let currentPath = currentModalPath || '';
+    
+    // 检查是否是系统路径
+    const isSystemPath = currentPath && currentPath !== '' && (
+        currentPath.startsWith('/') ||
+        /^[A-Z]:\\/.test(currentPath)
+    );
+    
+    if (isSystemPath) {
+        // 系统路径
+        locationElement.textContent = currentPath;
+        locationElement.style.color = '#dc3545'; // 红色，表示系统路径
+    } else {
+        // Downloads路径
+        const displayPath = currentPath === '' ? 'Downloads' : `Downloads/${currentPath}`;
+        locationElement.textContent = displayPath;
+        locationElement.style.color = '#28a745'; // 绿色，表示Downloads路径
+    }
+}
+
+// 创建文件夹
+async function createFolder() {
+    const folderNameInput = document.getElementById('folderNameInput');
+    if (!folderNameInput) {
+        showNotification('找不到输入框元素', 'error', 3000);
+        return;
+    }
+    
+    const folderName = folderNameInput.value.trim();
+    if (!folderName) {
+        showNotification('请输入文件夹名称', 'warning', 3000);
+        folderNameInput.focus();
+        return;
+    }
+    
+    // 检查文件夹名称是否包含非法字符
+    const invalidChars = /[<>:"/\\|?*]/;
+    if (invalidChars.test(folderName)) {
+        showNotification('文件夹名称包含非法字符', 'error', 3000);
+        folderNameInput.focus();
+        return;
+    }
+    
+    try {
+        // 获取当前路径
+        const parentPath = currentModalPath || '';
+        
+        // 构建请求数据
+        const requestData = {
+            folder_name: folderName,
+            parent_path: parentPath
+        };
+        
+        console.log('Creating folder with data:', requestData);
+        
+        // 发送创建文件夹请求
+        const response = await fetch(getServerBaseUrl() + '/create_folder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // 显示成功消息
+            addLog('文件管理', data.message, 'success');
+            showNotification(data.message, 'success', 3000);
+            
+            // 关闭对话框
+            closeCreateFolderDialog();
+            
+            // 刷新路径列表
+            refreshPathList();
+            
+        } else {
+            const errorData = await response.json();
+            const errorMsg = `创建文件夹失败: ${errorData.detail || errorData.message || '未知错误'}`;
+            addLog('文件管理', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+        }
+        
+    } catch (error) {
+        const errorMsg = `创建文件夹失败: ${error.message}`;
+        addLog('文件管理', errorMsg, 'error');
+        showNotification(errorMsg, 'error', 5000);
+    }
+}
+
+// 为创建文件夹对话框添加键盘事件支持
+document.addEventListener('DOMContentLoaded', function() {
+    const folderNameInput = document.getElementById('folderNameInput');
+    if (folderNameInput) {
+        folderNameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                createFolder();
+            } else if (event.key === 'Escape') {
+                closeCreateFolderDialog();
+            }
+        });
+    }
+});
