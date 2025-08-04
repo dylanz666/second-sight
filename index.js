@@ -360,6 +360,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (serverAvailable) {
             connectWebSocket();
             refreshAllMonitors(); // 默认加载多显示器模式
+            
+            // 启动自动刷新（默认行为）
+            startAutoRefresh();
+            
+            // 更新按钮状态
+            const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+            if (autoRefreshBtn) {
+                autoRefreshBtn.textContent = '⏸️ 停止刷新';
+                autoRefreshBtn.className = 'btn btn-danger';
+            }
         } else {
             addLog('系统', '请先启动服务器: python server.py', 'warning');
         }
@@ -372,13 +382,13 @@ function detectEnvironment() {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     if (isFileProtocol) {
-        addLog('系统', '检测到文件协议模式，将使用本地服务器', 'info');
+        // addLog('系统', '检测到文件协议模式，将使用本地服务器', 'info');
         return 'file';
     } else if (isLocalhost) {
-        addLog('系统', '检测到本地服务器模式', 'info');
+        // addLog('系统', '检测到本地服务器模式', 'info');
         return 'localhost';
     } else {
-        addLog('系统', '检测到远程服务器模式', 'info');
+        // addLog('系统', '检测到远程服务器模式', 'info');
         return 'remote';
     }
 }
@@ -584,6 +594,26 @@ async function refreshScreenshot() {
     }
 }
 
+// 切换自动刷新状态
+function toggleAutoRefresh() {
+    const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+    
+    if (autoRefreshInterval) {
+        // 当前正在自动刷新，停止它
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        autoRefreshBtn.textContent = '🔄 自动刷新';
+        autoRefreshBtn.className = 'btn btn-primary';
+        addLog('自动刷新', '已停止', 'info');
+    } else {
+        // 当前未自动刷新，启动它
+        autoRefreshInterval = setInterval(refreshAllMonitors, 800); // 0.8秒间隔，与WebSocket频率一致
+        autoRefreshBtn.textContent = '⏸️ 停止刷新';
+        autoRefreshBtn.className = 'btn btn-danger';
+        addLog('自动刷新', '已启动 (0.5秒间隔)', 'success');
+    }
+}
+
 // 开始自动刷新
 function startAutoRefresh() {
     if (autoRefreshInterval) {
@@ -591,8 +621,15 @@ function startAutoRefresh() {
         return;
     }
 
-    autoRefreshInterval = setInterval(refreshAllMonitors, 1000); // 改为1秒间隔，与WebSocket频率一致
+    autoRefreshInterval = setInterval(refreshAllMonitors, 800); // 0.8秒间隔，与WebSocket频率一致
     addLog('自动刷新', '已启动 (1秒间隔)', 'success');
+    
+    // 更新按钮状态
+    const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+    if (autoRefreshBtn) {
+        autoRefreshBtn.textContent = '⏸️ 停止刷新';
+        autoRefreshBtn.className = 'btn btn-danger';
+    }
 }
 
 // 停止自动刷新
@@ -601,6 +638,13 @@ function stopAutoRefresh() {
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
         addLog('自动刷新', '已停止', 'info');
+        
+        // 更新按钮状态
+        const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+        if (autoRefreshBtn) {
+            autoRefreshBtn.textContent = '🔄 自动刷新';
+            autoRefreshBtn.className = 'btn btn-primary';
+        }
     }
 }
 
@@ -750,14 +794,14 @@ async function getMonitorsConfig() {
 // 刷新所有显示器截图
 async function refreshAllMonitors() {
     try {
-        addLog('截图', '正在获取所有显示器截图...', 'info');
+        // addLog('截图', '正在获取所有显示器截图...', 'info');
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/screenshots/all`);
         const data = await response.json();
 
         if (data.screenshots) {
             displayMultiMonitors(data.screenshots);
-            addLog('截图', `成功获取 ${data.monitor_count} 个显示器截图`, 'success');
+            // addLog('截图', `成功获取 ${data.monitor_count} 个显示器截图`, 'success');
         }
     } catch (error) {
         addLog('截图', '获取多显示器截图失败: ' + error.message, 'error');

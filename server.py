@@ -230,11 +230,11 @@ class DesktopScreenshotGenerator:
             # 获取显示器数量
             monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
 
-            print(f"检测到 {monitor_count} 个显示器")
-            print(
-                f"虚拟桌面: {virtual_width}x{virtual_height} 位置({virtual_left},{virtual_top})"
-            )
-            print(f"主显示器: {primary_width}x{primary_height}")
+            # print(f"检测到 {monitor_count} 个显示器")
+            # print(
+            #     f"虚拟桌面: {virtual_width}x{virtual_height} 位置({virtual_left},{virtual_top})"
+            # )
+            # print(f"主显示器: {primary_width}x{primary_height}")
 
             # 使用EnumDisplaySettings获取更准确的显示器信息
             try:
@@ -247,9 +247,9 @@ class DesktopScreenshotGenerator:
                         if not device.DeviceName:
                             break
 
-                        print(
-                            f"设备 {i}: {device.DeviceName} - 状态: {device.StateFlags}"
-                        )
+                        # print(
+                        #     f"设备 {i}: {device.DeviceName} - 状态: {device.StateFlags}"
+                        # )
 
                         # 检查设备是否激活
                         if device.StateFlags & 0x1:  # DISPLAY_DEVICE_ACTIVE = 0x1
@@ -269,15 +269,17 @@ class DesktopScreenshotGenerator:
                                         "bits_per_pel": settings.BitsPerPel,
                                     }
                                 )
-                                print(
-                                    f"  激活显示器: {device.DeviceName} - {settings.PelsWidth}x{settings.PelsHeight} 位置({settings.Position_x},{settings.Position_y})"
-                                )
+                                # print(
+                                #     f"  激活显示器: {device.DeviceName} - {settings.PelsWidth}x{settings.PelsHeight} 位置({settings.Position_x},{settings.Position_y})"
+                                # )
                             except Exception as e:
-                                print(
-                                    f"  无法获取显示器 {device.DeviceName} 的设置: {e}"
-                                )
+                                pass
+                                # print(
+                                    # f"  无法获取显示器 {device.DeviceName} 的设置: {e}"
+                                # )
                         else:
-                            print(f"  未激活显示器: {device.DeviceName}")
+                            pass
+                            # print(f"  未激活显示器: {device.DeviceName}")
 
                         i += 1
                     except:
@@ -369,11 +371,11 @@ class DesktopScreenshotGenerator:
                     ]
 
             # 验证显示器信息
-            print("\n=== 最终显示器配置 ===")
-            for i, monitor in enumerate(self.monitors):
-                print(
-                    f"显示器 {i + 1}: {monitor['width']}x{monitor['height']} 位置({monitor['left']},{monitor['top']}) 区域({monitor['left']},{monitor['top']},{monitor['right']},{monitor['bottom']}) {'(主显示器)' if monitor['primary'] else ''}"
-                )
+            # print("\n=== 最终显示器配置 ===")
+            # for i, monitor in enumerate(self.monitors):
+            #     print(
+            #         f"显示器 {i + 1}: {monitor['width']}x{monitor['height']} 位置({monitor['left']},{monitor['top']}) 区域({monitor['left']},{monitor['top']},{monitor['right']},{monitor['bottom']}) {'(主显示器)' if monitor['primary'] else ''}"
+            #     )
 
         except Exception as e:
             print(f"获取显示器信息失败: {e}")
@@ -420,9 +422,9 @@ class DesktopScreenshotGenerator:
                 right = width
                 bottom = height
 
-            print(
-                f"捕获显示器 {monitor_index + 1}: {width}x{height} 位置({left},{top}) 区域({left},{top},{right},{bottom})"
-            )
+            # print(
+            #     f"捕获显示器 {monitor_index + 1}: {width}x{height} 位置({left},{top}) 区域({left},{top},{right},{bottom})"
+            # )
 
             # 验证截图区域是否合理
             if width <= 0 or height <= 0:
@@ -487,7 +489,7 @@ class DesktopScreenshotGenerator:
             srcdc.DeleteDC()
             win32gui.ReleaseDC(hwin, hwindc)
 
-            print(f"成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}")
+            # print(f"成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}")
 
             # 高质量调整图像大小
             max_width = self.quality_settings["single_monitor"]["max_width"]
@@ -510,17 +512,17 @@ class DesktopScreenshotGenerator:
         try:
             from PIL import ImageGrab
 
-            print(
-                f"使用备用方法捕获显示器 {monitor_index + 1}: 区域({left},{top},{left+width},{top+height})"
-            )
+            # print(
+            #     f"使用备用方法捕获显示器 {monitor_index + 1}: 区域({left},{top},{left+width},{top+height})"
+            # )
 
             # 使用ImageGrab捕获指定区域
             bbox = (left, top, left + width, top + height)
             img = ImageGrab.grab(bbox=bbox)
 
-            print(
-                f"备用方法成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}"
-            )
+            # print(
+            #     f"备用方法成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}"
+            # )
 
             # 高质量调整图像大小
             max_width = self.quality_settings["single_monitor"]["max_width"]
@@ -804,7 +806,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"WebSocket发送失败: {e}")
                 break
 
-            await asyncio.sleep(1)
+            # 0.8秒间隔，与前端一致
+            await asyncio.sleep(0.8)
     except WebSocketDisconnect:
         print("WebSocket连接断开")
     except Exception as e:
@@ -1180,9 +1183,6 @@ if not os.path.exists(DEFAULT_UPLOAD_DIR):
 
 def get_upload_dir(folder_path=None):
     """获取上传目录路径"""
-    print(f"DEBUG: get_upload_dir called with folder_path='{folder_path}'")
-    print(f"DEBUG: DEFAULT_UPLOAD_DIR='{DEFAULT_UPLOAD_DIR}'")
-
     if folder_path:
         # 检查是否是系统路径（绝对路径）
         if (
@@ -1192,24 +1192,16 @@ def get_upload_dir(folder_path=None):
         ):
             # 系统路径，直接使用
             upload_dir = folder_path
-            print(f"DEBUG: Detected as system path, using directly: '{upload_dir}'")
         else:
             # Downloads子目录，在Downloads目录下创建子文件夹
             upload_dir = os.path.join(DEFAULT_UPLOAD_DIR, folder_path)
-            print(
-                f"DEBUG: Detected as Downloads subdirectory, joined with DEFAULT_UPLOAD_DIR: '{upload_dir}'"
-            )
 
         # 确保目录存在
         os.makedirs(upload_dir, exist_ok=True)
         # 返回绝对路径，确保路径分隔符一致
         abs_upload_dir = os.path.abspath(upload_dir)
-        print(f"DEBUG: Final upload_dir (absolute): '{abs_upload_dir}'")
         return abs_upload_dir
     else:
-        print(
-            f"DEBUG: No folder_path provided, returning DEFAULT_UPLOAD_DIR: '{DEFAULT_UPLOAD_DIR}'"
-        )
         return DEFAULT_UPLOAD_DIR
 
 
@@ -1225,8 +1217,6 @@ def is_allowed_file(filename: str) -> bool:
 async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None)):
     """上传单个文件"""
     try:
-        print(f"DEBUG: upload_file called with folder_path='{folder_path}'")
-
         # 检查文件大小 (限制为 UPLOAD_FILE_SIZE_LIMIT MB)
         if file.size and file.size > UPLOAD_FILE_SIZE_LIMIT * 1024 * 1024:
             raise HTTPException(
@@ -1235,7 +1225,6 @@ async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None
 
         # 获取上传目录
         upload_dir = get_upload_dir(folder_path)
-        print(f"DEBUG: upload_file - upload_dir returned: '{upload_dir}'")
 
         # 生成安全的文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1261,8 +1250,6 @@ async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None
             "file_path": file_path,
             "upload_dir": upload_dir,
         }
-        print(f"DEBUG: upload_file - response upload_dir: '{upload_dir}'")
-        print(f"DEBUG: upload_file - full response: {response_data}")
         return JSONResponse(response_data)
 
     except HTTPException:
@@ -1277,8 +1264,6 @@ async def upload_multiple_files(
 ):
     """上传多个文件"""
     try:
-        print(f"DEBUG: upload_multiple_files called with folder_path='{folder_path}'")
-
         if not files:
             raise HTTPException(status_code=400, detail="没有选择文件")
 
@@ -1325,8 +1310,6 @@ async def upload_multiple_files(
             "upload_time": datetime.now().isoformat(),
             "upload_dir": upload_dir,
         }
-        print(f"DEBUG: upload_multiple_files - response upload_dir: '{upload_dir}'")
-        print(f"DEBUG: upload_multiple_files - full response: {response_data}")
         return JSONResponse(response_data)
 
     except HTTPException:
@@ -1540,14 +1523,8 @@ async def delete_folder(folder_data: dict):
 async def create_folder(folder_data: dict):
     """创建新文件夹"""
     try:
-        print(f"DEBUG: Server received folder_data: {folder_data}")
         folder_name = folder_data.get("folder_name", "").strip()
         parent_path = folder_data.get("parent_path", "")
-        print(f"DEBUG: Server extracted folder_name: '{folder_name}'")
-        print(f"DEBUG: Server extracted parent_path: '{parent_path}'")
-        print(f"DEBUG: Server parent_path type: {type(parent_path)}")
-        print(f"DEBUG: Server parent_path length: {len(parent_path) if parent_path else 0}")
-
         if not folder_name:
             raise HTTPException(status_code=400, detail="文件夹名称不能为空")
 
@@ -1559,13 +1536,11 @@ async def create_folder(folder_data: dict):
             raise HTTPException(status_code=400, detail="文件夹名称包含非法字符")
 
         # 构建完整路径
-        print(f"DEBUG: Server building full path with parent_path: '{parent_path}'")
         if parent_path:
             # 检查是否是系统路径
             if parent_path.startswith("/") or re.match(r"^[A-Za-z]:\\", parent_path):
                 # 系统路径
                 full_path = os.path.join(parent_path, folder_name)
-                print(f"DEBUG: Server - system path, full_path: {full_path}")
                 # 安全检查：确保路径在允许的范围内
                 if os.name == "nt":  # Windows
                     # 检查是否在系统关键目录之外
@@ -1600,7 +1575,6 @@ async def create_folder(folder_data: dict):
             else:
                 # Downloads路径
                 full_path = os.path.join(DEFAULT_UPLOAD_DIR, parent_path, folder_name)
-                print(f"DEBUG: Server - Downloads path, full_path: {full_path}")
                 # 确保路径在Downloads目录内
                 if not os.path.abspath(full_path).startswith(
                     os.path.abspath(DEFAULT_UPLOAD_DIR)
@@ -1609,7 +1583,6 @@ async def create_folder(folder_data: dict):
         else:
             # 在Downloads根目录创建
             full_path = os.path.join(DEFAULT_UPLOAD_DIR, folder_name)
-            print(f"DEBUG: Server - Downloads root path, full_path: {full_path}")
 
         # 检查文件夹是否已存在
         if os.path.exists(full_path):
@@ -1758,8 +1731,6 @@ async def list_system_directories(path: str = ""):
     timeout_seconds = 10
 
     try:
-        # print(f"DEBUG: Received path parameter: '{path}'")
-
         # 构建目标路径
         if path:
             # 处理Windows路径的特殊情况
@@ -1769,10 +1740,9 @@ async def list_system_directories(path: str = ""):
 
                 try:
                     decoded_path = urllib.parse.unquote(path)
-                    # print(f"DEBUG: URL decoded path: '{decoded_path}'")
                     path = decoded_path
                 except Exception as e:
-                    print(f"DEBUG: URL decode failed: {e}")
+                    pass
 
                 # 处理Windows路径格式问题 - 支持所有盘符
                 import re
@@ -1785,21 +1755,17 @@ async def list_system_directories(path: str = ""):
                     # 如果盘符后没有反斜杠，添加反斜杠
                     if not remaining_path.startswith("\\"):
                         path = drive_letter + "\\" + remaining_path
-                        # print(f"DEBUG: Fixed drive path to: '{path}'")
 
                 # 确保路径中的反斜杠是正确的 - 支持所有盘符
                 if re.match(r"^[A-Za-z]:\\", path):
                     # 替换所有正斜杠为反斜杠（如果存在）
                     path = path.replace("/", "\\")
-                    # print(f"DEBUG: Normalized path separators: '{path}'")
 
             # 确保路径是绝对路径且安全
             if os.path.isabs(path):
                 target_path = path
-                # print(f"DEBUG: Path is absolute: '{target_path}'")
             else:
                 target_path = os.path.abspath(path)
-                # print(f"DEBUG: Made path absolute: '{target_path}'")
         else:
             # 根目录 - 在Windows上列出所有可用盘符
             if os.name == "nt":
@@ -1891,7 +1857,6 @@ async def list_system_directories(path: str = ""):
                     target_path = "C:\\"
             else:
                 target_path = "/"
-            # print(f"DEBUG: Using root directory: '{target_path}'")
 
         # 安全检查：防止访问系统关键目录（仅在非Windows系统上）
         if os.name != "nt":  # 非Windows系统
@@ -1923,16 +1888,13 @@ async def list_system_directories(path: str = ""):
             os.name == "nt" and re.match(r"^[A-Za-z]:\\$", current_path)
         ):
             parent_dir = os.path.dirname(current_path)
-            # print(f"DEBUG: Current path: '{current_path}', Parent dir: '{parent_dir}'")
             if parent_dir == current_path:  # 已经是根目录
                 parent_path = ""
-                # print(f"DEBUG: Parent dir same as current, setting parent_path to empty")
             else:
                 parent_path = parent_dir
                 # 修复Windows路径问题：确保盘符后有反斜杠
                 if os.name == "nt" and re.match(r"^[A-Za-z]:$", parent_path):
                     parent_path += "\\"
-                # print(f"DEBUG: Setting parent_path to: '{parent_path}'")
 
         # 获取目录列表
         try:
