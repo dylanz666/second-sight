@@ -823,6 +823,11 @@ body {
     animation: modalFadeIn 0.3s ease-out;
 }
 
+/* 嵌套模态框样式 - 确保在父模态框之上 */
+#createFolderModal {
+    z-index: 1001;
+}
+
 /* 模态框Loading遮罩样式 */
 .modal-loading-overlay {
     position: absolute;
@@ -1109,6 +1114,12 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: 500;
+}
+
+.path-item .path-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .loading-placeholder {

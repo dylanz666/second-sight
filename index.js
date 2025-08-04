@@ -1274,6 +1274,7 @@ function openPathModal() {
 
 // 关闭路径选择模态框
 function closePathModal() {
+    console.log(111, 'closePathModal');
     const modal = document.getElementById('pathModal');
     modal.style.display = 'none';
 
@@ -1414,7 +1415,7 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
 
             // 对于403错误，更新当前路径为尝试访问的路径，以便正确导航
             currentModalPath = path;
-            
+
             // 更新路径显示
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 404')) {
@@ -1422,7 +1423,7 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
 
             // 对于404错误，更新当前路径为尝试访问的路径，以便正确导航
             currentModalPath = path;
-            
+
             // 更新路径显示
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 408')) {
@@ -1675,7 +1676,7 @@ async function loadModalPathList(path = '', restoreSelection = true) {
 
             // 对于403错误，更新当前路径为尝试访问的路径，以便正确导航
             currentModalPath = path;
-            
+
             // 更新路径显示
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 404')) {
@@ -1683,7 +1684,7 @@ async function loadModalPathList(path = '', restoreSelection = true) {
 
             // 对于404错误，更新当前路径为尝试访问的路径，以便正确导航
             currentModalPath = path;
-            
+
             // 更新路径显示
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 408')) {
@@ -2640,6 +2641,7 @@ async function deleteFolder(folderPath) {
 
 // 显示创建文件夹对话框
 function showCreateFolderDialog() {
+    closePathModal();
 
     const modal = document.getElementById('createFolderModal');
     if (!modal) {
