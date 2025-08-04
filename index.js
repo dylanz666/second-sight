@@ -2703,7 +2703,6 @@ function showCreateFolderDialog() {
         console.error('Create folder modal not found!');
         return;
     }
-    closePathModal();
 
     // 显示对话框
     modal.style.display = 'flex';
@@ -2725,12 +2724,6 @@ function closeCreateFolderDialog() {
     if (modal) {
         modal.style.display = 'none';
     }
-    setTimeout(() => {
-        const pathModalodal = document.getElementById('pathModal');
-        if (pathModalodal) {
-            pathModalodal.style.display = 'flex';
-        }
-    }, 100);
 }
 
 // 更新创建文件夹位置显示
@@ -2844,14 +2837,18 @@ async function createFolder() {
             // 关闭对话框
             closeCreateFolderDialog();
 
+            // 确保主模态框保持打开状态
+            const mainModal = document.getElementById('pathModal');
+            if (mainModal) {
+                mainModal.style.display = 'flex';
+            }
+
             // 刷新路径列表 - 添加延迟确保服务器有时间创建文件夹
             console.log('DEBUG: About to call refreshPathList()');
             setTimeout(() => {
                 console.log('DEBUG: Calling refreshPathList() after delay');
                 refreshPathList();
             }, 500);
-
-            openPathModal();
         } else {
             const errorData = await response.json();
             const errorMsg = `创建文件夹失败: ${errorData.detail || errorData.message || '未知错误'}`;
@@ -2958,3 +2955,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始设置路径输入框事件监听器
     setupPathInputEventListeners();
 });
+
+// 重新打开路径选择模态框
+function reopenPathModal() {
+    console.log('DEBUG: reopenPathModal() called');
+    console.log('DEBUG: reopenPathModal() - selectedPath before:', selectedPath);
+    console.log('DEBUG: reopenPathModal() - currentModalPath before:', currentModalPath);
+    
+    // 直接调用openPathModal来重新打开模态框
+    openPathModal();
+}
