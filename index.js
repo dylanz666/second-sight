@@ -9,7 +9,7 @@ function updateModalPathDisplay(path) {
     let displayText = '';
     if (path && path !== '') {
         // 检查是否是系统路径
-        const isSystemPath = path.startsWith('/') || /^[A-Z]:\\/.test(path);
+        const isSystemPath = path.startsWith('/') || /^[A-Z]:\\/.test(path) || path === '我的电脑';
         if (isSystemPath) {
             displayText = `📂 ${path}`;
         } else {
@@ -1226,10 +1226,6 @@ let pathHistory = [];
 
 // 打开路径选择模态框
 function openPathModal() {
-    console.log('DEBUG: openPathModal() called');
-    console.log('DEBUG: openPathModal() - selectedPath:', selectedPath);
-    console.log('DEBUG: openPathModal() - currentModalPath before:', currentModalPath);
-
     const modal = document.getElementById('pathModal');
 
     if (!modal) {
@@ -1255,8 +1251,6 @@ function openPathModal() {
 
     // 设置当前模态框路径为已选择的路径
     currentModalPath = selectedPath || '';
-
-    console.log('DEBUG: openPathModal() - currentModalPath after setting:', currentModalPath);
 
     // 立即更新路径显示，确保显示正确的路径
     updateModalPathDisplay(selectedPath);
@@ -1326,7 +1320,6 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
 
     // 保存当前选中的路径信息，用于在加载后恢复选中状态
     const currentSelectedPath = restoreSelection ? selectedPath : null;
-    const currentSelectedPathName = restoreSelection ? selectedPathName : null;
 
     // 显示加载状态
     pathList.innerHTML = '<div class="loading-placeholder">正在加载系统目录列表...</div>';
@@ -1357,12 +1350,12 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
 
         // 如果服务器返回的路径为空，但我们有已选择的路径，则使用已选择的路径
         // 但是当导航到根目录时（path为空），始终显示系统根目录
-        const displayPath = data.current_path ? `📂 ${data.current_path}` :
-            (path === '' ? '📂 系统根目录' :
-                (selectedPath ? `📂 ${selectedPath}` : '📂 系统根目录'));
+        const displayPath = data.current_path ? data.current_path :
+            (path === '' ? '我的电脑' :
+                (selectedPath ? selectedPath : '我的电脑'));
 
         // 更新路径显示 - 使用当前模态框路径
-        updateModalPathDisplay(currentModalPath);
+        updateModalPathDisplay(displayPath);
 
         // 更新上级目录按钮
 
@@ -1560,6 +1553,9 @@ function selectSystemPathItem(element, path, name) {
         // 更新模态框中的当前路径显示
         updateModalPathDisplay('/');
 
+        // 更新创建文件夹位置显示
+        updateCreateFolderLocation();
+
         // 显示取消选择通知
         const cancelMsg = '取消选择文件夹';
         addLog('路径选择', cancelMsg, 'info');
@@ -1627,16 +1623,8 @@ async function loadModalPathList(path = '', restoreSelection = true) {
 
         const data = await response.json();
 
-        // 调试信息
-        console.log('DEBUG: loadModalPathList - server response data:', data);
-        console.log('DEBUG: loadModalPathList - data.current_path:', data.current_path);
-        console.log('DEBUG: loadModalPathList - currentModalPath before update:', currentModalPath);
-
         // 更新当前路径显示 - 始终使用服务器返回的当前路径来确保一致性
-        console.log('DEBUG: loadModalPathList - updating currentModalPath from', currentModalPath, 'to', data.current_path);
         currentModalPath = data.current_path || '';
-
-        console.log('DEBUG: loadModalPathList - currentModalPath after update:', currentModalPath);
 
         // 显示当前浏览的路径
         let displayPath;
@@ -1818,10 +1806,6 @@ function populateModalPathList(items, currentSelectedPath) {
 
 // 选中模态框路径项
 function selectModalPathItem(element, path, name) {
-    console.log('DEBUG: selectModalPathItem called with path:', path, 'name:', name);
-    console.log('DEBUG: selectModalPathItem - selectedPath before:', selectedPath);
-    console.log('DEBUG: selectModalPathItem - currentModalPath before:', currentModalPath);
-
     // 检查当前项是否已经被选中
     const isCurrentlySelected = element.classList.contains('selected');
 
@@ -1840,13 +1824,11 @@ function selectModalPathItem(element, path, name) {
         selectedPathName = name || '';
         lastSelectedPath = path || ''; // 备份选择的路径
 
-        console.log('DEBUG: selectModalPathItem - selectedPath after setting:', selectedPath);
-        console.log('DEBUG: selectModalPathItem - selectedPathName after setting:', selectedPathName);
-        console.log('DEBUG: selectModalPathItem - global selectedPath after setting:', window.selectedPath);
-        console.log('DEBUG: selectModalPathItem - lastSelectedPath after setting:', lastSelectedPath);
-
         // 更新模态框中的当前路径显示
         updateModalPathDisplay(path);
+
+        // 更新创建文件夹位置显示
+        updateCreateFolderLocation();
 
         // 显示选择成功通知
         const selectMsg = `已选文件夹: ${name || path}`;
@@ -1857,10 +1839,11 @@ function selectModalPathItem(element, path, name) {
         selectedPath = null;
         selectedPathName = null;
 
-        console.log('DEBUG: selectModalPathItem - selectedPath after clearing:', selectedPath);
-
         // 更新模态框中的当前路径显示
         updateModalPathDisplay(currentModalPath);
+
+        // 更新创建文件夹位置显示
+        updateCreateFolderLocation();
 
         // 显示取消选择通知
         const cancelMsg = '取消选择文件夹';
@@ -1873,16 +1856,10 @@ function selectModalPathItem(element, path, name) {
 
     // 更新路径选择UI
     updatePathSelectionUI();
-
-    console.log('DEBUG: selectModalPathItem - selectedPath at end:', selectedPath);
-    console.log('DEBUG: selectModalPathItem - currentModalPath at end:', currentModalPath);
 }
 
 // 导航到指定路径
 function navigateToPath(path) {
-    console.log('DEBUG: navigateToPath called with path:', path);
-    console.log('DEBUG: navigateToPath - currentModalPath before:', currentModalPath);
-
     // 保存当前路径到历史记录（保留用于可能的回退功能）
     if (currentModalPath !== '') {
         pathHistory.push(currentModalPath);
@@ -1893,7 +1870,6 @@ function navigateToPath(path) {
 
     // 更新当前模态框路径
     currentModalPath = path;
-    console.log('DEBUG: navigateToPath - currentModalPath after update:', currentModalPath);
 
     // 更新创建文件夹位置显示
     updateCreateFolderLocation();
@@ -2017,12 +1993,19 @@ function navigateToRoot() {
 
     // 清除当前模态框路径，确保显示系统根目录
     currentModalPath = '';
-    // 清除任何选中的路径，确保显示系统根目录
-    selectedPath = null;
-    selectedPathName = null;
+    // 设置选中的路径为"我的电脑"
+    selectedPath = '我的电脑';
+    selectedPathName = '我的电脑';
+
+    // 更新文件管理卡片下的路径显示
+    updatePathSelectionUI();
 
     // 更新创建文件夹位置显示
     updateCreateFolderLocation();
+
+    // 显示用户反馈
+    addLog('路径选择', '已选择"我的电脑"作为目标路径', 'info');
+    showNotification('已选择"我的电脑"作为目标路径', 'success', 2000);
 
     showModalLoading();
     loadSystemDirectories('');
@@ -2058,7 +2041,6 @@ function setDefaultPath() {
 
 // 刷新路径列表
 function refreshPathList() {
-    console.log('DEBUG: refreshPathList() called with currentModalPath:', currentModalPath);
     showModalLoading();
 
     // 检查是否是系统路径（包括所有盘符）
@@ -2068,15 +2050,11 @@ function refreshPathList() {
         /^[A-Z]:\\/.test(currentModalPath) // 使用正则表达式匹配任意盘符
     );
 
-    console.log('DEBUG: refreshPathList() - isSystemPath:', isSystemPath);
-
     if (isSystemPath) {
         // 如果是系统路径，调用系统目录加载函数
-        console.log('DEBUG: refreshPathList() - calling loadSystemDirectories');
         loadSystemDirectories(currentModalPath);
     } else {
         // 如果是Downloads路径或空路径，调用Downloads目录加载函数
-        console.log('DEBUG: refreshPathList() - calling loadModalPathList with:', currentModalPath);
         loadModalPathList(currentModalPath);
     }
 }
@@ -2192,7 +2170,12 @@ function updatePathSelectionUI() {
             /^[A-Z]:\\/.test(selectedPath) // 使用正则表达式匹配任意盘符
         );
 
-        if (isSystemPath) {
+        if (selectedPath === '我的电脑') {
+            // 我的电脑路径
+            displayPath = '我的电脑';
+            pathBtn.innerHTML = '已选路径';
+            pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+        } else if (isSystemPath) {
             // 系统路径
             displayPath = selectedPath;
             pathBtn.innerHTML = '已选路径';
@@ -2229,6 +2212,9 @@ function clearSelectedPath() {
     });
 
     updatePathSelectionUI();
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
 
     // 隐藏目标路径元素
     const pathInfo = document.getElementById('pathInfo');
@@ -2663,6 +2649,7 @@ async function deleteFolder(folderPath) {
                 selectedPath = null;
                 selectedPathName = null;
                 updatePathSelectionUI();
+                updateCreateFolderLocation();
             }
 
             // 刷新文件列表
@@ -2688,16 +2675,6 @@ async function deleteFolder(folderPath) {
 
 // 显示创建文件夹对话框
 function showCreateFolderDialog() {
-    console.log('DEBUG: showCreateFolderDialog() called');
-    console.log('DEBUG: showCreateFolderDialog() - selectedPath:', selectedPath);
-    console.log('DEBUG: showCreateFolderDialog() - selectedPath type:', typeof selectedPath);
-    console.log('DEBUG: showCreateFolderDialog() - currentModalPath:', currentModalPath);
-    console.log('DEBUG: showCreateFolderDialog() - currentModalPath type:', typeof currentModalPath);
-    console.log('DEBUG: showCreateFolderDialog() - currentModalPath length:', currentModalPath ? currentModalPath.length : 0);
-    console.log('DEBUG: showCreateFolderDialog() - global selectedPath:', window.selectedPath);
-    console.log('DEBUG: showCreateFolderDialog() - global currentModalPath:', window.currentModalPath);
-    console.log('DEBUG: showCreateFolderDialog() - lastSelectedPath:', lastSelectedPath);
-
     const modal = document.getElementById('createFolderModal');
     if (!modal) {
         console.error('Create folder modal not found!');
@@ -2731,44 +2708,32 @@ function updateCreateFolderLocation() {
     const locationElement = document.getElementById('createFolderLocation');
     if (!locationElement) return;
 
-    // 获取当前路径
-    let currentPath = currentModalPath || '';
-
-    // 调试信息
-    console.log('DEBUG: updateCreateFolderLocation - currentModalPath:', currentModalPath);
-    console.log('DEBUG: updateCreateFolderLocation - currentPath:', currentPath);
-    console.log('DEBUG: updateCreateFolderLocation - currentPath type:', typeof currentPath);
-    console.log('DEBUG: updateCreateFolderLocation - currentPath length:', currentPath ? currentPath.length : 0);
-
+    // 获取创建路径 - 优先使用选中的路径，如果没有选中则使用当前浏览路径
+    let createPath = selectedPath || lastSelectedPath || currentModalPath || '';
     // 检查是否是系统路径
-    const isSystemPath = currentPath && currentPath !== '' && (
-        currentPath.startsWith('/') ||
-        /^[A-Z]:\\/.test(currentPath)
+    const isSystemPath = createPath && createPath !== '' && (
+        createPath.startsWith('/') ||
+        /^[A-Z]:\\/.test(createPath)
     );
 
-    if (isSystemPath) {
+    if (createPath === '我的电脑') {
+        // 我的电脑路径
+        locationElement.textContent = '我的电脑';
+        locationElement.style.color = '#007bff'; // 蓝色，表示我的电脑
+    } else if (isSystemPath) {
         // 系统路径
-        locationElement.textContent = currentPath;
+        locationElement.textContent = createPath;
         locationElement.style.color = '#dc3545'; // 红色，表示系统路径
     } else {
         // Downloads路径
-        const displayPath = currentPath === '' ? 'Downloads' : `Downloads/${currentPath}`;
+        const displayPath = createPath === '' ? 'Downloads' : `Downloads/${createPath}`;
         locationElement.textContent = displayPath;
         locationElement.style.color = '#28a745'; // 绿色，表示Downloads路径
-        console.log('DEBUG: updateCreateFolderLocation - displayPath:', displayPath);
     }
 }
 
 // 创建文件夹
 async function createFolder() {
-    console.log('DEBUG: createFolder() called');
-    console.log('DEBUG: createFolder() - selectedPath at start:', selectedPath);
-    console.log('DEBUG: createFolder() - selectedPath type at start:', typeof selectedPath);
-    console.log('DEBUG: createFolder() - currentModalPath at start:', currentModalPath);
-    console.log('DEBUG: createFolder() - currentModalPath type at start:', typeof currentModalPath);
-    console.log('DEBUG: createFolder() - global selectedPath:', window.selectedPath);
-    console.log('DEBUG: createFolder() - global currentModalPath:', window.currentModalPath);
-
     const folderNameInput = document.getElementById('folderNameInput');
     if (!folderNameInput) {
         showNotification('找不到输入框元素', 'error', 3000);
@@ -2793,30 +2758,18 @@ async function createFolder() {
     try {
         // 获取当前路径 - 优先使用选中的路径，如果没有选中则使用当前浏览路径
         // 因为用户点击文件夹是选择它，期望在该文件夹下创建新文件夹
-        const parentPath = selectedPath || lastSelectedPath || currentModalPath || '';
+        let parentPath = selectedPath || lastSelectedPath || currentModalPath || '';
 
-        // 调试信息
-        console.log('DEBUG: Creating folder with selectedPath:', selectedPath);
-        console.log('DEBUG: Creating folder with lastSelectedPath:', lastSelectedPath);
-        console.log('DEBUG: Creating folder with currentModalPath:', currentModalPath);
-        console.log('DEBUG: parentPath being sent to server:', parentPath);
-
-        // 额外调试：检查变量是否真的为空
-        console.log('DEBUG: selectedPath === null:', selectedPath === null);
-        console.log('DEBUG: selectedPath === undefined:', selectedPath === undefined);
-        console.log('DEBUG: selectedPath === ""', selectedPath === "");
-        console.log('DEBUG: currentModalPath === null:', currentModalPath === null);
-        console.log('DEBUG: currentModalPath === undefined:', currentModalPath === undefined);
-        console.log('DEBUG: currentModalPath === ""', currentModalPath === "");
+        // 如果选中的是"我的电脑"，则设置为空字符串以在系统根目录创建文件夹
+        if (parentPath === '我的电脑') {
+            parentPath = '';
+        }
 
         // 构建请求数据
         const requestData = {
             folder_name: folderName,
             parent_path: parentPath
         };
-
-        console.log('DEBUG: createFolder - requestData:', requestData);
-        console.log('DEBUG: createFolder - requestData JSON:', JSON.stringify(requestData));
 
         // 发送创建文件夹请求
         const response = await fetch(getServerBaseUrl() + '/create_folder', {
@@ -2844,9 +2797,7 @@ async function createFolder() {
             }
 
             // 刷新路径列表 - 添加延迟确保服务器有时间创建文件夹
-            console.log('DEBUG: About to call refreshPathList()');
             setTimeout(() => {
-                console.log('DEBUG: Calling refreshPathList() after delay');
                 refreshPathList();
             }, 500);
         } else {
@@ -2955,13 +2906,3 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始设置路径输入框事件监听器
     setupPathInputEventListeners();
 });
-
-// 重新打开路径选择模态框
-function reopenPathModal() {
-    console.log('DEBUG: reopenPathModal() called');
-    console.log('DEBUG: reopenPathModal() - selectedPath before:', selectedPath);
-    console.log('DEBUG: reopenPathModal() - currentModalPath before:', currentModalPath);
-    
-    // 直接调用openPathModal来重新打开模态框
-    openPathModal();
-}

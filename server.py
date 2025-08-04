@@ -1677,12 +1677,15 @@ async def list_available_directories(path: str = ""):
         # 获取目录列表
         try:
             items = []
+            timeout_occurred = False
+            
             for item in os.listdir(full_path):
                 item_path = os.path.join(full_path, item)
 
                 # 检查超时
                 if time.time() - start_time > timeout_seconds:
-                    raise HTTPException(status_code=408, detail="请求超时")
+                    timeout_occurred = True
+                    break
 
                 if os.path.isdir(item_path):
                     # 计算文件夹数量，带超时处理
@@ -1724,16 +1727,21 @@ async def list_available_directories(path: str = ""):
         # 按名称排序
         items.sort(key=lambda x: x["name"].lower())
 
-        return JSONResponse(
-            {
-                "items": items,
-                "current_path": relative_path,
-                "parent_path": parent_path,
-                "base_path": DEFAULT_UPLOAD_DIR,
-                "total_count": len(items),
-                "can_go_up": relative_path != "",
-            }
-        )
+        response_data = {
+            "items": items,
+            "current_path": relative_path,
+            "parent_path": parent_path,
+            "base_path": DEFAULT_UPLOAD_DIR,
+            "total_count": len(items),
+            "can_go_up": relative_path != "",
+        }
+        
+        # 如果发生了超时，添加超时信息
+        if timeout_occurred:
+            response_data["partial_results"] = True
+            response_data["timeout_message"] = "部分目录因超时未能加载，已显示可访问的目录"
+        
+        return JSONResponse(response_data)
 
     except HTTPException:
         raise
@@ -1807,10 +1815,13 @@ async def list_system_directories(path: str = ""):
                 if available_drives:
                     # 如果有可用盘符，返回盘符列表
                     items = []
+                    timeout_occurred = False
+                    
                     for drive in available_drives:
                         # 检查超时
                         if time.time() - start_time > timeout_seconds:
-                            raise HTTPException(status_code=408, detail="请求超时")
+                            timeout_occurred = True
+                            break
 
                         try:
                             # 获取盘符的卷标（如果可用）
@@ -1855,42 +1866,26 @@ async def list_system_directories(path: str = ""):
                                     "type": "drive",
                                 }
                             )
-                        except:
-                            # 如果获取卷标失败，仍然尝试计算文件夹数量
-                            try:
-                                folder_count = len(
-                                    [
-                                        f
-                                        for f in os.listdir(drive)
-                                        if os.path.isdir(os.path.join(drive, f))
-                                    ]
-                                )
-                            except PermissionError:
-                                folder_count = 0
-                            except Exception as e:
-                                # 如果计算文件夹数量时出错，返回特殊值
-                                folder_count = -1
+                        except Exception as e:
+                            # 如果处理某个盘符时出错，跳过该盘符，继续处理其他盘符
+                            print(f"处理盘符 {drive} 时出错: {e}")
+                            continue
 
-                            items.append(
-                                {
-                                    "name": drive,
-                                    "path": drive,
-                                    "file_count": folder_count,
-                                    "full_path": drive,
-                                    "type": "drive",
-                                }
-                            )
-
-                    return JSONResponse(
-                        {
-                            "items": items,
-                            "current_path": "",
-                            "parent_path": "",
-                            "base_path": "",
-                            "total_count": len(items),
-                            "can_go_up": False,
-                        }
-                    )
+                    response_data = {
+                        "items": items,
+                        "current_path": "",
+                        "parent_path": "",
+                        "base_path": "",
+                        "total_count": len(items),
+                        "can_go_up": False,
+                    }
+                    
+                    # 如果发生了超时，添加超时信息
+                    if timeout_occurred:
+                        response_data["partial_results"] = True
+                        response_data["timeout_message"] = "部分盘符因超时未能加载，已显示可访问的盘符"
+                    
+                    return JSONResponse(response_data)
                 else:
                     # 如果没有可用盘符，使用C盘作为默认
                     target_path = "C:\\"
@@ -1942,12 +1937,15 @@ async def list_system_directories(path: str = ""):
         # 获取目录列表
         try:
             items = []
+            timeout_occurred = False
+            
             for item in os.listdir(current_path):
                 item_path = os.path.join(current_path, item)
 
                 # 检查超时
                 if time.time() - start_time > timeout_seconds:
-                    raise HTTPException(status_code=408, detail="请求超时")
+                    timeout_occurred = True
+                    break
 
                 if os.path.isdir(item_path):
                     # 计算文件夹数量，带超时处理
@@ -1983,16 +1981,21 @@ async def list_system_directories(path: str = ""):
         # 按名称排序
         items.sort(key=lambda x: x["name"].lower())
 
-        return JSONResponse(
-            {
-                "items": items,
-                "current_path": current_path,
-                "parent_path": parent_path,
-                "base_path": "",
-                "total_count": len(items),
-                "can_go_up": parent_path != "",
-            }
-        )
+        response_data = {
+            "items": items,
+            "current_path": current_path,
+            "parent_path": parent_path,
+            "base_path": "",
+            "total_count": len(items),
+            "can_go_up": parent_path != "",
+        }
+        
+        # 如果发生了超时，添加超时信息
+        if timeout_occurred:
+            response_data["partial_results"] = True
+            response_data["timeout_message"] = "部分目录因超时未能加载，已显示可访问的目录"
+        
+        return JSONResponse(response_data)
 
     except HTTPException:
         raise
