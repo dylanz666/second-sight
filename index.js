@@ -1591,7 +1591,7 @@ function navigateToSystemPath(path) {
 // 删除系统路径
 async function deleteSystemPath(path) {
     const decodedPath = decodeURIComponent(path);
-    
+
     // 检查是否为关键系统路径
     const criticalPaths = ['C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root', '我的电脑'];
     if (criticalPaths.some(criticalPath => decodedPath === criticalPath || decodedPath.startsWith(criticalPath + '/'))) {
@@ -1620,14 +1620,14 @@ async function deleteSystemPath(path) {
             const result = await response.json();
             showNotification(`文件夹 "${decodedPath}" 删除成功`, 'success', 3000);
             addLog('文件管理', `删除文件夹成功: ${decodedPath}`, 'info');
-            
+
             // 如果删除的是当前选中的路径，清除选择
             if (selectedPath === decodedPath) {
                 selectedPath = null;
                 selectedPathName = null;
                 updateCreateFolderLocation();
             }
-            
+
             // 刷新路径列表
             refreshPathList();
         } else {
@@ -2041,7 +2041,7 @@ function hideModalLoading() {
 }
 
 // 跳至根目录
-function navigateToRoot() {
+async function navigateToRoot() {
     // 立即更新当前路径显示
     updateModalPathDisplay('/');
 
@@ -2062,7 +2062,23 @@ function navigateToRoot() {
     showNotification('已选择"我的电脑"作为目标路径', 'success', 2000);
 
     showModalLoading();
-    loadSystemDirectories('');
+    
+    // 等待系统目录加载完成
+    await loadSystemDirectories('');
+    
+    // 在异步操作完成后设置 currentModalPath
+    currentModalPath = "我的电脑";
+}
+
+// 处理导航到根目录的异步调用
+async function handleNavigateToRoot() {
+    try {
+        await navigateToRoot();
+    } catch (error) {
+        console.error('导航到根目录失败:', error);
+        showNotification('导航到根目录失败，请重试', 'error', 3000);
+        addLog('路径选择', '导航到根目录失败: ' + error.message, 'error');
+    }
 }
 
 // 设置默认路径（Downloads）
@@ -2104,6 +2120,8 @@ function refreshPathList() {
         /^[A-Z]:\\/.test(currentModalPath) ||
         currentModalPath === '我的电脑'
     );
+    console.log('DEBUG: refreshPathList - currentModalPath:', currentModalPath);
+    console.log('DEBUG: refreshPathList - isSystemPath:', isSystemPath);
 
     if (isSystemPath) {
         // 如果是系统路径，调用系统目录加载函数
