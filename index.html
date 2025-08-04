@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250801-30">
-    <script src="/static/index.js?v=20250801-30"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=20250804-09">
+    <script src="/static/index.js?v=20250804-09"></script>
 </head>
 
 <body>
@@ -236,8 +236,8 @@
     </div>
 
     <!-- 创建文件夹对话框 -->
-    <div id="createFolderModal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="createFolderModal" class="modal" style="display: none; z-index: 1001;">
+        <div class="modal-content" id="createFolderModalContent" style="max-width: 400px;">
             <div class="modal-header">
                 <h3>📁 创建新文件夹</h3>
                 <button class="modal-close" onclick="closeCreateFolderDialog()">&times;</button>
