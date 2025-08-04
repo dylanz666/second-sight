@@ -662,6 +662,9 @@ class DesktopScreenshotGenerator:
 # 使用桌面截图生成器
 ui_generator = DesktopScreenshotGenerator()
 
+# 跟踪被收起的显示器（后端状态）
+collapsed_monitors = set()
+
 
 @app.get("/")
 async def get_index():
@@ -705,6 +708,15 @@ async def get_single_monitor_screenshot(monitor_index: int):
                 "error": f"显示器索引 {monitor_index} 超出范围，共有 {len(ui_generator.monitors)} 个显示器"
             }
 
+        # 检查显示器是否被收起
+        if monitor_index in collapsed_monitors:
+            return {
+                "error": f"显示器 {monitor_index} 已被收起，无法获取截图",
+                "monitor_index": monitor_index,
+                "collapsed": True,
+                "timestamp": datetime.now().isoformat(),
+            }
+
         # 捕获指定显示器的截图
         img = ui_generator.capture_single_monitor(monitor_index)
 
@@ -741,29 +753,45 @@ async def get_all_monitor_screenshots():
         # 更新显示器信息
         ui_generator.update_monitor_info()
 
-        # 为每个显示器捕获截图
+        # 为每个显示器处理截图
         for i, monitor in enumerate(ui_generator.monitors):
-            img = ui_generator.capture_single_monitor(i)
+            # 检查显示器是否被收起
+            if i in collapsed_monitors:
+                # 被收起的显示器：只返回基本信息，不包含截图
+                screenshots.append(
+                    {
+                        "monitor_index": i,
+                        "width": monitor["width"],
+                        "height": monitor["height"],
+                        "primary": monitor["primary"],
+                        "image": None,  # 被收起的显示器没有截图
+                        "collapsed": True,
+                    }
+                )
+            else:
+                # 活跃的显示器：捕获截图
+                img = ui_generator.capture_single_monitor(i)
 
-            # 转换为base64，使用高质量PNG
-            buffer = io.BytesIO()
-            img.save(
-                buffer,
-                format="PNG",
-                optimize=ui_generator.quality_settings["optimize"],
-                quality=ui_generator.quality_settings["png_quality"],
-            )
-            img_base64 = base64.b64encode(buffer.getvalue()).decode()
+                # 转换为base64，使用高质量PNG
+                buffer = io.BytesIO()
+                img.save(
+                    buffer,
+                    format="PNG",
+                    optimize=ui_generator.quality_settings["optimize"],
+                    quality=ui_generator.quality_settings["png_quality"],
+                )
+                img_base64 = base64.b64encode(buffer.getvalue()).decode()
 
-            screenshots.append(
-                {
-                    "monitor_index": i,
-                    "width": monitor["width"],
-                    "height": monitor["height"],
-                    "primary": monitor["primary"],
-                    "image": img_base64,
-                }
-            )
+                screenshots.append(
+                    {
+                        "monitor_index": i,
+                        "width": monitor["width"],
+                        "height": monitor["height"],
+                        "primary": monitor["primary"],
+                        "image": img_base64,
+                        "collapsed": False,
+                    }
+                )
 
         return {
             "screenshots": screenshots,
@@ -1030,6 +1058,32 @@ async def get_quality_settings():
     """获取当前截图质量设置"""
     return {
         "settings": ui_generator.quality_settings,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.post("/collapsed-monitors")
+async def update_collapsed_monitors(collapsed_data: dict):
+    """更新被收起的显示器状态"""
+    global collapsed_monitors
+    try:
+        collapsed_indices = collapsed_data.get("collapsed_monitors", [])
+        collapsed_monitors = set(collapsed_indices)
+        
+        return {
+            "message": "被收起的显示器状态更新成功",
+            "collapsed_monitors": list(collapsed_monitors),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/collapsed-monitors")
+async def get_collapsed_monitors():
+    """获取当前被收起的显示器状态"""
+    return {
+        "collapsed_monitors": list(collapsed_monitors),
         "timestamp": datetime.now().isoformat(),
     }
 

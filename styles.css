@@ -346,6 +346,78 @@ body {
     order: 2;
 }
 
+/* 所有显示器收起时的占位符样式 */
+.monitor-item.collapsed-placeholder {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    margin: 20px;
+    transition: all 0.3s ease;
+}
+
+.monitor-item.collapsed-placeholder:hover {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.collapsed-placeholder-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.collapsed-placeholder-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.6;
+    animation: pulse 2s infinite;
+}
+
+.collapsed-placeholder-text {
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.collapsed-placeholder-subtext {
+    font-size: 1em;
+    color: #6c757d;
+    opacity: 0.8;
+}
+
+/* 展开所有显示器按钮样式 */
+.expand-all-btn {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.expand-all-btn:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+}
+
+.expand-all-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3);
+}
+
 /* 展开动画 */
 .monitor-image {
     transition: opacity 0.3s ease, transform 0.3s ease;
@@ -429,6 +501,19 @@ body {
 .btn-danger:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
 }
 
 .sidebar {

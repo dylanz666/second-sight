@@ -2,6 +2,49 @@ let ws = null;
 let autoRefreshInterval = null;
 let isConnected = false;
 
+// 跟踪被收起的显示器
+let collapsedMonitors = new Set();
+let totalMonitorCount = 0; // 总显示器数量
+let autoCollapseInitialized = false; // 是否已执行过自动收起
+
+// 检查是否所有显示器都被收起
+function areAllMonitorsCollapsed() {
+    return collapsedMonitors.size === totalMonitorCount && totalMonitorCount > 0;
+}
+
+// 自动收起非主显示器
+function autoCollapseNonPrimaryMonitors(screenshots) {
+    if (!screenshots || screenshots.length <= 1) {
+        return; // 只有一个显示器或没有显示器时不需要处理
+    }
+
+    // 检查是否已经初始化过（避免重复收起）
+    if (autoCollapseInitialized) {
+        return; // 已经执行过自动收起，避免重复执行
+    }
+
+    // 找到主显示器
+    const primaryMonitor = screenshots.find(screenshot => screenshot.primary);
+    if (!primaryMonitor) {
+        return; // 没有找到主显示器
+    }
+
+    // 收起所有非主显示器
+    screenshots.forEach(screenshot => {
+        if (!screenshot.primary) {
+            collapsedMonitors.add(screenshot.monitor_index);
+        }
+    });
+
+    // 同步到后端
+    syncCollapsedMonitorsToBackend();
+    
+    // 标记已执行过自动收起
+    autoCollapseInitialized = true;
+    
+    addLog('系统', `检测到 ${screenshots.length} 个显示器，已自动收起 ${screenshots.length - 1} 个副显示器`, 'info');
+}
+
 // 更新模态框路径显示的统一函数
 function updateModalPathDisplay(path) {
     const pathInput = document.getElementById('modalCurrentPathInput');
@@ -340,9 +383,53 @@ async function checkServerStatus() {
     }
 }
 
+// 同步被收起的显示器状态到后端
+async function syncCollapsedMonitorsToBackend() {
+    try {
+        const serverUrl = getServerBaseUrl();
+        const response = await fetch(`${serverUrl}/collapsed-monitors`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                collapsed_monitors: Array.from(collapsedMonitors)
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            addLog('系统', `已同步收起状态到后端: ${data.collapsed_monitors.length} 个显示器`, 'info');
+        } else {
+            addLog('系统', '同步收起状态到后端失败', 'error');
+        }
+    } catch (error) {
+        addLog('系统', `同步收起状态到后端出错: ${error.message}`, 'error');
+    }
+}
+
+// 重置所有被收起的显示器状态
+function resetCollapsedMonitors() {
+    collapsedMonitors.clear();
+    autoCollapseInitialized = false; // 重置自动收起标志，允许重新执行自动收起
+    // 同步到后端
+    syncCollapsedMonitorsToBackend();
+    addLog('系统', '已重置所有显示器收起状态', 'info');
+    
+    // 如果当前显示的是占位符，则重新获取截图
+    if (totalMonitorCount > 0) {
+        setTimeout(() => {
+            refreshAllMonitors();
+        }, 100);
+    }
+}
+
 // 初始化
 document.addEventListener('DOMContentLoaded', function () {
     addLog('系统', '页面加载完成', 'success');
+
+    // 重置被收起的显示器状态
+    resetCollapsedMonitors();
 
     // 初始化趋势图
     drawMemoryTrendChart();
@@ -794,6 +881,14 @@ async function getMonitorsConfig() {
 // 刷新所有显示器截图
 async function refreshAllMonitors() {
     try {
+        // 检查是否所有显示器都被收起
+        if (areAllMonitorsCollapsed()) {
+            // 所有显示器都被收起时，不调用API，直接显示占位符
+            addLog('截图', '所有显示器都已收起，跳过截图获取', 'info');
+            displayCollapsedMonitorsPlaceholder();
+            return;
+        }
+
         // addLog('截图', '正在获取所有显示器截图...', 'info');
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/screenshots/all`);
@@ -801,7 +896,7 @@ async function refreshAllMonitors() {
 
         if (data.screenshots) {
             displayMultiMonitors(data.screenshots);
-            // addLog('截图', `成功获取 ${data.monitor_count} 个显示器截图`, 'success');
+            // addLog('截图', `成功获取 ${data.screenshots.length} 个显示器信息`, 'success');
         }
     } catch (error) {
         addLog('截图', '获取多显示器截图失败: ' + error.message, 'error');
@@ -818,6 +913,12 @@ function displayMultiMonitors(screenshots) {
         return;
     }
 
+    // 更新总显示器数量
+    totalMonitorCount = screenshots.length;
+
+    // 自动收起非主显示器（仅在首次检测到多个显示器时）
+    autoCollapseNonPrimaryMonitors(screenshots);
+
     screenshots.forEach((screenshot, index) => {
         const monitorDiv = document.createElement('div');
         monitorDiv.className = `monitor-item ${screenshot.primary ? 'primary' : ''}`;
@@ -829,7 +930,28 @@ function displayMultiMonitors(screenshots) {
 
         const img = document.createElement('img');
         img.className = 'monitor-image';
-        img.src = 'data:image/png;base64,' + screenshot.image;
+        
+        // 检查显示器是否被收起
+        const isCollapsed = collapsedMonitors.has(screenshot.monitor_index);
+        
+        if (isCollapsed) {
+            // 如果被收起，使用占位图片
+            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+            img.style.display = 'none';
+            monitorDiv.classList.add('collapsed');
+        } else {
+            // 如果活跃，使用实际截图
+            if (screenshot.image) {
+                img.src = 'data:image/png;base64,' + screenshot.image;
+                img.style.display = 'block';
+            } else {
+                // 如果没有截图数据，也显示占位符
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+                img.style.display = 'none';
+                monitorDiv.classList.add('collapsed');
+            }
+        }
+        
         img.alt = `${monitorType} ${screenshot.monitor_index + 1}`;
 
         const controls = document.createElement('div');
@@ -842,34 +964,46 @@ function displayMultiMonitors(screenshots) {
                 ⛶ 全屏
             </button>
             <button class="monitor-btn monitor-btn-toggle" id="toggle-btn-${screenshot.monitor_index}" onclick="toggleMonitorImage(${screenshot.monitor_index})">
-                📷 收起
+                ${isCollapsed ? '👁️ 展开' : '📷 收起'}
             </button>
         `;
 
-        // 添加收起/展开功能
-        setTimeout(() => {
-            const imgElem = monitorDiv.querySelector('.monitor-image');
-            const toggleBtn = controls.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
-            if (imgElem && toggleBtn) {
-                toggleBtn.dataset.expanded = "true";
-                toggleBtn.addEventListener('click', function () {
-                    if (toggleBtn.dataset.expanded === "true") {
-                        imgElem.style.display = "none";
-                        toggleBtn.textContent = "展开";
-                        toggleBtn.dataset.expanded = "false";
-                    } else {
-                        imgElem.style.display = "";
-                        toggleBtn.textContent = "收起";
-                        toggleBtn.dataset.expanded = "true";
-                    }
-                });
-            }
-        }, 0);
+        // 设置按钮状态
+        const toggleBtn = controls.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
+        if (isCollapsed) {
+            toggleBtn.classList.add('collapsed');
+            toggleBtn.dataset.expanded = "false";
+        } else {
+            toggleBtn.classList.remove('collapsed');
+            toggleBtn.dataset.expanded = "true";
+        }
 
         monitorDiv.appendChild(img);
         monitorDiv.appendChild(controls);
         grid.appendChild(monitorDiv);
     });
+}
+
+// 显示所有显示器收起时的占位符
+function displayCollapsedMonitorsPlaceholder() {
+    const grid = document.getElementById('monitors-grid');
+    grid.innerHTML = '';
+
+    // 创建占位符显示
+    const placeholderDiv = document.createElement('div');
+    placeholderDiv.className = 'monitor-item collapsed-placeholder';
+    placeholderDiv.innerHTML = `
+        <div class="collapsed-placeholder-content">
+            <div class="collapsed-placeholder-icon">📷</div>
+            <div class="collapsed-placeholder-text">所有显示器都已收起</div>
+            <div class="collapsed-placeholder-subtext">点击下方按钮可重新显示所有显示器截图</div>
+            <button class="btn btn-primary expand-all-btn" onclick="resetCollapsedMonitors()" style="margin-top: 20px;">
+                👁️ 展开所有显示器
+            </button>
+        </div>
+    `;
+
+    grid.appendChild(placeholderDiv);
 }
 
 // 刷新单个显示器
@@ -878,6 +1012,12 @@ async function refreshSingleMonitor(monitorIndex) {
         const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
         if (!monitorDiv) {
             addLog('截图', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+            return;
+        }
+
+        // 检查显示器是否被收起
+        if (collapsedMonitors.has(monitorIndex)) {
+            addLog('截图', `显示器 ${monitorIndex + 1} 已被收起，无法刷新`, 'warning');
             return;
         }
 
@@ -901,9 +1041,11 @@ async function refreshSingleMonitor(monitorIndex) {
 
                 // 更新时间戳
                 const info = monitorDiv.querySelector('.monitor-info');
-                info.innerHTML = `
-                            <span>更新时间: ${new Date().toLocaleTimeString()}</span>
-                        `;
+                if (info) {
+                    info.innerHTML = `
+                                <span>更新时间: ${new Date().toLocaleTimeString()}</span>
+                            `;
+                }
 
                 addLog('截图', `显示器 ${monitorIndex + 1} 刷新成功`, 'success');
             };
@@ -928,6 +1070,12 @@ function toggleMonitorFullscreen(monitorIndex) {
     const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
     if (!monitorDiv) {
         addLog('截图', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+        return;
+    }
+
+    // 检查显示器是否被收起
+    if (collapsedMonitors.has(monitorIndex)) {
+        addLog('截图', `显示器 ${monitorIndex + 1} 已被收起，无法全屏查看`, 'warning');
         return;
     }
 
@@ -1126,10 +1274,11 @@ function toggleMonitorImage(monitorIndex) {
     }
 
     // 检查当前状态
-    const isCollapsed = img.style.display === 'none' || monitorDiv.classList.contains('collapsed');
+    const isCollapsed = collapsedMonitors.has(monitorIndex);
 
     if (isCollapsed) {
         // 展开：显示图片
+        collapsedMonitors.delete(monitorIndex);
         monitorDiv.classList.remove('collapsed');
         img.style.display = 'block';
         img.classList.add('expanding');
@@ -1143,9 +1292,22 @@ function toggleMonitorImage(monitorIndex) {
 
         toggleBtn.innerHTML = '📷 收起';
         toggleBtn.classList.remove('collapsed');
-        addLog('截图', `展开显示器 ${monitorIndex + 1}`, 'info');
+        toggleBtn.dataset.expanded = "true";
+        addLog('截图', `展开显示器 ${monitorIndex + 1}，将重新获取截图`, 'info');
+        
+        // 同步到后端
+        syncCollapsedMonitorsToBackend();
+        
+        // 检查是否从全部收起状态恢复，如果是则刷新显示
+        if (areAllMonitorsCollapsed() === false && totalMonitorCount > 0) {
+            // 从全部收起状态恢复，需要重新获取截图
+            setTimeout(() => {
+                refreshAllMonitors();
+            }, 100);
+        }
     } else {
         // 收起：隐藏图片
+        collapsedMonitors.add(monitorIndex);
         img.style.opacity = '0';
         img.classList.remove('expanded');
         img.classList.add('expanding');
@@ -1157,7 +1319,20 @@ function toggleMonitorImage(monitorIndex) {
 
         toggleBtn.innerHTML = '👁️ 展开';
         toggleBtn.classList.add('collapsed');
-        addLog('截图', `收起显示器 ${monitorIndex + 1}`, 'info');
+        toggleBtn.dataset.expanded = "false";
+        addLog('截图', `收起显示器 ${monitorIndex + 1}，将停止获取截图`, 'info');
+        
+        // 同步到后端
+        syncCollapsedMonitorsToBackend();
+        
+        // 检查是否所有显示器都被收起
+        if (areAllMonitorsCollapsed()) {
+            addLog('截图', '所有显示器都已收起，将停止自动刷新', 'info');
+            // 显示占位符
+            setTimeout(() => {
+                displayCollapsedMonitorsPlaceholder();
+            }, 300);
+        }
     }
 }
 
