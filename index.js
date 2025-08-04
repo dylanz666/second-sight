@@ -1303,19 +1303,12 @@ function closePathModal() {
     modalOriginalPath = null;
     modalOriginalPathName = null;
     modalOriginalCurrentPath = null;
-
-    // 隐藏目标路径元素
-    const pathInfo = document.getElementById('pathInfo');
-    if (pathInfo) {
-        pathInfo.style.display = 'none';
-    }
 }
 
 // 加载系统目录列表
 async function loadSystemDirectories(path = '', restoreSelection = true) {
 
     const pathList = document.getElementById('modalPathList');
-    const currentPathElement = document.getElementById('modalCurrentPath');
     const upButton = document.getElementById('upButton');
 
     // 保存当前选中的路径信息，用于在加载后恢复选中状态
@@ -1487,13 +1480,20 @@ function populateSystemPathList(items, currentSelectedPath) {
 
         html += `
             <div class="path-item" 
-                 onclick="selectSystemPathItem(this, '${escapedPath}', '${escapedName}')" 
-                 ondblclick="navigateToSystemPath('${escapedPath}')"
-                 title="单击选择/取消选择，双击进入: ${escapedName}">
+                 onclick="event.stopPropagation(); selectSystemPathItem(this, '${escapedPath}', '${escapedName}')" 
+                 title="单击选择: ${escapedName}">
                 <div class="path-name">
                     ${item.name}
                 </div>
                 <div class="file-count">${folderCountDisplay}</div>
+                <div class="path-item-actions">
+                    <button class="btn btn-primary" 
+                            style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px; margin-right: 4px;"
+                            onclick="event.stopPropagation(); navigateToSystemPath('${escapedPath}')" 
+                            title="进入文件夹: ${escapedName}">
+                        进入
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -1586,6 +1586,60 @@ function navigateToSystemPath(path) {
 
     // 然后加载目录内容
     loadSystemDirectories(path);
+}
+
+// 删除系统路径
+async function deleteSystemPath(path) {
+    const decodedPath = decodeURIComponent(path);
+    
+    // 检查是否为关键系统路径
+    const criticalPaths = ['C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root', '我的电脑'];
+    if (criticalPaths.some(criticalPath => decodedPath === criticalPath || decodedPath.startsWith(criticalPath + '/'))) {
+        showNotification('不能删除系统关键目录', 'error', 3000);
+        addLog('文件管理', `尝试删除关键目录被阻止: ${decodedPath}`, 'warning');
+        return;
+    }
+
+    // 确认删除
+    if (!confirm(`确定要删除文件夹 "${decodedPath}" 吗？\n\n此操作不可撤销！`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${getServerBaseUrl()}/delete_folder`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                folder_path: decodedPath
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            showNotification(`文件夹 "${decodedPath}" 删除成功`, 'success', 3000);
+            addLog('文件管理', `删除文件夹成功: ${decodedPath}`, 'info');
+            
+            // 如果删除的是当前选中的路径，清除选择
+            if (selectedPath === decodedPath) {
+                selectedPath = null;
+                selectedPathName = null;
+                updateCreateFolderLocation();
+            }
+            
+            // 刷新路径列表
+            refreshPathList();
+        } else {
+            const errorData = await response.json();
+            showNotification(`删除失败: ${errorData.detail || '未知错误'}`, 'error', 3000);
+            addLog('文件管理', `删除文件夹失败: ${decodedPath} - ${errorData.detail}`, 'error');
+        }
+    } catch (error) {
+        console.error('删除文件夹时发生错误:', error);
+        showNotification('删除文件夹时发生网络错误', 'error', 3000);
+        addLog('文件管理', `删除文件夹网络错误: ${decodedPath} - ${error.message}`, 'error');
+    }
 }
 
 // 加载模态框路径列表
@@ -1771,13 +1825,13 @@ function populateModalPathList(items, currentSelectedPath) {
                             style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px; margin-right: 4px;"
                             onclick="event.stopPropagation(); navigateToPath('${escapedPath}')" 
                             title="进入文件夹: ${escapedName}">
-                        📁 进入
+                        进入
                     </button>
                     <button class="btn btn-danger" 
                             style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px;"
                             onclick="event.stopPropagation(); deleteFolder('${encodeURIComponent(itemPath)}')" 
                             title="删除文件夹: ${escapedName}">
-                        🗑️ 删除
+                        删除
                     </button>
                 </div>
             </div>
