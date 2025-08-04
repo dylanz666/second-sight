@@ -220,14 +220,17 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <!-- fixme -->
-                <button class="btn btn-sm btn-outline-success" onclick="showCreateFolderDialog()"
-                    id="createFolderButton">
-                    📁 新建文件夹
-                </button>
-                <button class="btn btn-primary" onclick="selectCurrentPath()">确定</button>
-                <button class="btn btn-outline-secondary" onclick="closePathModal()">取消</button>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: flex-start;">
+                    <button class="btn btn-sm btn-outline-success" onclick="showCreateFolderDialog()"
+                        id="createFolderButton">
+                        📁 新建文件夹
+                    </button>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="selectCurrentPath()">确定</button>
+                    <button class="btn btn-outline-secondary" onclick="closePathModal()">取消</button>
+                </div>
             </div>
         </div>
     </div>
