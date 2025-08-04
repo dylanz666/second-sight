@@ -2047,12 +2047,17 @@ function refreshPathList() {
     // 注意：只有明确的系统路径才被视为系统路径，空字符串默认是Downloads
     const isSystemPath = currentModalPath && currentModalPath !== '' && (
         currentModalPath.startsWith('/') ||
-        /^[A-Z]:\\/.test(currentModalPath) // 使用正则表达式匹配任意盘符
+        /^[A-Z]:\\/.test(currentModalPath) ||
+        currentModalPath === '我的电脑'
     );
 
     if (isSystemPath) {
         // 如果是系统路径，调用系统目录加载函数
-        loadSystemDirectories(currentModalPath);
+        if (currentModalPath === '我的电脑') {
+            loadSystemDirectories('');
+        } else {
+            loadSystemDirectories(currentModalPath);
+        }
     } else {
         // 如果是Downloads路径或空路径，调用Downloads目录加载函数
         loadModalPathList(currentModalPath);
@@ -2455,20 +2460,23 @@ async function loadFileList() {
             // 检查是否是系统路径（包括所有盘符）
             const isSystemFolder = data.current_folder && (
                 data.current_folder.startsWith('/') ||
-                /^[A-Z]:\\/.test(data.current_folder) // 使用正则表达式匹配任意盘符
+                /^[A-Z]:\\/.test(data.current_folder) || data.current_folder === '我的电脑'
             );
 
             if (isSystemFolder) {
                 // 系统路径
                 folderDisplay = data.current_folder;
-            } else if (data.current_folder && data.current_folder !== 'Downloads') {
+                fileList.innerHTML = `<div class="file-list-placeholder">🏠 ${folderDisplay} 下暂无文件</div>`;
+                return;
+            }
+            if (data.current_folder && data.current_folder !== 'Downloads') {
                 // Downloads子目录
                 folderDisplay = `Downloads/${data.current_folder}`;
             } else {
                 // Downloads根目录
                 folderDisplay = 'Downloads';
             }
-            fileList.innerHTML = `<div class="file-list-placeholder">📁 ${folderDisplay} 文件夹中暂无文件</div>`;
+            fileList.innerHTML = `<div class="file-list-placeholder">📁 ${folderDisplay} 文件夹下暂无文件</div>`;
         }
 
     } catch (error) {
