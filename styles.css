@@ -310,6 +310,9 @@ body {
     align-items: center;
     justify-content: center;
     padding: 20px;
+    background: rgba(149, 165, 166, 0.05);
+    border: 2px dashed #bdc3c7;
+    border-radius: 8px;
 }
 
 .monitor-item.collapsed::after {

@@ -981,9 +981,18 @@ function displayMultiMonitors(screenshots) {
     // 如果没有任何显示器处于全屏状态，正常重建DOM
     if (!hasFullscreenMonitor) {
         grid.innerHTML = '';
-        screenshots.forEach((screenshot, index) => {
-            createMonitorElement(screenshot, index, grid);
-        });
+        
+        // 为所有显示器创建元素，包括被收起的显示器
+        for (let i = 0; i < totalMonitorCount; i++) {
+            const screenshot = screenshots.find(s => s.monitor_index === i);
+            if (screenshot) {
+                // 如果API返回了这个显示器的数据，使用真实数据
+                createMonitorElement(screenshot, i, grid);
+            } else if (collapsedMonitors.has(i)) {
+                // 如果显示器被收起且API没有返回数据，创建占位元素
+                createCollapsedMonitorElement(i, grid);
+            }
+        }
         return;
     }
 
@@ -1060,6 +1069,40 @@ function createMonitorElement(screenshot, index, grid) {
         toggleBtn.classList.remove('collapsed');
         toggleBtn.dataset.expanded = "true";
     }
+
+    monitorDiv.appendChild(img);
+    monitorDiv.appendChild(controls);
+    grid.appendChild(monitorDiv);
+}
+
+// 为被收起的显示器创建占位元素
+function createCollapsedMonitorElement(monitorIndex, grid) {
+    const monitorDiv = document.createElement('div');
+    monitorDiv.className = 'monitor-item collapsed';
+    monitorDiv.id = `monitor-${monitorIndex}`;
+
+    // 设置分辨率信息到右上角标签（使用默认值）
+    monitorDiv.setAttribute('data-resolution', `副显示器（收起状态）`);
+
+    const img = document.createElement('img');
+    img.className = 'monitor-image';
+    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+    img.style.display = 'none';
+    img.alt = `副显示器 ${monitorIndex + 1}`;
+
+    const controls = document.createElement('div');
+    controls.className = 'monitor-controls';
+    controls.innerHTML = `
+        <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${monitorIndex})">
+            🔄 刷新
+        </button>
+        <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${monitorIndex})">
+            ⛶ 全屏
+        </button>
+        <button class="monitor-btn monitor-btn-toggle collapsed" id="toggle-btn-${monitorIndex}" onclick="toggleMonitorImage(${monitorIndex})" data-expanded="false">
+            👁️ 展开
+        </button>
+    `;
 
     monitorDiv.appendChild(img);
     monitorDiv.appendChild(controls);
@@ -1457,7 +1500,7 @@ function toggleMonitorImage(monitorIndex) {
             }, 100);
         }
     } else {
-        // 收起：隐藏图片
+        // 收起：隐藏图片但保持显示器元素可见
         collapsedMonitors.add(monitorIndex);
         img.style.opacity = '0';
         img.classList.remove('expanded');
