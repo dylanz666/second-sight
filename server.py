@@ -20,7 +20,7 @@ from datetime import datetime
 import uvicorn
 from typing import List
 from PIL import Image, ImageDraw
-import psutil  # 添加psutil用于系统监控
+import psutil
 from pathlib import Path
 
 app = FastAPI(title="Remote Viewer Server", version="1.0.0")
@@ -182,13 +182,20 @@ class DesktopScreenshotGenerator:
         self.last_screenshot = None
         self.last_screenshot_time = None
         self.monitors = []
-        # 截图质量配置
+        # 截图质量配置 - 优化后的设置
         self.quality_settings = {
-            "single_monitor": {"max_width": 1400, "max_height": 1050},
-            "desktop": {"max_width": 1920, "max_height": 1200},
-            "png_quality": 95,
-            "optimize": False,
+            "single_monitor": {"max_width": 1200, "max_height": 900},  # 降低默认尺寸
+            "desktop": {"max_width": 1600, "max_height": 1000},  # 降低默认尺寸
+            "png_quality": 60,  # 降低PNG质量以减小文件大小
+            "jpeg_quality": 60,  # 新增JPEG质量设置
+            "optimize": True,  # 启用PNG优化
+            "use_jpeg": True,  # 是否使用JPEG格式（更小但质量稍低）
+            "compression_level": 6,  # PNG压缩级别 (0-9, 9为最高压缩)
         }
+        # 内存缓存
+        self.image_cache = {}
+        self.cache_max_size = 3  # 最大缓存数量
+        self.cache_ttl = 1.5  # 缓存生存时间（秒）
         self.update_monitor_info()
 
     def _should_resize_image(self, img, max_width, max_height):
@@ -208,6 +215,92 @@ class DesktopScreenshotGenerator:
 
         # 使用LANCZOS重采样进行高质量缩放
         return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+    def _get_cache_key(self, monitor_index, quality_settings):
+        """生成缓存键"""
+        return f"monitor_{monitor_index}_{hash(str(quality_settings))}"
+
+    def _clean_cache(self):
+        """清理过期缓存"""
+        current_time = time.time()
+        expired_keys = []
+        
+        for key, (image_data, timestamp) in self.image_cache.items():
+            if current_time - timestamp > self.cache_ttl:
+                expired_keys.append(key)
+        
+        for key in expired_keys:
+            del self.image_cache[key]
+
+    def _add_to_cache(self, key, image_data):
+        """添加到缓存"""
+        # 清理过期缓存
+        self._clean_cache()
+        
+        # 如果缓存已满，删除最旧的条目
+        if len(self.image_cache) >= self.cache_max_size:
+            oldest_key = min(self.image_cache.keys(), 
+                           key=lambda k: self.image_cache[k][1])
+            del self.image_cache[oldest_key]
+        
+        # 添加新条目
+        self.image_cache[key] = (image_data, time.time())
+
+    def _get_from_cache(self, key):
+        """从缓存获取数据"""
+        if key in self.image_cache:
+            image_data, timestamp = self.image_cache[key]
+            if time.time() - timestamp <= self.cache_ttl:
+                return image_data
+            else:
+                # 删除过期缓存
+                del self.image_cache[key]
+        return None
+
+    def _optimize_image_for_transmission(self, img, monitor_index):
+        """优化图像以减小传输大小"""
+        # 生成缓存键
+        cache_key = self._get_cache_key(monitor_index, self.quality_settings)
+        
+        # 检查缓存
+        cached_data = self._get_from_cache(cache_key)
+        if cached_data:
+            return cached_data
+        
+        # 获取质量设置
+        max_width = self.quality_settings["single_monitor"]["max_width"]
+        max_height = self.quality_settings["single_monitor"]["max_height"]
+        
+        # 调整图像大小
+        img = self._resize_image_high_quality(img, max_width, max_height)
+        
+        # 转换为base64
+        buffer = io.BytesIO()
+        
+        if self.quality_settings["use_jpeg"]:
+            # 使用JPEG格式（更小）
+            img.save(
+                buffer,
+                format="JPEG",
+                quality=self.quality_settings["jpeg_quality"],
+                optimize=True
+            )
+        else:
+            # 使用PNG格式
+            img.save(
+                buffer,
+                format="PNG",
+                optimize=self.quality_settings["optimize"],
+                quality=self.quality_settings["png_quality"],
+                compress_level=self.quality_settings["compression_level"]
+            )
+        
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        
+        # 添加到缓存
+        self._add_to_cache(cache_key, img_base64)
+        
+        return img_base64
 
     def update_monitor_info(self):
         """更新显示器信息"""
@@ -491,11 +584,6 @@ class DesktopScreenshotGenerator:
 
             # print(f"成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}")
 
-            # 高质量调整图像大小
-            max_width = self.quality_settings["single_monitor"]["max_width"]
-            max_height = self.quality_settings["single_monitor"]["max_height"]
-            img = self._resize_image_high_quality(img, max_width, max_height)
-
             return img
 
         except Exception as e:
@@ -523,11 +611,6 @@ class DesktopScreenshotGenerator:
             # print(
             #     f"备用方法成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}"
             # )
-
-            # 高质量调整图像大小
-            max_width = self.quality_settings["single_monitor"]["max_width"]
-            max_height = self.quality_settings["single_monitor"]["max_height"]
-            img = self._resize_image_high_quality(img, max_width, max_height)
 
             return img
 
@@ -720,15 +803,8 @@ async def get_single_monitor_screenshot(monitor_index: int):
         # 捕获指定显示器的截图
         img = ui_generator.capture_single_monitor(monitor_index)
 
-        # 转换为base64，使用高质量PNG
-        buffer = io.BytesIO()
-        img.save(
-            buffer,
-            format="PNG",
-            optimize=ui_generator.quality_settings["optimize"],
-            quality=ui_generator.quality_settings["png_quality"],
-        )
-        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        # 使用优化的图像传输函数
+        img_base64 = ui_generator._optimize_image_for_transmission(img, monitor_index)
 
         monitor = ui_generator.monitors[monitor_index]
 
@@ -746,56 +822,45 @@ async def get_single_monitor_screenshot(monitor_index: int):
 
 @app.get("/screenshots/all")
 async def get_all_monitor_screenshots():
-    """获取所有显示器的截图"""
+    """获取所有未收起显示器的截图"""
     try:
         screenshots = []
 
         # 更新显示器信息
         ui_generator.update_monitor_info()
 
-        # 为每个显示器处理截图
+        # 获取总显示器数量
+        import win32api
+        import win32con
+        total_monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
+
+        # 只处理未收起的显示器
         for i, monitor in enumerate(ui_generator.monitors):
-            # 检查显示器是否被收起
+            # 跳过被收起的显示器
             if i in collapsed_monitors:
-                # 被收起的显示器：只返回基本信息，不包含截图
-                screenshots.append(
-                    {
-                        "monitor_index": i,
-                        "width": monitor["width"],
-                        "height": monitor["height"],
-                        "primary": monitor["primary"],
-                        "image": None,  # 被收起的显示器没有截图
-                        "collapsed": True,
-                    }
-                )
-            else:
-                # 活跃的显示器：捕获截图
-                img = ui_generator.capture_single_monitor(i)
+                continue
+            
+            # 只处理活跃的显示器：捕获截图
+            img = ui_generator.capture_single_monitor(i)
 
-                # 转换为base64，使用高质量PNG
-                buffer = io.BytesIO()
-                img.save(
-                    buffer,
-                    format="PNG",
-                    optimize=ui_generator.quality_settings["optimize"],
-                    quality=ui_generator.quality_settings["png_quality"],
-                )
-                img_base64 = base64.b64encode(buffer.getvalue()).decode()
+            # 使用优化的图像传输函数
+            img_base64 = ui_generator._optimize_image_for_transmission(img, i)
 
-                screenshots.append(
-                    {
-                        "monitor_index": i,
-                        "width": monitor["width"],
-                        "height": monitor["height"],
-                        "primary": monitor["primary"],
-                        "image": img_base64,
-                        "collapsed": False,
-                    }
-                )
+            screenshots.append(
+                {
+                    "monitor_index": i,
+                    "width": monitor["width"],
+                    "height": monitor["height"],
+                    "primary": monitor["primary"],
+                    "image": img_base64,
+                    "collapsed": False,
+                }
+            )
 
         return {
             "screenshots": screenshots,
             "monitor_count": len(screenshots),
+            "total_monitor_count": total_monitor_count,
             "timestamp": datetime.now().isoformat(),
         }
     except Exception as e:
@@ -1041,8 +1106,17 @@ async def update_quality_settings(settings: dict):
             ui_generator.quality_settings["desktop"].update(settings["desktop"])
         if "png_quality" in settings:
             ui_generator.quality_settings["png_quality"] = settings["png_quality"]
+        if "jpeg_quality" in settings:
+            ui_generator.quality_settings["jpeg_quality"] = settings["jpeg_quality"]
         if "optimize" in settings:
             ui_generator.quality_settings["optimize"] = settings["optimize"]
+        if "use_jpeg" in settings:
+            ui_generator.quality_settings["use_jpeg"] = settings["use_jpeg"]
+        if "compression_level" in settings:
+            ui_generator.quality_settings["compression_level"] = settings["compression_level"]
+        
+        # 清除缓存以应用新设置
+        ui_generator.image_cache.clear()
 
         return {
             "message": "质量设置更新成功",
@@ -1060,6 +1134,46 @@ async def get_quality_settings():
         "settings": ui_generator.quality_settings,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+@app.get("/cache-stats")
+async def get_cache_stats():
+    """获取缓存统计信息"""
+    try:
+        cache_size = len(ui_generator.image_cache)
+        cache_keys = list(ui_generator.image_cache.keys())
+        
+        # 计算缓存命中率（这里简化处理，实际需要更复杂的统计）
+        total_requests = ui_generator.counter
+        cache_hits = sum(1 for key in cache_keys if ui_generator._get_from_cache(key) is not None)
+        
+        return {
+            "cache_size": cache_size,
+            "max_cache_size": ui_generator.cache_max_size,
+            "cache_ttl_seconds": ui_generator.cache_ttl,
+            "cache_keys": cache_keys,
+            "total_requests": total_requests,
+            "cache_hits": cache_hits,
+            "cache_hit_rate": round((cache_hits / max(total_requests, 1)) * 100, 2),
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/clear-cache")
+async def clear_cache():
+    """清除图像缓存"""
+    try:
+        cache_size = len(ui_generator.image_cache)
+        ui_generator.image_cache.clear()
+        
+        return {
+            "message": f"缓存已清除，共清除 {cache_size} 个缓存项",
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.post("/collapsed-monitors")

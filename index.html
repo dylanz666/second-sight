@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250804-18">
-    <script src="/static/index.js?v=20250804-18"></script>
+    <link rel="stylesheet" href="/static/styles.css?v=20250805-01">
+    <script src="/static/index.js?v=20250805-01"></script>
 </head>
 
 <body>
@@ -40,6 +40,8 @@
                     <button class="btn btn-success" onclick="refreshAllMonitors()">手动刷新</button>
                     <button class="btn btn-primary" onclick="reconnectServer()">重新连接</button>
                     <button class="btn btn-warning" onclick="testSystemInfo()">系统信息</button>
+                    <button class="btn btn-info" onclick="openQualitySettings()">⚙️ 质量设置</button>
+                    <button class="btn btn-secondary" onclick="openCacheManager()">💾 缓存管理</button>
                 </div>
             </div>
 
@@ -260,6 +262,124 @@
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="createFolder()">创建</button>
                 <button class="btn btn-outline-secondary" onclick="closeCreateFolderDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 质量设置模态框 -->
+    <div id="qualitySettingsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>⚙️ 截图质量设置</h3>
+                <button class="modal-close" onclick="closeQualitySettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>📏 图像尺寸设置</h4>
+                    <div class="setting-group">
+                        <label>单显示器最大宽度:</label>
+                        <input type="number" id="singleMonitorWidth" min="800" max="2000" step="50">
+                    </div>
+                    <div class="setting-group">
+                        <label>单显示器最大高度:</label>
+                        <input type="number" id="singleMonitorHeight" min="600" max="1500" step="50">
+                    </div>
+                    <div class="setting-group">
+                        <label>桌面截图最大宽度:</label>
+                        <input type="number" id="desktopWidth" min="1200" max="2500" step="50">
+                    </div>
+                    <div class="setting-group">
+                        <label>桌面截图最大高度:</label>
+                        <input type="number" id="desktopHeight" min="800" max="1800" step="50">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h4>🎨 图像质量设置</h4>
+                    <div class="setting-group">
+                        <label>图像格式:</label>
+                        <select id="imageFormat">
+                            <option value="jpeg">JPEG (较小文件，质量稍低)</option>
+                            <option value="png">PNG (高质量，文件较大)</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>PNG质量 (1-100):</label>
+                        <input type="range" id="pngQuality" min="1" max="100" step="1">
+                        <span id="pngQualityValue">85</span>
+                    </div>
+                    <div class="setting-group">
+                        <label>JPEG质量 (1-100):</label>
+                        <input type="range" id="jpegQuality" min="1" max="100" step="1">
+                        <span id="jpegQualityValue">80</span>
+                    </div>
+                    <div class="setting-group">
+                        <label>PNG压缩级别 (0-9):</label>
+                        <input type="range" id="compressionLevel" min="0" max="9" step="1">
+                        <span id="compressionLevelValue">6</span>
+                    </div>
+                    <div class="setting-group">
+                        <label>
+                            <input type="checkbox" id="optimizePng"> 启用PNG优化
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveQualitySettings()">保存设置</button>
+                <button class="btn btn-outline-secondary" onclick="closeQualitySettings()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 缓存管理模态框 -->
+    <div id="cacheManagerModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>💾 缓存管理</h3>
+                <button class="modal-close" onclick="closeCacheManager()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="cache-stats">
+                    <h4>📊 缓存统计</h4>
+                    <div class="stat-item">
+                        <span class="stat-label">当前缓存数量:</span>
+                        <span class="stat-value" id="currentCacheSize">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最大缓存数量:</span>
+                        <span class="stat-value" id="maxCacheSizeDisplay">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">缓存命中率:</span>
+                        <span class="stat-value" id="cacheHitRate">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">总请求数:</span>
+                        <span class="stat-value" id="totalRequests">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">缓存命中数:</span>
+                        <span class="stat-value" id="cacheHits">-</span>
+                    </div>
+                </div>
+
+                <div class="cache-actions">
+                    <h4>🔧 缓存操作</h4>
+                    <button class="btn btn-warning" onclick="clearCache()">🗑️ 清除所有缓存</button>
+                    <button class="btn btn-info" onclick="refreshCacheStats()">🔄 刷新统计</button>
+                </div>
+
+                <div class="cache-info">
+                    <h4>ℹ️ 缓存说明</h4>
+                    <p>• 缓存可以显著提高截图传输速度</p>
+                    <p>• 相同设置的截图会被缓存，避免重复处理</p>
+                    <p>• 缓存会自动清理过期和超量的项目</p>
+                    <p>• 修改质量设置会自动清除缓存</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" onclick="closeCacheManager()">关闭</button>
             </div>
         </div>
     </div>

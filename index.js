@@ -36,13 +36,15 @@ function autoCollapseNonPrimaryMonitors(screenshots) {
         }
     });
 
-    // 同步到后端
-    syncCollapsedMonitorsToBackend();
-    
     // 标记已执行过自动收起
     autoCollapseInitialized = true;
     
     addLog('系统', `检测到 ${screenshots.length} 个显示器，已自动收起 ${screenshots.length - 1} 个副显示器`, 'info');
+    
+    // 延迟同步到后端，避免影响当前的显示逻辑
+    setTimeout(() => {
+        syncCollapsedMonitorsToBackend();
+    }, 500);
 }
 
 // 更新模态框路径显示的统一函数
@@ -881,6 +883,9 @@ async function getMonitorsConfig() {
 // 刷新所有显示器截图
 async function refreshAllMonitors() {
     try {
+        // 添加调试信息
+        // addLog('调试', `refreshAllMonitors: collapsedMonitors=${collapsedMonitors.size}, totalMonitorCount=${totalMonitorCount}`, 'info');
+        
         // 检查是否所有显示器都被收起
         if (areAllMonitorsCollapsed()) {
             // 所有显示器都被收起时，不调用API，直接显示占位符
@@ -891,15 +896,49 @@ async function refreshAllMonitors() {
 
         // addLog('截图', '正在获取所有显示器截图...', 'info');
         const serverUrl = getServerBaseUrl();
-        const response = await fetch(`${serverUrl}/screenshots/all`);
+        const response = await fetch(`${serverUrl}/screenshots/all`, {
+            timeout: 10000 // 10秒超时
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
 
-        if (data.screenshots) {
+        // 使用API返回的总显示器数量，而不是当前活跃的显示器数量
+        if (data.total_monitor_count !== undefined) {
+            totalMonitorCount = data.total_monitor_count;
+            // addLog('调试', `API返回总显示器数量: ${totalMonitorCount}`, 'info');
+        }
+        
+        if (data.screenshots && data.screenshots.length > 0) {
+            // addLog('调试', `API返回 ${data.screenshots.length} 个显示器截图`, 'info');
             displayMultiMonitors(data.screenshots);
             // addLog('截图', `成功获取 ${data.screenshots.length} 个显示器信息`, 'success');
+        } else if (data.screenshots && data.screenshots.length === 0) {
+            // addLog('调试', 'API返回空截图数组', 'info');
+            // 如果返回空数组，检查是否所有显示器都被收起
+            if (areAllMonitorsCollapsed()) {
+                addLog('调试', '检测到所有显示器都已收起，显示占位符', 'info');
+                displayCollapsedMonitorsPlaceholder();
+            } else {
+                // 如果没有显示器数据但也不是全部收起，显示加载状态
+                addLog('调试', 'API返回空数组但并非全部收起，显示加载状态', 'info');
+                const grid = document.getElementById('monitors-grid');
+                grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>正在加载显示器信息...</div>';
+            }
+        } else {
+            // 处理其他情况
+            addLog('调试', 'API返回数据格式异常', 'info');
+            const grid = document.getElementById('monitors-grid');
+            grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>正在加载显示器信息...</div>';
         }
     } catch (error) {
         addLog('截图', '获取多显示器截图失败: ' + error.message, 'error');
+        // 显示错误状态
+        const grid = document.getElementById('monitors-grid');
+        grid.innerHTML = '<div class="monitor-error">❌ 获取显示器信息失败，请检查服务器连接</div>';
     }
 }
 
@@ -913,8 +952,8 @@ function displayMultiMonitors(screenshots) {
         return;
     }
 
-    // 更新总显示器数量
-    totalMonitorCount = screenshots.length;
+    // 总显示器数量现在由 refreshAllMonitors 从API响应中设置
+    // 这里不再覆盖 totalMonitorCount
 
     // 自动收起非主显示器（仅在首次检测到多个显示器时）
     autoCollapseNonPrimaryMonitors(screenshots);
@@ -3205,3 +3244,169 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始设置路径输入框事件监听器
     setupPathInputEventListeners();
 });
+
+// 质量设置和缓存管理功能
+async function openQualitySettings() {
+    try {
+        // 获取当前质量设置
+        const serverUrl = getServerBaseUrl();
+        const response = await fetch(`${serverUrl}/quality-settings`);
+        const data = await response.json();
+        
+        if (data.settings) {
+            const settings = data.settings;
+            
+            // 填充表单
+            document.getElementById('singleMonitorWidth').value = settings.single_monitor.max_width;
+            document.getElementById('singleMonitorHeight').value = settings.single_monitor.max_height;
+            document.getElementById('desktopWidth').value = settings.desktop.max_width;
+            document.getElementById('desktopHeight').value = settings.desktop.max_height;
+            
+            document.getElementById('imageFormat').value = settings.use_jpeg ? 'jpeg' : 'png';
+            document.getElementById('pngQuality').value = settings.png_quality;
+            document.getElementById('pngQualityValue').textContent = settings.png_quality;
+            document.getElementById('jpegQuality').value = settings.jpeg_quality;
+            document.getElementById('jpegQualityValue').textContent = settings.jpeg_quality;
+            document.getElementById('compressionLevel').value = settings.compression_level;
+            document.getElementById('compressionLevelValue').textContent = settings.compression_level;
+            document.getElementById('optimizePng').checked = settings.optimize;
+        }
+        
+        // 显示模态框
+        document.getElementById('qualitySettingsModal').style.display = 'block';
+        
+        // 添加滑块事件监听器
+        setupQualitySettingsSliders();
+        
+    } catch (error) {
+        addLog('质量设置', '获取质量设置失败: ' + error.message, 'error');
+        showNotification('获取质量设置失败', 'error');
+    }
+}
+
+function closeQualitySettings() {
+    document.getElementById('qualitySettingsModal').style.display = 'none';
+}
+
+function setupQualitySettingsSliders() {
+    // PNG质量滑块
+    const pngQualitySlider = document.getElementById('pngQuality');
+    const pngQualityValue = document.getElementById('pngQualityValue');
+    pngQualitySlider.addEventListener('input', function() {
+        pngQualityValue.textContent = this.value;
+    });
+    
+    // JPEG质量滑块
+    const jpegQualitySlider = document.getElementById('jpegQuality');
+    const jpegQualityValue = document.getElementById('jpegQualityValue');
+    jpegQualitySlider.addEventListener('input', function() {
+        jpegQualityValue.textContent = this.value;
+    });
+    
+    // 压缩级别滑块
+    const compressionLevelSlider = document.getElementById('compressionLevel');
+    const compressionLevelValue = document.getElementById('compressionLevelValue');
+    compressionLevelSlider.addEventListener('input', function() {
+        compressionLevelValue.textContent = this.value;
+    });
+}
+
+async function saveQualitySettings() {
+    try {
+        const settings = {
+            single_monitor: {
+                max_width: parseInt(document.getElementById('singleMonitorWidth').value),
+                max_height: parseInt(document.getElementById('singleMonitorHeight').value)
+            },
+            desktop: {
+                max_width: parseInt(document.getElementById('desktopWidth').value),
+                max_height: parseInt(document.getElementById('desktopHeight').value)
+            },
+            png_quality: parseInt(document.getElementById('pngQuality').value),
+            jpeg_quality: parseInt(document.getElementById('jpegQuality').value),
+            use_jpeg: document.getElementById('imageFormat').value === 'jpeg',
+            optimize: document.getElementById('optimizePng').checked,
+            compression_level: parseInt(document.getElementById('compressionLevel').value)
+        };
+        
+        const serverUrl = getServerBaseUrl();
+        const response = await fetch(`${serverUrl}/quality-settings`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(settings),
+        });
+        
+        const data = await response.json();
+        
+        if (data.message) {
+            showNotification('质量设置保存成功', 'success');
+            addLog('质量设置', '质量设置已更新', 'success');
+            closeQualitySettings();
+        } else {
+            throw new Error(data.error || '保存失败');
+        }
+        
+    } catch (error) {
+        addLog('质量设置', '保存质量设置失败: ' + error.message, 'error');
+        showNotification('保存质量设置失败', 'error');
+    }
+}
+
+async function openCacheManager() {
+    try {
+        await refreshCacheStats();
+        document.getElementById('cacheManagerModal').style.display = 'block';
+    } catch (error) {
+        addLog('缓存管理', '打开缓存管理器失败: ' + error.message, 'error');
+        showNotification('打开缓存管理器失败', 'error');
+    }
+}
+
+function closeCacheManager() {
+    document.getElementById('cacheManagerModal').style.display = 'none';
+}
+
+async function refreshCacheStats() {
+    try {
+        const serverUrl = getServerBaseUrl();
+        const response = await fetch(`${serverUrl}/cache-stats`);
+        const data = await response.json();
+        
+        if (data.cache_size !== undefined) {
+            document.getElementById('currentCacheSize').textContent = data.cache_size;
+            document.getElementById('maxCacheSizeDisplay').textContent = data.max_cache_size;
+            document.getElementById('cacheHitRate').textContent = data.cache_hit_rate + '%';
+            document.getElementById('totalRequests').textContent = data.total_requests;
+            document.getElementById('cacheHits').textContent = data.cache_hits;
+        }
+        
+    } catch (error) {
+        addLog('缓存管理', '获取缓存统计失败: ' + error.message, 'error');
+        showNotification('获取缓存统计失败', 'error');
+    }
+}
+
+async function clearCache() {
+    try {
+        const serverUrl = getServerBaseUrl();
+        const response = await fetch(`${serverUrl}/clear-cache`, {
+            method: 'POST',
+        });
+        
+        const data = await response.json();
+        
+        if (data.message) {
+            showNotification(data.message, 'success');
+            addLog('缓存管理', '缓存已清除', 'success');
+            await refreshCacheStats();
+        } else {
+            throw new Error(data.error || '清除失败');
+        }
+        
+    } catch (error) {
+        addLog('缓存管理', '清除缓存失败: ' + error.message, 'error');
+        showNotification('清除缓存失败', 'error');
+    }
+}

@@ -454,6 +454,20 @@ body {
     margin-right: 10px;
 }
 
+.monitor-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 500px;
+    background: #fdf2f2;
+    border-radius: 8px;
+    border: 2px solid #f5c6cb;
+    color: #e74c3c;
+    font-size: 16px;
+    text-align: center;
+    padding: 20px;
+}
+
 .controls {
     display: flex;
     gap: 10px;
@@ -908,6 +922,56 @@ body {
     animation: modalFadeIn 0.3s ease-out;
 }
 
+/* 确保质量设置模态框水平和垂直居中 */
+#qualitySettingsModal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+#qualitySettingsModal .modal-content {
+    margin: auto;
+    transform: none;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+}
+
+#qualitySettingsModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    max-height: calc(100vh - 200px);
+}
+
+/* 确保缓存管理模态框水平和垂直居中 */
+#cacheManagerModal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+#cacheManagerModal .modal-content {
+    margin: auto;
+    transform: none;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+}
+
+#cacheManagerModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    max-height: calc(100vh - 200px);
+}
+
 /* 嵌套模态框样式 - 确保在父模态框之上 */
 #createFolderModal {
     z-index: 1001;
@@ -960,6 +1024,48 @@ body {
     display: flex;
     flex-direction: column;
     animation: modalSlideIn 0.3s ease-out;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+    border: 1px solid #f1f1f1;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 为模态框内容区域添加滚动条样式 */
+.modal-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+    border: 1px solid #f1f1f1;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .modal-header {
@@ -1693,5 +1799,197 @@ body {
         width: 20px;
         height: 20px;
         margin-left: 8px;
+    }
+}
+
+/* 质量设置和缓存管理模态框样式 */
+.settings-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.settings-section h4 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.setting-group {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.setting-group label {
+    min-width: 150px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.setting-group input[type="number"],
+.setting-group input[type="range"],
+.setting-group select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+}
+
+.setting-group input[type="range"] {
+    padding: 0;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    outline: none;
+}
+
+.setting-group input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.setting-group input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.setting-group input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+.setting-group span {
+    min-width: 40px;
+    text-align: center;
+    font-weight: 600;
+    color: #007bff;
+}
+
+/* 缓存管理样式 */
+.cache-stats {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.cache-stats h4 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.stat-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: #007bff;
+    background: #e3f2fd;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.cache-actions {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.cache-actions h4 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.cache-actions .btn {
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.cache-info {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #17a2b8;
+}
+
+.cache-info h4 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.cache-info p {
+    margin-bottom: 8px;
+    color: #6c757d;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.cache-info p:last-child {
+    margin-bottom: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .setting-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .setting-group label {
+        min-width: auto;
+    }
+    
+    .stat-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .cache-actions .btn {
+        width: 100%;
+        margin-right: 0;
     }
 }
