@@ -430,6 +430,9 @@ function resetCollapsedMonitors() {
 document.addEventListener('DOMContentLoaded', function () {
     addLog('系统', '页面加载完成', 'success');
 
+    // 设置全屏状态监听器
+    setupFullscreenListener();
+
     // 重置被收起的显示器状态
     resetCollapsedMonitors();
 
@@ -644,9 +647,20 @@ function updateStatus(data) {
 // 刷新截图
 async function refreshScreenshot() {
     try {
+        const screenshot = document.getElementById('screenshot');
+        
+        // 如果当前处于全屏状态，暂停自动刷新
+        if (document.fullscreenElement === screenshot) {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                addLog('截图', '检测到全屏状态，已暂停自动刷新', 'info');
+            }
+            return;
+        }
+        
         // 显示加载指示器
         const loadingIndicator = document.getElementById('loading-indicator');
-        const screenshot = document.getElementById('screenshot');
         loadingIndicator.style.display = 'block';
         screenshot.style.opacity = '0.5';
 
@@ -682,6 +696,8 @@ async function refreshScreenshot() {
         addLog('截图', '网络错误: ' + error.message, 'error');
     }
 }
+
+
 
 // 切换自动刷新状态
 function toggleAutoRefresh() {
@@ -945,8 +961,7 @@ async function refreshAllMonitors() {
 // 显示多显示器截图
 function displayMultiMonitors(screenshots) {
     const grid = document.getElementById('monitors-grid');
-    grid.innerHTML = '';
-
+    
     if (!screenshots || screenshots.length === 0) {
         grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>正在加载显示器信息...</div>';
         return;
@@ -958,69 +973,148 @@ function displayMultiMonitors(screenshots) {
     // 自动收起非主显示器（仅在首次检测到多个显示器时）
     autoCollapseNonPrimaryMonitors(screenshots);
 
+    // 检查是否有任何显示器处于全屏状态
+    const hasFullscreenMonitor = document.fullscreenElement && 
+        document.fullscreenElement.classList && 
+        document.fullscreenElement.classList.contains('monitor-image');
+    
+    // 如果没有任何显示器处于全屏状态，正常重建DOM
+    if (!hasFullscreenMonitor) {
+        grid.innerHTML = '';
+        screenshots.forEach((screenshot, index) => {
+            createMonitorElement(screenshot, index, grid);
+        });
+        return;
+    }
+
+    // 如果有显示器处于全屏状态，采用保守更新策略
     screenshots.forEach((screenshot, index) => {
-        const monitorDiv = document.createElement('div');
-        monitorDiv.className = `monitor-item ${screenshot.primary ? 'primary' : ''}`;
-        monitorDiv.id = `monitor-${screenshot.monitor_index}`;
-
-        // 设置分辨率信息到右上角标签
-        const monitorType = screenshot.primary ? '主显示器' : '副显示器';
-        monitorDiv.setAttribute('data-resolution', `${monitorType}（${screenshot.width}×${screenshot.height}）`);
-
-        const img = document.createElement('img');
-        img.className = 'monitor-image';
+        const existingMonitorDiv = document.getElementById(`monitor-${screenshot.monitor_index}`);
         
-        // 检查显示器是否被收起
-        const isCollapsed = collapsedMonitors.has(screenshot.monitor_index);
-        
-        if (isCollapsed) {
-            // 如果被收起，使用占位图片
+        if (existingMonitorDiv) {
+            // 更新现有显示器元素
+            updateExistingMonitorElement(screenshot, existingMonitorDiv);
+        } else {
+            // 如果显示器不存在，创建新的
+            createMonitorElement(screenshot, index, grid);
+        }
+    });
+}
+
+// 创建新的显示器元素
+function createMonitorElement(screenshot, index, grid) {
+    const monitorDiv = document.createElement('div');
+    monitorDiv.className = `monitor-item ${screenshot.primary ? 'primary' : ''}`;
+    monitorDiv.id = `monitor-${screenshot.monitor_index}`;
+
+    // 设置分辨率信息到右上角标签
+    const monitorType = screenshot.primary ? '主显示器' : '副显示器';
+    monitorDiv.setAttribute('data-resolution', `${monitorType}（${screenshot.width}×${screenshot.height}）`);
+
+    const img = document.createElement('img');
+    img.className = 'monitor-image';
+    
+    // 检查显示器是否被收起
+    const isCollapsed = collapsedMonitors.has(screenshot.monitor_index);
+    
+    if (isCollapsed) {
+        // 如果被收起，使用占位图片
+        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+        img.style.display = 'none';
+        monitorDiv.classList.add('collapsed');
+    } else {
+        // 如果活跃，使用实际截图
+        if (screenshot.image) {
+            img.src = 'data:image/png;base64,' + screenshot.image;
+            img.style.display = 'block';
+        } else {
+            // 如果没有截图数据，也显示占位符
             img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
             img.style.display = 'none';
             monitorDiv.classList.add('collapsed');
-        } else {
-            // 如果活跃，使用实际截图
-            if (screenshot.image) {
-                img.src = 'data:image/png;base64,' + screenshot.image;
-                img.style.display = 'block';
-            } else {
-                // 如果没有截图数据，也显示占位符
-                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
-                img.style.display = 'none';
-                monitorDiv.classList.add('collapsed');
-            }
         }
-        
-        img.alt = `${monitorType} ${screenshot.monitor_index + 1}`;
+    }
+    
+    img.alt = `${monitorType} ${screenshot.monitor_index + 1}`;
 
-        const controls = document.createElement('div');
-        controls.className = 'monitor-controls';
-        controls.innerHTML = `
-            <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${screenshot.monitor_index})">
-                🔄 刷新
-            </button>
-            <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${screenshot.monitor_index})">
-                ⛶ 全屏
-            </button>
-            <button class="monitor-btn monitor-btn-toggle" id="toggle-btn-${screenshot.monitor_index}" onclick="toggleMonitorImage(${screenshot.monitor_index})">
-                ${isCollapsed ? '👁️ 展开' : '📷 收起'}
-            </button>
-        `;
+    const controls = document.createElement('div');
+    controls.className = 'monitor-controls';
+    controls.innerHTML = `
+        <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${screenshot.monitor_index})">
+            🔄 刷新
+        </button>
+        <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${screenshot.monitor_index})">
+            ⛶ 全屏
+        </button>
+        <button class="monitor-btn monitor-btn-toggle" id="toggle-btn-${screenshot.monitor_index}" onclick="toggleMonitorImage(${screenshot.monitor_index})">
+            ${isCollapsed ? '👁️ 展开' : '📷 收起'}
+        </button>
+    `;
 
-        // 设置按钮状态
-        const toggleBtn = controls.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
+    // 设置按钮状态
+    const toggleBtn = controls.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
+    if (isCollapsed) {
+        toggleBtn.classList.add('collapsed');
+        toggleBtn.dataset.expanded = "false";
+    } else {
+        toggleBtn.classList.remove('collapsed');
+        toggleBtn.dataset.expanded = "true";
+    }
+
+    monitorDiv.appendChild(img);
+    monitorDiv.appendChild(controls);
+    grid.appendChild(monitorDiv);
+}
+
+// 更新现有的显示器元素
+function updateExistingMonitorElement(screenshot, monitorDiv) {
+    const img = monitorDiv.querySelector('.monitor-image');
+    if (!img) return;
+
+    // 检查显示器是否被收起
+    const isCollapsed = collapsedMonitors.has(screenshot.monitor_index);
+    
+    // 如果图片当前处于全屏状态，跳过更新
+    if (document.fullscreenElement === img) {
+        addLog('截图', `显示器 ${screenshot.monitor_index + 1} 处于全屏状态，跳过更新`, 'info');
+        return;
+    }
+    
+    if (isCollapsed) {
+        // 如果被收起，使用占位图片
+        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+        img.style.display = 'none';
+        monitorDiv.classList.add('collapsed');
+    } else {
+        // 如果活跃，使用实际截图
+        if (screenshot.image) {
+            img.src = 'data:image/png;base64,' + screenshot.image;
+            img.style.display = 'block';
+        } else {
+            // 如果没有截图数据，也显示占位符
+            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+            img.style.display = 'none';
+            monitorDiv.classList.add('collapsed');
+        }
+    }
+    
+    // 更新按钮状态
+    const toggleBtn = monitorDiv.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
+    if (toggleBtn) {
         if (isCollapsed) {
             toggleBtn.classList.add('collapsed');
             toggleBtn.dataset.expanded = "false";
+            toggleBtn.textContent = '👁️ 展开';
         } else {
             toggleBtn.classList.remove('collapsed');
             toggleBtn.dataset.expanded = "true";
+            toggleBtn.textContent = '📷 收起';
         }
-
-        monitorDiv.appendChild(img);
-        monitorDiv.appendChild(controls);
-        grid.appendChild(monitorDiv);
-    });
+    }
+    
+    // 更新分辨率信息
+    const monitorType = screenshot.primary ? '主显示器' : '副显示器';
+    monitorDiv.setAttribute('data-resolution', `${monitorType}（${screenshot.width}×${screenshot.height}）`);
 }
 
 // 显示所有显示器收起时的占位符
@@ -1060,8 +1154,19 @@ async function refreshSingleMonitor(monitorIndex) {
             return;
         }
 
-        // 显示加载状态
         const img = monitorDiv.querySelector('.monitor-image');
+        
+        // 如果当前处于全屏状态，暂停自动刷新
+        if (document.fullscreenElement === img) {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                addLog('截图', `检测到显示器 ${monitorIndex + 1} 全屏状态，已暂停自动刷新`, 'info');
+            }
+            return;
+        }
+        
+        // 显示加载状态
         const originalSrc = img.src;
         img.style.opacity = '0.5';
 
@@ -1153,6 +1258,13 @@ async function debugMonitor(monitorIndex) {
         }
 
         const img = monitorDiv.querySelector('.monitor-image');
+        
+        // 如果当前处于全屏状态，暂停调试
+        if (document.fullscreenElement === img) {
+            addLog('调试', `显示器 ${monitorIndex + 1} 当前处于全屏状态，暂停调试以避免退出全屏`, 'info');
+            return;
+        }
+        
         const originalSrc = img.src;
         img.style.opacity = '0.5';
 
@@ -3408,5 +3520,30 @@ async function clearCache() {
     } catch (error) {
         addLog('缓存管理', '清除缓存失败: ' + error.message, 'error');
         showNotification('清除缓存失败', 'error');
+    }
+}
+
+// 监听全屏状态变化
+function setupFullscreenListener() {
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+}
+
+// 处理全屏状态变化
+function handleFullscreenChange() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+        !document.mozFullScreenElement && !document.msFullscreenElement) {
+        // 退出全屏状态，恢复自动刷新
+        if (!autoRefreshInterval) {
+            // 检查是否有自动刷新按钮处于激活状态
+            const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+            if (autoRefreshBtn && autoRefreshBtn.classList.contains('btn-danger')) {
+                // 重新启动自动刷新
+                autoRefreshInterval = setInterval(refreshAllMonitors, 800);
+                addLog('截图', '退出全屏，已恢复自动刷新', 'info');
+            }
+        }
     }
 }
