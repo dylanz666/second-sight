@@ -1617,7 +1617,7 @@ async def delete_uploaded_file(filename: str, folder: str = None):
         raise HTTPException(status_code=500, detail=f"文件删除失败: {str(e)}")
 
 
-@app.post("/delete_folder")
+@app.delete("/delete_folder")
 async def delete_folder(folder_data: dict):
     """删除文件夹"""
     try:

@@ -453,4 +453,326 @@ async function deleteSystemPath(path) {
         showNotification('删除文件夹时发生网络错误', 'error', 3000);
         addLog('文件管理', `删除文件夹网络错误: ${decodedPath} - ${error.message}`, 'error');
     }
+}
+
+// 加载Downloads目录列表
+async function loadModalPathList(path = '', restoreSelection = true) {
+    const pathList = document.getElementById('modalPathList');
+    const currentPathElement = document.getElementById('modalCurrentPath');
+    const upButton = document.getElementById('upButton');
+
+    // 保存当前选中的路径信息，用于在加载后恢复选中状态
+    const currentSelectedPath = restoreSelection ? selectedPath : null;
+    const currentSelectedPathName = restoreSelection ? selectedPathName : null;
+
+    // 显示加载状态
+    pathList.innerHTML = '<div class="loading-placeholder">正在加载目录列表...</div>';
+
+    // 构建请求URL
+    const url = path ? `${getServerBaseUrl()}/directories?path=${encodeURIComponent(path)}` : `${getServerBaseUrl()}/directories`;
+
+    // 创建AbortController用于超时控制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal
+        });
+
+        // 清除超时定时器
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // 更新当前路径显示 - 始终使用服务器返回的当前路径来确保一致性
+        currentModalPath = data.current_path || '';
+
+        // 显示当前浏览的路径
+        let displayPath;
+        if (data.current_path && data.current_path !== '') {
+            // 显示服务器返回的当前路径
+            displayPath = `📂 Downloads/${data.current_path}`;
+        } else {
+            // 默认显示Downloads根目录
+            displayPath = '📂 Downloads';
+        }
+
+        // 更新路径显示
+        updateModalPathDisplay(data.current_path || '');
+
+        // 更新上级目录按钮 - 显示逻辑改进
+
+        // 始终显示上级目录按钮
+        upButton.style.display = 'inline-block';
+
+        // 根据当前路径状态设置上级目录按钮的功能
+        if (data.current_path && data.current_path !== '') {
+            upButton.title = '返回上级目录';
+            upButton.innerText = '⬆️ 上级目录';
+            upButton.onclick = navigateUp;
+        } else {
+            upButton.title = '已在根目录';
+            upButton.innerText = '⬆️ 上级目录';
+            upButton.onclick = function () {
+                showNotification('已在根目录，无法继续向上导航', 'warning', 3000);
+                addLog('路径选择', '已在根目录，无法继续向上导航', 'warning');
+            };
+        }
+
+        // 填充路径列表
+        populateModalPathList(data.items, currentSelectedPath);
+
+        // 隐藏loading
+        hideModalLoading();
+
+    } catch (error) {
+        // 清除超时定时器
+        clearTimeout(timeoutId);
+
+        console.error('加载路径列表失败:', error);
+
+        let userFriendlyMessage = '';
+
+        // 根据错误类型提供用户友好的提示
+        if (error.name === 'AbortError') {
+            userFriendlyMessage = '请求超时，请检查网络连接或稍后重试';
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            userFriendlyMessage = '无法连接到服务器，请确保服务器正在运行';
+        } else if (error.message.includes('status: 403')) {
+            userFriendlyMessage = '没有权限访问此目录';
+
+            // 对于403错误，更新当前路径为尝试访问的路径，以便正确导航
+            currentModalPath = path;
+
+            // 更新路径显示
+            updateModalPathDisplay(currentModalPath);
+        } else if (error.message.includes('status: 404')) {
+            userFriendlyMessage = '目录不存在或已被删除';
+
+            // 对于404错误，更新当前路径为尝试访问的路径，以便正确导航
+            currentModalPath = path;
+
+            // 更新路径显示
+            updateModalPathDisplay(currentModalPath);
+        } else if (error.message.includes('status: 408')) {
+            userFriendlyMessage = '请求超时，请稍后重试';
+        } else if (error.message.includes('status: 500')) {
+            userFriendlyMessage = '服务器内部错误，请稍后重试';
+        } else {
+            userFriendlyMessage = '加载目录列表失败，请重试';
+        }
+
+        pathList.innerHTML = `
+            <div class="error-placeholder">
+                ${userFriendlyMessage}
+            </div>
+        `;
+
+        // 配置上级目录按钮 - 在错误情况下也要确保按钮可用
+        const upButton = document.getElementById('upButton');
+        upButton.style.display = 'inline-block';
+        upButton.title = '返回上级目录';
+        upButton.innerText = '⬆️ 上级目录';
+        upButton.onclick = navigateUp;
+
+        showNotification(userFriendlyMessage, 'error', 3000);
+        addLog('路径选择', userFriendlyMessage, 'error');
+
+        // 隐藏loading
+        hideModalLoading();
+    }
+}
+
+// 填充模态框路径列表
+function populateModalPathList(items, currentSelectedPath) {
+    const pathList = document.getElementById('modalPathList');
+
+    if (!items || items.length === 0) {
+        pathList.innerHTML = '<div class="empty-placeholder">当前目录下无文件夹</div>';
+        return;
+    }
+
+    let html = '';
+
+    items.forEach(item => {
+        // 计算正确的路径
+        let itemPath;
+        if (item.path && item.path !== '') {
+            // 如果服务器返回了路径，使用服务器返回的路径
+            itemPath = item.path;
+        } else if (currentModalPath && currentModalPath !== '') {
+            // 如果当前在某个目录中，路径是当前目录 + 文件夹名
+            itemPath = `${currentModalPath}/${item.name}`;
+        } else {
+            // 如果在根目录，路径就是文件夹名
+            itemPath = item.name;
+        }
+        // 确保 itemPath 不会是 null 或 undefined
+        if (!itemPath) {
+            itemPath = item.name || '';
+        }
+
+        // 转义路径中的特殊字符，防止JavaScript语法错误
+        const escapedPath = itemPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const escapedName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+        // 处理文件夹数量显示：-1表示超时或错误，显示为"-"
+        const folderCountDisplay = item.file_count === -1 ? '-' : (item.file_count || 0);
+
+        html += `
+            <div class="path-item" 
+                 onclick="event.stopPropagation(); selectModalPathItem(this, '${escapedPath}', '${escapedName}')" 
+                 title="单击选择: ${escapedName}">
+                <div class="path-name">
+                    ${item.name}
+                </div>
+                <div class="file-count">${folderCountDisplay}</div>
+                <div class="path-item-actions">
+                    <button class="btn btn-primary" 
+                            style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px; margin-right: 4px;"
+                            onclick="event.stopPropagation(); navigateToPath('${escapedPath}')" 
+                            title="进入文件夹: ${escapedName}">
+                        进入
+                    </button>
+                    <button class="btn btn-danger" 
+                            style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px;"
+                            onclick="event.stopPropagation(); deleteFolder('${encodeURIComponent(itemPath)}')" 
+                            title="删除文件夹: ${escapedName}">
+                        删除
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    pathList.innerHTML = html;
+
+    // 恢复选中状态，确保与图片中的选中效果一致
+    if (currentSelectedPath && currentSelectedPath.trim() !== '') {
+        const pathItems = pathList.querySelectorAll('.path-item');
+        pathItems.forEach(item => {
+            try {
+                const itemPath = item.getAttribute('onclick').match(/'([^']+)'/)[1];
+                // 解码转义的路径进行比较
+                const decodedPath = itemPath.replace(/\\\\/g, '\\').replace(/\\'/g, "'");
+                if (decodedPath === currentSelectedPath) {
+                    item.classList.add('selected');
+                }
+            } catch (e) {
+                console.warn('Error parsing item path:', e);
+            }
+        });
+    }
+}
+
+// 选中模态框路径项
+function selectModalPathItem(element, path, name) {
+    // 检查当前项是否已经被选中
+    const isCurrentlySelected = element.classList.contains('selected');
+
+    // 移除所有其他项的选中状态
+    const allItems = document.querySelectorAll('.path-item');
+    allItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+
+    if (!isCurrentlySelected) {
+        // 如果当前项未被选中，则选中它
+        element.classList.add('selected');
+
+        // 存储选中的路径信息
+        selectedPath = path || '';
+        selectedPathName = name || '';
+        lastSelectedPath = path || ''; // 备份选择的路径
+
+        // 更新模态框中的当前路径显示
+        updateModalPathDisplay(path);
+
+        // 更新创建文件夹位置显示
+        updateCreateFolderLocation();
+
+        // 显示选择成功通知
+        const selectMsg = `已选文件夹: ${name || path}`;
+        addLog('路径选择', selectMsg, 'info');
+        showNotification(selectMsg, 'success', 2000);
+    } else {
+        // 如果当前项已经被选中，则取消选择
+        selectedPath = null;
+        selectedPathName = null;
+
+        // 更新模态框中的当前路径显示
+        updateModalPathDisplay(currentModalPath);
+
+        // 更新创建文件夹位置显示
+        updateCreateFolderLocation();
+
+        // 显示取消选择通知
+        const cancelMsg = '取消选择文件夹';
+        addLog('路径选择', cancelMsg, 'info');
+        showNotification(cancelMsg, 'info', 2000);
+
+        // 自动刷新文件列表
+        loadFileList();
+    }
+
+    // 更新路径选择UI
+    updatePathSelectionUI();
+}
+
+// 导航到指定路径
+function navigateToPath(path) {
+    // 保存当前路径到历史记录（保留用于可能的回退功能）
+    if (currentModalPath !== '') {
+        pathHistory.push(currentModalPath);
+    }
+
+    // 立即更新当前路径显示
+    updateModalPathDisplay(path);
+
+    // 更新当前模态框路径
+    currentModalPath = path;
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
+
+    // 显示加载状态
+    showModalLoading();
+
+    // 然后加载目录内容
+    loadModalPathList(path);
+}
+
+// 导航到上级目录
+function navigateUp() {
+    // 如果当前在根目录，无法继续向上
+    if (!currentModalPath || currentModalPath === '') {
+        showNotification('已在根目录，无法继续向上导航', 'warning', 3000);
+        addLog('路径选择', '已在根目录，无法继续向上导航', 'warning');
+        return;
+    }
+
+    // 计算上级目录路径
+    const pathParts = currentModalPath.split('/');
+    pathParts.pop(); // 移除最后一个部分
+    const parentPath = pathParts.join('/');
+
+    // 立即更新当前路径显示
+    updateModalPathDisplay(parentPath);
+
+    // 更新当前模态框路径
+    currentModalPath = parentPath;
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
+
+    // 显示加载状态
+    showModalLoading();
+
+    // 然后加载目录内容
+    loadModalPathList(parentPath);
 } 
