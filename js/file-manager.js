@@ -775,4 +775,70 @@ function navigateUp() {
 
     // 然后加载目录内容
     loadModalPathList(parentPath);
+}
+
+// 设置默认路径（Downloads）
+function setDefaultPath() {
+    // 立即更新当前路径显示
+    updateModalPathDisplay('');
+
+    // 设置当前模态框路径为空字符串（表示Downloads根目录）
+    currentModalPath = '';
+    // 设置选中的路径为空字符串，表示默认Downloads目录
+    selectedPath = '';
+    selectedPathName = 'Downloads';
+
+    // 更新文件管理卡片下的路径显示
+    updatePathSelectionUI();
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
+
+    // 显示用户反馈
+    addLog('路径选择', '已切换到默认Downloads目录', 'info');
+    showNotification('已切换到默认Downloads目录', 'success', 2000);
+
+    showModalLoading();
+    loadModalPathList('');
+}
+
+// 导航到根目录（我的电脑）
+async function navigateToRoot() {
+    // 立即更新当前路径显示
+    updateModalPathDisplay('/');
+
+    // 清除当前模态框路径，确保显示系统根目录
+    currentModalPath = '';
+    // 设置选中的路径为"我的电脑"
+    selectedPath = '我的电脑';
+    selectedPathName = '我的电脑';
+
+    // 更新文件管理卡片下的路径显示
+    updatePathSelectionUI();
+
+    // 更新创建文件夹位置显示
+    updateCreateFolderLocation();
+
+    // 显示用户反馈
+    addLog('路径选择', '已选择"我的电脑"作为目标路径', 'info');
+    showNotification('已选择"我的电脑"作为目标路径', 'success', 2000);
+
+    showModalLoading();
+    
+    // 等待系统目录加载完成
+    await loadSystemDirectories('');
+    
+    // 在异步操作完成后设置 currentModalPath
+    currentModalPath = "我的电脑";
+}
+
+// 处理导航到根目录的异步调用
+async function handleNavigateToRoot() {
+    try {
+        await navigateToRoot();
+    } catch (error) {
+        console.error('导航到根目录失败:', error);
+        showNotification('导航到根目录失败，请重试', 'error', 3000);
+        addLog('路径选择', '导航到根目录失败: ' + error.message, 'error');
+    }
 } 
