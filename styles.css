@@ -2034,16 +2034,17 @@ body {
 .remote-control-panel {
     position: fixed;
     top: 50%;
-    right: 20px;
+    right: 76px;
     transform: translateY(-50%);
-    width: 350px;
+    width: 330px;
     background: white;
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     z-index: 1000;
     border: 1px solid #e0e0e0;
-    max-height: 80vh;
-    overflow-y: auto;
+    max-height: 83vh;
+    /* 纵向滚动条 */
+    /* overflow-y: auto; */
 }
 
 .remote-control-header {
