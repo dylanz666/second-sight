@@ -348,3 +348,47 @@ TBD
 27. 键鼠操作-->优先级高
 28. 部署-->优先级低
 29. 录制屏幕与下载-->优先级低
+
+# Server Controller GUI (.exe via Tkinter + PyInstaller)
+
+功能：启动 server、停止 server、重启 server、检测 server、最小化程序窗口。
+
+## 1) 运行（开发态）
+
+- 安装依赖：
+  ```bash
+  pip install -r requirements.txt
+  ```
+- 启动 GUI：
+  ```bash
+  python server_gui/main.py
+  ```
+- 配置：编辑 `server_gui/server_config.json`
+  - `command`: 启动服务的命令（字符串），例如 `"python server.py"` 或 `"uvicorn app:app --host 0.0.0.0 --port 8000"`
+  - `working_directory`: 工作目录（留空则使用程序所在目录）
+  - `port`: 端口（用于端口检测）
+  - `healthcheck_url`: 健康检查 URL（优先使用）
+  - `pid_file`: PID 文件路径（留空自动放程序目录）
+  - `log_file`: 日志文件路径（留空自动放程序目录）
+  - `graceful_stop_seconds`: 优雅停止的等待秒数
+
+## 2) 打包为 Windows 可执行文件 (.exe)
+
+在 Windows 环境下执行（推荐在 Windows 上打包）：
+
+```bash
+pyinstaller --noconsole --onefile --name ServerController \
+  --icon NONE server_gui/main.py
+```
+
+- 生成的可执行文件位于 `dist/ServerController.exe`
+- 若需要图标，请替换 `--icon NONE` 为你的 `icon.ico` 路径
+- 打包后把 `server_config.json` 放在与 `ServerController.exe` 同一目录下，便于修改配置
+
+> 注：在 Linux 上生成 Windows .exe 通常需要 Wine 等额外工具，不建议跨平台打包。
+
+## 3) 常见问题
+
+- 启动失败：请确认 `command` 可在 `working_directory` 正常执行；必要时写全路径或使用虚拟环境 Python 的完整路径。
+- 停止失败：如服务会拉起子进程，建议服务自身支持优雅退出；本工具在 Windows 下会 fallback 使用 `taskkill /T /F`，在类 Unix 下会尝试 `SIGTERM` 并在必要时 `SIGKILL`。
+- 检测失败：优先配置 `healthcheck_url`；否则使用端口检测。

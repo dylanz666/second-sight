@@ -1,0 +1,9 @@
+{
+  "command": "python server.py",
+  "working_directory": "",
+  "port": 8000,
+  "healthcheck_url": "",
+  "pid_file": "",
+  "log_file": "",
+  "graceful_stop_seconds": 8
+}
