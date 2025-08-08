@@ -2352,6 +2352,20 @@ async def remote_press_key(data: dict):
         if not key:
             raise HTTPException(status_code=400, detail="缺少按键参数")
         
+        # 支持方向键的别名
+        key_aliases = {
+            "up": "up",
+            "down": "down",
+            "left": "left",
+            "right": "right",
+            "arrowup": "up",
+            "arrowdown": "down",
+            "arrowleft": "left",
+            "arrowright": "right",
+        }
+        key_lower = key.lower()
+        if key_lower in key_aliases:
+            key = key_aliases[key_lower]
         result = remote_controller.press_key(key)
         return JSONResponse(result)
     except HTTPException:
