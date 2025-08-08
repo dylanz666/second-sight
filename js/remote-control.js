@@ -366,6 +366,12 @@ async function sendRemoteText() {
     }
 }
 
+// 调试远程 keyboard 动作用
+function waitFiveSeconds() {
+    console.log('等待5秒钟以确保前面的操作完成...');
+    return new Promise(resolve => setTimeout(resolve, 5000));
+}
+
 async function sendRemoteKey(key) {
     try {
         const response = await fetch(window.getServerBaseUrl() + '/remote/press-key', {
