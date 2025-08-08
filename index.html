@@ -5,17 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>千里眼 - 远程桌面</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250807-01">
+    <link rel="stylesheet" href="/static/styles.css?v=20250808-02">
     <!-- 模块化JavaScript文件 -->
-    <script src="/static/js/core.js?v=20250807-01"></script>
-    <script src="/static/js/ui-utils.js?v=20250807-01"></script>
-    <script src="/static/js/trend-charts.js?v=20250807-01"></script>
-    <script src="/static/js/websocket.js?v=20250807-01"></script>
-    <script src="/static/js/monitor.js?v=20250807-01"></script>
-    <script src="/static/js/file-manager.js?v=20250807-01"></script>
-    <script src="/static/js/file-manager-utils.js?v=20250807-01"></script>
-    <script src="/static/js/settings.js?v=20250807-01"></script>
-    <script src="/static/js/main.js?v=20250807-01"></script>
+    <script src="/static/js/core.js?v=20250808-02"></script>
+    <script src="/static/js/ui-utils.js?v=20250808-02"></script>
+    <script src="/static/js/trend-charts.js?v=20250808-02"></script>
+    <script src="/static/js/websocket.js?v=20250808-02"></script>
+    <script src="/static/js/monitor.js?v=20250808-02"></script>
+    <script src="/static/js/file-manager.js?v=20250808-02"></script>
+    <script src="/static/js/file-manager-utils.js?v=20250808-02"></script>
+    <script src="/static/js/settings.js?v=20250808-02"></script>
+    <script src="/static/js/remote-control.js?v=20250808-02"></script>
+    <script src="/static/js/main.js?v=20250808-02"></script>
 </head>
 
 <body>
@@ -51,6 +52,7 @@
                     <button class="btn btn-quality-settings" onclick="openQualitySettings()">⚙️ 质量设置</button>
                     <button class="btn btn-secondary" onclick="openCacheManager()">💾 缓存管理</button>
                     <button class="btn btn-warning" onclick="testSystemInfo()">系统信息</button>
+                    <button class="btn btn-info" onclick="toggleRemoteControl()" id="remoteControlBtn">🖱️ 远程控制</button>
                 </div>
             </div>
 
@@ -389,6 +391,59 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" onclick="closeCacheManager()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 远程控制面板 -->
+    <div id="remoteControlPanel" class="remote-control-panel" style="display: none;">
+        <div class="remote-control-header">
+            <h3>🖱️ 远程控制</h3>
+            <button class="remote-control-close" onclick="toggleRemoteControl()">&times;</button>
+        </div>
+        <div class="remote-control-body">
+            <div class="control-section">
+                <h4>📝 文本输入</h4>
+                <div class="input-group">
+                    <input type="text" id="remoteTextInput" placeholder="输入要发送的文本..." style="width: 200px;">
+                    <button class="btn btn-primary" onclick="sendRemoteText()">发送</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4>⌨️ 常用按键</h4>
+                <div class="key-buttons">
+                    <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('enter')">Enter</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('tab')">Tab</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('space')">Space</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('backspace')">Backspace</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('delete')">Delete</button>
+                    <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('escape')">Esc</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4>🔧 组合键</h4>
+                <div class="hotkey-buttons">
+                    <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['ctrl', 'c'])">Ctrl+C</button>
+                    <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['ctrl', 'v'])">Ctrl+V</button>
+                    <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['ctrl', 'a'])">Ctrl+A</button>
+                    <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['ctrl', 'z'])">Ctrl+Z</button>
+                    <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['alt', 'tab'])">Alt+Tab</button>
+                    <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['win', 'd'])">Win+D</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h4>ℹ️ 操作说明</h4>
+                <div class="control-info">
+                    <p>• 点击截图上的任意位置进行鼠标点击</p>
+                    <p>• 双击截图进行双击操作</p>
+                    <p>• 右键点击截图进行右键操作</p>
+                    <p>• 拖拽截图进行选择操作</p>
+                    <p>• 使用滚轮在截图上滚动</p>
+                    <p>• 在文本框中输入内容后点击发送</p>
+                </div>
             </div>
         </div>
     </div>

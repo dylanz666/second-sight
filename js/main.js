@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', function () {
     drawNetworkLatencyTrendChart(); // 初始化网络延迟趋势图
     updateTrendChartTooltip();
 
+    // 初始化远程控制功能
+    if (typeof initRemoteControl === 'function') {
+        initRemoteControl();
+    }
+
     // 检测环境并显示信息
     const environment = detectEnvironment();
     const serverUrl = getServerBaseUrl();

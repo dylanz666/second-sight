@@ -2029,3 +2029,201 @@ body {
         margin-right: 0;
     }
 }
+
+/* 远程控制面板样式 */
+.remote-control-panel {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    width: 300px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    z-index: 1000;
+    border: 1px solid #e0e0e0;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.remote-control-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remote-control-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.remote-control-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.remote-control-close:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+
+.remote-control-body {
+    padding: 20px;
+}
+
+.control-section {
+    margin-bottom: 20px;
+}
+
+.control-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
+}
+
+.key-buttons, .hotkey-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.key-buttons .btn, .hotkey-buttons .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.control-info {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+}
+
+.control-info p {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #666;
+}
+
+.control-info p:last-child {
+    margin-bottom: 0;
+}
+
+/* 远程控制状态指示器 */
+.remote-control-active {
+    position: relative;
+}
+
+.remote-control-active::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: #28a745;
+    border-radius: 50%;
+    border: 2px solid white;
+    animation: pulse 2s infinite;
+}
+
+/* 截图远程控制样式 */
+.screenshot-image.remote-control-enabled {
+    cursor: default;
+}
+
+.screenshot-image.remote-control-enabled:hover {
+    box-shadow: 0 0 0 2px rgba(102,126,234,0.5);
+}
+
+.monitor-image.remote-control-enabled {
+    cursor: default;
+}
+
+.monitor-image.remote-control-enabled:hover {
+    box-shadow: 0 0 0 2px rgba(102,126,234,0.5);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .remote-control-panel {
+        width: 280px;
+        right: 10px;
+    }
+    
+    .remote-control-body {
+        padding: 15px;
+    }
+    
+    .key-buttons, .hotkey-buttons {
+        gap: 6px;
+    }
+    
+    .key-buttons .btn, .hotkey-buttons .btn {
+        padding: 5px 10px;
+        font-size: 11px;
+        min-width: 50px;
+    }
+}
+
+@media (max-width: 480px) {
+    .remote-control-panel {
+        width: 260px;
+        right: 5px;
+    }
+    
+    .remote-control-header {
+        padding: 12px 15px;
+    }
+    
+    .remote-control-header h3 {
+        font-size: 14px;
+    }
+    
+    .control-section {
+        margin-bottom: 15px;
+    }
+    
+    .control-section h4 {
+        font-size: 13px;
+    }
+}

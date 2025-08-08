@@ -7,6 +7,8 @@ from fastapi import (
     Form,
     HTTPException,
 )
+import pyautogui
+import pyperclip
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -85,6 +87,90 @@ class NetworkMonitor:
             "last_check": self.last_check_time,
         }
 
+
+# 键鼠控制器
+class RemoteController:
+    def __init__(self):
+        # 禁用pyautogui的安全机制，允许远程控制
+        pyautogui.FAILSAFE = False
+        pyautogui.PAUSE = 0.1  # 操作间隔
+        
+    def click(self, x: int, y: int, button: str = "left", clicks: int = 1):
+        """执行鼠标点击"""
+        try:
+            pyautogui.click(x, y, clicks=clicks, button=button)
+            return {"success": True, "message": f"点击成功: ({x}, {y})"}
+        except Exception as e:
+            return {"success": False, "message": f"点击失败: {str(e)}"}
+    
+    def double_click(self, x: int, y: int, button: str = "left"):
+        """执行鼠标双击"""
+        try:
+            pyautogui.doubleClick(x, y, button=button)
+            return {"success": True, "message": f"双击成功: ({x}, {y})"}
+        except Exception as e:
+            return {"success": False, "message": f"双击失败: {str(e)}"}
+    
+    def right_click(self, x: int, y: int):
+        """执行鼠标右键点击"""
+        try:
+            pyautogui.rightClick(x, y)
+            return {"success": True, "message": f"右键点击成功: ({x}, {y})"}
+        except Exception as e:
+            return {"success": False, "message": f"右键点击失败: {str(e)}"}
+    
+    def drag(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5):
+        """执行鼠标拖拽"""
+        try:
+            # 移动到起始位置并按下鼠标
+            pyautogui.moveTo(start_x, start_y)
+            pyautogui.mouseDown(button='left')
+            # 拖拽到结束位置
+            pyautogui.moveTo(end_x, end_y, duration=duration)
+            pyautogui.mouseUp(button='left')
+            return {"success": True, "message": f"拖拽成功: ({start_x}, {start_y}) -> ({end_x}, {end_y})"}
+        except Exception as e:
+            return {"success": False, "message": f"拖拽失败: {str(e)}"}
+    
+    def type_text(self, text: str):
+        """输入文本"""
+        try:
+            pyautogui.typewrite(text)
+            return {"success": True, "message": f"文本输入成功: {text}"}
+        except Exception as e:
+            return {"success": False, "message": f"文本输入失败: {str(e)}"}
+    
+    def press_key(self, key: str):
+        """按下单个按键"""
+        try:
+            pyautogui.press(key)
+            return {"success": True, "message": f"按键成功: {key}"}
+        except Exception as e:
+            return {"success": False, "message": f"按键失败: {str(e)}"}
+    
+    def hotkey(self, *keys):
+        """执行组合键"""
+        try:
+            pyautogui.hotkey(*keys)
+            return {"success": True, "message": f"组合键成功: {'+'.join(keys)}"}
+        except Exception as e:
+            return {"success": False, "message": f"组合键失败: {str(e)}"}
+    
+    def scroll(self, x: int, y: int, clicks: int):
+        """执行鼠标滚轮"""
+        try:
+            pyautogui.scroll(clicks, x=x, y=y)
+            return {"success": True, "message": f"滚轮成功: ({x}, {y}) 滚动 {clicks}"}
+        except Exception as e:
+            return {"success": False, "message": f"滚轮失败: {str(e)}"}
+    
+    def get_mouse_position(self):
+        """获取当前鼠标位置"""
+        try:
+            x, y = pyautogui.position()
+            return {"success": True, "x": x, "y": y}
+        except Exception as e:
+            return {"success": False, "message": f"获取鼠标位置失败: {str(e)}"}
 
 # 系统资源监控器
 class SystemMonitor:
@@ -173,6 +259,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 network_monitor = NetworkMonitor()
 system_monitor = SystemMonitor()
+remote_controller = RemoteController()
 
 
 # Windows桌面截图生成器
@@ -2131,6 +2218,241 @@ async def list_system_directories(path: str = ""):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取系统目录列表失败: {str(e)}")
+
+
+# ==================== 远程键鼠控制API ====================
+
+@app.post("/remote/click")
+async def remote_click(data: dict):
+    """远程鼠标点击"""
+    try:
+        x = data.get("x")
+        y = data.get("y")
+        button = data.get("button", "left")
+        clicks = data.get("clicks", 1)
+        monitor_index = data.get("monitor_index", 0)
+        use_percentage = data.get("use_percentage", False)
+        
+        coord_type = "百分比" if use_percentage else "像素"
+        print(f"收到远程点击请求: {coord_type} x={x}, y={y}, monitor_index={monitor_index}")
+        
+        if x is None or y is None:
+            raise HTTPException(status_code=400, detail="缺少坐标参数")
+        
+        # 坐标转换：从截图坐标转换为实际屏幕坐标
+        actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
+        
+        result = remote_controller.click(actual_x, actual_y, button, clicks)
+        print(f"点击操作结果: {result}")
+        
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_msg = f"点击操作失败: {str(e)}"
+        print(error_msg)
+        return JSONResponse({"success": False, "message": error_msg})
+
+
+@app.post("/remote/double-click")
+async def remote_double_click(data: dict):
+    """远程鼠标双击"""
+    try:
+        x = data.get("x")
+        y = data.get("y")
+        button = data.get("button", "left")
+        monitor_index = data.get("monitor_index", 0)
+        use_percentage = data.get("use_percentage", False)
+        
+        if x is None or y is None:
+            raise HTTPException(status_code=400, detail="缺少坐标参数")
+        
+        # 坐标转换
+        actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
+        
+        result = remote_controller.double_click(actual_x, actual_y, button)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"双击操作失败: {str(e)}"})
+
+
+@app.post("/remote/right-click")
+async def remote_right_click(data: dict):
+    """远程鼠标右键点击"""
+    try:
+        x = data.get("x")
+        y = data.get("y")
+        monitor_index = data.get("monitor_index", 0)
+        use_percentage = data.get("use_percentage", False)
+        
+        if x is None or y is None:
+            raise HTTPException(status_code=400, detail="缺少坐标参数")
+        
+        # 坐标转换
+        actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
+        
+        result = remote_controller.right_click(actual_x, actual_y)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"右键点击操作失败: {str(e)}"})
+
+
+@app.post("/remote/drag")
+async def remote_drag(data: dict):
+    """远程鼠标拖拽"""
+    try:
+        start_x = data.get("start_x")
+        start_y = data.get("start_y")
+        end_x = data.get("end_x")
+        end_y = data.get("end_y")
+        duration = data.get("duration", 0.5)
+        monitor_index = data.get("monitor_index", 0)
+        use_percentage = data.get("use_percentage", False)
+        
+        if start_x is None or start_y is None or end_x is None or end_y is None:
+            raise HTTPException(status_code=400, detail="缺少坐标参数")
+        
+        # 坐标转换
+        actual_start_x, actual_start_y = convert_screenshot_coords_to_screen(start_x, start_y, monitor_index, use_percentage)
+        actual_end_x, actual_end_y = convert_screenshot_coords_to_screen(end_x, end_y, monitor_index, use_percentage)
+        
+        result = remote_controller.drag(actual_start_x, actual_start_y, actual_end_x, actual_end_y, duration)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"拖拽操作失败: {str(e)}"})
+
+
+@app.post("/remote/type")
+async def remote_type(data: dict):
+    """远程文本输入"""
+    try:
+        text = data.get("text", "")
+        if not text:
+            raise HTTPException(status_code=400, detail="缺少文本参数")
+        
+        result = remote_controller.type_text(text)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"文本输入失败: {str(e)}"})
+
+
+@app.post("/remote/press-key")
+async def remote_press_key(data: dict):
+    """远程按键"""
+    try:
+        key = data.get("key")
+        if not key:
+            raise HTTPException(status_code=400, detail="缺少按键参数")
+        
+        result = remote_controller.press_key(key)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"按键操作失败: {str(e)}"})
+
+
+@app.post("/remote/hotkey")
+async def remote_hotkey(data: dict):
+    """远程组合键"""
+    try:
+        keys = data.get("keys", [])
+        if not keys:
+            raise HTTPException(status_code=400, detail="缺少组合键参数")
+        
+        result = remote_controller.hotkey(*keys)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"组合键操作失败: {str(e)}"})
+
+
+@app.post("/remote/scroll")
+async def remote_scroll(data: dict):
+    """远程鼠标滚轮"""
+    try:
+        x = data.get("x")
+        y = data.get("y")
+        clicks = data.get("clicks", 3)
+        monitor_index = data.get("monitor_index", 0)
+        use_percentage = data.get("use_percentage", False)
+        
+        if x is None or y is None:
+            raise HTTPException(status_code=400, detail="缺少坐标参数")
+        
+        # 坐标转换
+        actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
+        
+        result = remote_controller.scroll(actual_x, actual_y, clicks)
+        return JSONResponse(result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"滚轮操作失败: {str(e)}"})
+
+
+@app.get("/remote/mouse-position")
+async def get_mouse_position():
+    """获取当前鼠标位置"""
+    try:
+        result = remote_controller.get_mouse_position()
+        return JSONResponse(result)
+    except Exception as e:
+        return JSONResponse({"success": False, "message": f"获取鼠标位置失败: {str(e)}"})
+
+
+def convert_screenshot_coords_to_screen(x: float, y: float, monitor_index: int = 0, use_percentage: bool = False):
+    """将截图坐标转换为实际屏幕坐标"""
+    try:
+        # 获取显示器信息
+        monitors = ui_generator.monitors
+        if not monitors or monitor_index >= len(monitors):
+            # 如果没有显示器信息，直接返回原坐标
+            print(f"显示器信息不可用或索引超出范围: monitor_index={monitor_index}, monitors_count={len(monitors) if monitors else 0}")
+            return int(x), int(y)
+        
+        monitor = monitors[monitor_index]
+        monitor_left = monitor["left"]
+        monitor_top = monitor["top"]
+        monitor_width = monitor["width"]
+        monitor_height = monitor["height"]
+        
+        if use_percentage:
+            # 百分比坐标转换：直接使用百分比计算实际屏幕位置
+            actual_x = int(monitor_left + (x / 100.0) * monitor_width)
+            actual_y = int(monitor_top + (y / 100.0) * monitor_height)
+            # print(f"百分比坐标转换: 显示器{monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, 百分比({x:.2f}%, {y:.2f}%) -> 实际({actual_x}, {actual_y})")
+        else:
+            # 像素坐标转换：考虑截图缩放
+            screenshot_width = monitor.get("screenshot_width", monitor_width)
+            screenshot_height = monitor.get("screenshot_height", monitor_height)
+            
+            # 计算缩放比例
+            scale_x = monitor_width / screenshot_width if screenshot_width > 0 else 1
+            scale_y = monitor_height / screenshot_height if screenshot_height > 0 else 1
+            
+            # 转换坐标
+            actual_x = int(monitor_left + x * scale_x)
+            actual_y = int(monitor_top + y * scale_y)
+            # print(f"像素坐标转换: 显示器{monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, 截图尺寸 {screenshot_width}x{screenshot_height}, 缩放比例 {scale_x:.2f}x{scale_y:.2f}, 像素({x}, {y}) -> 实际({actual_x}, {actual_y})")
+        
+        return actual_x, actual_y
+        
+    except Exception as e:
+        print(f"坐标转换失败: {e}")
+        import traceback
+        traceback.print_exc()
+        # 转换失败时返回原坐标
+        return int(x), int(y)
 
 
 if __name__ == "__main__":
