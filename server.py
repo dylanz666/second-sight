@@ -2391,8 +2391,17 @@ async def remote_scroll(data: dict):
         
         # 坐标转换
         actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
-        
-        result = remote_controller.scroll(actual_x, actual_y, clicks)
+
+        # 放大滚动幅度（如每次滚动乘以10，可根据实际需要调整倍数）
+        amplified_clicks = int(clicks) * 10
+
+        # 先移动鼠标到指定位置，再滚动
+        try:
+            pyautogui.moveTo(actual_x, actual_y)
+            pyautogui.scroll(amplified_clicks)
+            result = {"success": True, "message": f"滚轮成功: ({actual_x}, {actual_y}) 滚动 {amplified_clicks}"}
+        except Exception as e:
+            result = {"success": False, "message": f"滚轮失败: {str(e)}"}
         return JSONResponse(result)
     except HTTPException:
         raise
