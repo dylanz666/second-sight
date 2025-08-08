@@ -8,12 +8,14 @@ from PIL import Image
 import pystray
 import requests
 import psutil
+import time
 
 class SecondSightManager:
     def __init__(self):
+        self.version_text="v1.0.0"
         self.root = tk.Tk()
-        self.root.title("千里眼")
-        self.root.geometry("400x500")
+        self.root.title("千里眼-远程桌面")
+        self.root.geometry("400x480")
         self.root.resizable(False, False)
         
         # 计算居中位置
@@ -32,9 +34,12 @@ class SecondSightManager:
         self.server_process = None
         self.is_running = False
         
+        # 设置UI和托盘
         self.setup_ui()
         self.setup_tray()
-        self.check_server_status()
+        
+        # 启动时自动启动服务器
+        self.root.after(1000, self.auto_start_server)  # 延迟1秒启动，确保UI已完成初始化
 
     def setup_ui(self):
         # 标题
@@ -89,7 +94,7 @@ class SecondSightManager:
             btn.pack(pady=8, padx=20, fill=tk.X)
         
         # 版本信息
-        version_label = ttk.Label(self.root, text="v1.0.0", font=("Arial", 8))
+        version_label = ttk.Label(self.root, text=self.version_text, font=("Arial", 8))
         version_label.pack(side=tk.BOTTOM, pady=5)
 
     def setup_tray(self):
@@ -114,27 +119,64 @@ class SecondSightManager:
     def start_server(self):
         if not self.is_running:
             try:
-                server_path = os.path.join(self.base_path, "server.py")
-                python_exe = os.path.join(self.base_path, "python", "python.exe")
+                # 确保先清理可能存在的进程
+                self.kill_server_by_port(8000)
                 
-                if not os.path.exists(python_exe):
-                    python_exe = sys.executable
-                    
+                # 获取服务器脚本路径
+                server_path = os.path.join(self.base_path, "server.py")
+                if not os.path.exists(server_path):
+                    raise FileNotFoundError(f"服务器文件不存在: {server_path}")
+                
+                # 启动服务器
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
                 self.server_process = subprocess.Popen(
-                    [python_exe, server_path],
+                    [sys.executable, "-u", server_path],  # 添加 -u 参数确保输出不被缓存
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    cwd=self.base_path
+                    cwd=self.base_path,
+                    startupinfo=startupinfo
                 )
-                self.is_running = True
-                # 更新状态显示
-                self.update_status_display(True)
-                messagebox.showinfo("成功", "服务器已启动")
+                
+                # 等待服务器启动
+                time.sleep(3)  # 增加等待时间
+                
+                # 验证服务器状态
+                for _ in range(3):  # 重试3次
+                    try:
+                        response = requests.get("http://localhost:8000/status", timeout=2)
+                        if response.status_code == 200:
+                            self.is_running = True
+                            self.update_status_display(True)
+                            messagebox.showinfo("成功", "服务器已启动")
+                            return
+                    except:
+                        time.sleep(1)
+            
+                raise Exception("服务器启动超时")
+                
             except Exception as e:
-                # 更新状态显示为错误状态
+                error_msg = str(e)
+                if self.server_process:
+                    try:
+                        stderr = self.server_process.stderr.read().decode('utf-8')
+                        if stderr:
+                            error_msg += f"\n\n详细错误:\n{stderr}"
+                    except:
+                        pass
+                
                 self.is_running = False
                 self.update_status_display(False)
-                messagebox.showerror("错误", f"启动失败: {str(e)}")
+                messagebox.showerror("错误", f"启动失败: {error_msg}")
+                
+                # 清理失败的进程
+                if self.server_process:
+                    try:
+                        self.server_process.kill()
+                    except:
+                        pass
+                    self.server_process = None
 
     def kill_server_by_port(self, port=8000):
         """通过端口号找到并终止进程"""
@@ -276,6 +318,13 @@ class SecondSightManager:
             except:
                 pass
             sys.exit(0)
+
+    def auto_start_server(self):
+        """程序启动时自动启动服务器"""
+        if not self.is_running:
+            self.start_server()
+        # 启动完成后检查状态
+        self.check_server_status()
 
     def run(self):
         # 修改窗口关闭按钮的行为，从最小化改为确认退出
