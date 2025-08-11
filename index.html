@@ -453,6 +453,27 @@
             </div>
         </div>
     </div>
+
+    <script>
+function toggleRemoteControl() {
+    fetch('/toggle-remote-control')
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'ok') {
+                console.log('Remote control toggled');
+                // 更新UI状态
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// 添加 WebSocket 连接
+const ws = new WebSocket('ws://localhost:8000/ws');
+ws.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    // 处理服务器消息
+};
+</script>
 </body>
 
 </html>

@@ -8,7 +8,6 @@ from fastapi import (
     HTTPException,
 )
 import pyautogui
-import pyperclip
 from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -94,7 +93,7 @@ class RemoteController:
         # 禁用pyautogui的安全机制，允许远程控制
         pyautogui.FAILSAFE = False
         pyautogui.PAUSE = 0.1  # 操作间隔
-        
+
     def click(self, x: int, y: int, button: str = "left", clicks: int = 1):
         """执行鼠标点击"""
         try:
@@ -102,7 +101,7 @@ class RemoteController:
             return {"success": True, "message": f"点击成功: ({x}, {y})"}
         except Exception as e:
             return {"success": False, "message": f"点击失败: {str(e)}"}
-    
+
     def double_click(self, x: int, y: int, button: str = "left"):
         """执行鼠标双击"""
         try:
@@ -110,7 +109,7 @@ class RemoteController:
             return {"success": True, "message": f"双击成功: ({x}, {y})"}
         except Exception as e:
             return {"success": False, "message": f"双击失败: {str(e)}"}
-    
+
     def right_click(self, x: int, y: int):
         """执行鼠标右键点击"""
         try:
@@ -118,7 +117,7 @@ class RemoteController:
             return {"success": True, "message": f"右键点击成功: ({x}, {y})"}
         except Exception as e:
             return {"success": False, "message": f"右键点击失败: {str(e)}"}
-    
+
     def drag(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5):
         """执行鼠标拖拽"""
         try:
@@ -131,7 +130,7 @@ class RemoteController:
             return {"success": True, "message": f"拖拽成功: ({start_x}, {start_y}) -> ({end_x}, {end_y})"}
         except Exception as e:
             return {"success": False, "message": f"拖拽失败: {str(e)}"}
-    
+
     def type_text(self, text: str):
         """输入文本"""
         try:
@@ -139,7 +138,7 @@ class RemoteController:
             return {"success": True, "message": f"文本输入成功: {text}"}
         except Exception as e:
             return {"success": False, "message": f"文本输入失败: {str(e)}"}
-    
+
     def press_key(self, key: str):
         """按下单个按键"""
         try:
@@ -147,7 +146,7 @@ class RemoteController:
             return {"success": True, "message": f"按键成功: {key}"}
         except Exception as e:
             return {"success": False, "message": f"按键失败: {str(e)}"}
-    
+
     def hotkey(self, *keys):
         """执行组合键"""
         try:
@@ -155,7 +154,7 @@ class RemoteController:
             return {"success": True, "message": f"组合键成功: {'+'.join(keys)}"}
         except Exception as e:
             return {"success": False, "message": f"组合键失败: {str(e)}"}
-    
+
     def scroll(self, x: int, y: int, clicks: int):
         """执行鼠标滚轮"""
         try:
@@ -163,7 +162,7 @@ class RemoteController:
             return {"success": True, "message": f"滚轮成功: ({x}, {y}) 滚动 {clicks}"}
         except Exception as e:
             return {"success": False, "message": f"滚轮失败: {str(e)}"}
-    
+
     def get_mouse_position(self):
         """获取当前鼠标位置"""
         try:
@@ -171,6 +170,7 @@ class RemoteController:
             return {"success": True, "x": x, "y": y}
         except Exception as e:
             return {"success": False, "message": f"获取鼠标位置失败: {str(e)}"}
+
 
 # 系统资源监控器
 class SystemMonitor:
@@ -311,11 +311,11 @@ class DesktopScreenshotGenerator:
         """清理过期缓存"""
         current_time = time.time()
         expired_keys = []
-        
+
         for key, (image_data, timestamp) in self.image_cache.items():
             if current_time - timestamp > self.cache_ttl:
                 expired_keys.append(key)
-        
+
         for key in expired_keys:
             del self.image_cache[key]
 
@@ -323,13 +323,13 @@ class DesktopScreenshotGenerator:
         """添加到缓存"""
         # 清理过期缓存
         self._clean_cache()
-        
+
         # 如果缓存已满，删除最旧的条目
         if len(self.image_cache) >= self.cache_max_size:
-            oldest_key = min(self.image_cache.keys(), 
-                           key=lambda k: self.image_cache[k][1])
+            oldest_key = min(self.image_cache.keys(),
+                             key=lambda k: self.image_cache[k][1])
             del self.image_cache[oldest_key]
-        
+
         # 添加新条目
         self.image_cache[key] = (image_data, time.time())
 
@@ -348,22 +348,22 @@ class DesktopScreenshotGenerator:
         """优化图像以减小传输大小"""
         # 生成缓存键
         cache_key = self._get_cache_key(monitor_index, self.quality_settings)
-        
+
         # 检查缓存
         cached_data = self._get_from_cache(cache_key)
         if cached_data:
             return cached_data
-        
+
         # 获取质量设置
         max_width = self.quality_settings["single_monitor"]["max_width"]
         max_height = self.quality_settings["single_monitor"]["max_height"]
-        
+
         # 调整图像大小
         img = self._resize_image_high_quality(img, max_width, max_height)
-        
+
         # 转换为base64
         buffer = io.BytesIO()
-        
+
         if self.quality_settings["use_jpeg"]:
             # 使用JPEG格式（更小）
             img.save(
@@ -381,12 +381,12 @@ class DesktopScreenshotGenerator:
                 quality=self.quality_settings["png_quality"],
                 compress_level=self.quality_settings["compression_level"]
             )
-        
+
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
-        
+
         # 添加到缓存
         self._add_to_cache(cache_key, img_base64)
-        
+
         return img_base64
 
     def update_monitor_info(self):
@@ -455,7 +455,7 @@ class DesktopScreenshotGenerator:
                             except Exception as e:
                                 pass
                                 # print(
-                                    # f"  无法获取显示器 {device.DeviceName} 的设置: {e}"
+                                # f"  无法获取显示器 {device.DeviceName} 的设置: {e}"
                                 # )
                         else:
                             pass
@@ -513,7 +513,7 @@ class DesktopScreenshotGenerator:
                             "right": device["position_x"] + device["width"],
                             "bottom": device["position_y"] + device["height"],
                             "primary": (
-                                device["position_x"] == 0 and device["position_y"] == 0
+                                    device["position_x"] == 0 and device["position_y"] == 0
                             ),
                             "device_name": device["device_name"],
                             "frequency": device["frequency"],
@@ -926,7 +926,7 @@ async def get_all_monitor_screenshots():
             # 跳过被收起的显示器
             if i in collapsed_monitors:
                 continue
-            
+
             # 只处理活跃的显示器：捕获截图
             img = ui_generator.capture_single_monitor(i)
 
@@ -1038,9 +1038,9 @@ async def get_system_info():
         return {
             "memory": {
                 "usage_percent": system_info["memory_usage"],
-                "total_gb": round(memory.total / (1024**3), 2),
-                "available_gb": round(memory.available / (1024**3), 2),
-                "used_gb": round(memory.used / (1024**3), 2),
+                "total_gb": round(memory.total / (1024 ** 3), 2),
+                "available_gb": round(memory.available / (1024 ** 3), 2),
+                "used_gb": round(memory.used / (1024 ** 3), 2),
             },
             "cpu": {
                 "usage_percent": system_info["cpu_usage"],
@@ -1048,9 +1048,9 @@ async def get_system_info():
                 "frequency_mhz": psutil.cpu_freq().current if psutil.cpu_freq() else 0,
             },
             "disk": {
-                "total_gb": round(disk.total / (1024**3), 2),
-                "used_gb": round(disk.used / (1024**3), 2),
-                "free_gb": round(disk.free / (1024**3), 2),
+                "total_gb": round(disk.total / (1024 ** 3), 2),
+                "used_gb": round(disk.used / (1024 ** 3), 2),
+                "free_gb": round(disk.free / (1024 ** 3), 2),
                 "usage_percent": round((disk.used / disk.total) * 100, 1),
             },
             "timestamp": datetime.now().isoformat(),
@@ -1201,7 +1201,7 @@ async def update_quality_settings(settings: dict):
             ui_generator.quality_settings["use_jpeg"] = settings["use_jpeg"]
         if "compression_level" in settings:
             ui_generator.quality_settings["compression_level"] = settings["compression_level"]
-        
+
         # 清除缓存以应用新设置
         ui_generator.image_cache.clear()
 
@@ -1229,11 +1229,11 @@ async def get_cache_stats():
     try:
         cache_size = len(ui_generator.image_cache)
         cache_keys = list(ui_generator.image_cache.keys())
-        
+
         # 计算缓存命中率（这里简化处理，实际需要更复杂的统计）
         total_requests = ui_generator.counter
         cache_hits = sum(1 for key in cache_keys if ui_generator._get_from_cache(key) is not None)
-        
+
         return {
             "cache_size": cache_size,
             "max_cache_size": ui_generator.cache_max_size,
@@ -1254,7 +1254,7 @@ async def clear_cache():
     try:
         cache_size = len(ui_generator.image_cache)
         ui_generator.image_cache.clear()
-        
+
         return {
             "message": f"缓存已清除，共清除 {cache_size} 个缓存项",
             "timestamp": datetime.now().isoformat(),
@@ -1270,7 +1270,7 @@ async def update_collapsed_monitors(collapsed_data: dict):
     try:
         collapsed_indices = collapsed_data.get("collapsed_monitors", [])
         collapsed_monitors = set(collapsed_indices)
-        
+
         return {
             "message": "被收起的显示器状态更新成功",
             "collapsed_monitors": list(collapsed_monitors),
@@ -1441,9 +1441,9 @@ def get_upload_dir(folder_path=None):
     if folder_path:
         # 检查是否是系统路径（绝对路径）
         if (
-            os.path.isabs(folder_path)
-            or folder_path.startswith("/")
-            or ":" in folder_path
+                os.path.isabs(folder_path)
+                or folder_path.startswith("/")
+                or ":" in folder_path
         ):
             # 系统路径，直接使用
             upload_dir = folder_path
@@ -1515,7 +1515,7 @@ async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None
 
 @app.post("/upload/multiple")
 async def upload_multiple_files(
-    files: List[UploadFile] = File(...), folder_path: str = Form(None)
+        files: List[UploadFile] = File(...), folder_path: str = Form(None)
 ):
     """上传多个文件"""
     try:
@@ -1753,7 +1753,7 @@ async def delete_folder(folder_data: dict):
                 ]
                 for critical in critical_paths:
                     if abs_target_dir == critical or abs_target_dir.startswith(
-                        critical + os.sep
+                            critical + os.sep
                     ):
                         raise HTTPException(
                             status_code=403, detail="不能删除系统关键目录"
@@ -1832,7 +1832,7 @@ async def create_folder(folder_data: dict):
                 full_path = os.path.join(DEFAULT_UPLOAD_DIR, parent_path, folder_name)
                 # 确保路径在Downloads目录内
                 if not os.path.abspath(full_path).startswith(
-                    os.path.abspath(DEFAULT_UPLOAD_DIR)
+                        os.path.abspath(DEFAULT_UPLOAD_DIR)
                 ):
                     raise HTTPException(status_code=403, detail="访问被拒绝")
         else:
@@ -1885,7 +1885,7 @@ async def list_available_directories(path: str = ""):
             full_path = os.path.join(DEFAULT_UPLOAD_DIR, path)
             # 确保路径在Downloads目录内
             if not os.path.abspath(full_path).startswith(
-                os.path.abspath(DEFAULT_UPLOAD_DIR)
+                    os.path.abspath(DEFAULT_UPLOAD_DIR)
             ):
                 raise HTTPException(status_code=403, detail="访问被拒绝")
         else:
@@ -1906,7 +1906,7 @@ async def list_available_directories(path: str = ""):
         try:
             items = []
             timeout_occurred = False
-            
+
             for item in os.listdir(full_path):
                 item_path = os.path.join(full_path, item)
 
@@ -1963,12 +1963,12 @@ async def list_available_directories(path: str = ""):
             "total_count": len(items),
             "can_go_up": relative_path != "",
         }
-        
+
         # 如果发生了超时，添加超时信息
         if timeout_occurred:
             response_data["partial_results"] = True
             response_data["timeout_message"] = "部分目录因超时未能加载，已显示可访问的目录"
-        
+
         return JSONResponse(response_data)
 
     except HTTPException:
@@ -2037,7 +2037,7 @@ async def list_system_directories(path: str = ""):
                     # 如果有可用盘符，返回盘符列表
                     items = []
                     timeout_occurred = False
-                    
+
                     for drive in available_drives:
                         # 检查超时
                         if time.time() - start_time > timeout_seconds:
@@ -2100,12 +2100,12 @@ async def list_system_directories(path: str = ""):
                         "total_count": len(items),
                         "can_go_up": False,
                     }
-                    
+
                     # 如果发生了超时，添加超时信息
                     if timeout_occurred:
                         response_data["partial_results"] = True
                         response_data["timeout_message"] = "部分盘符因超时未能加载，已显示可访问的盘符"
-                    
+
                     return JSONResponse(response_data)
                 else:
                     # 如果没有可用盘符，使用C盘作为默认
@@ -2140,7 +2140,7 @@ async def list_system_directories(path: str = ""):
         # 获取父目录路径
         parent_path = ""
         if current_path != "/" and not (
-            os.name == "nt" and re.match(r"^[A-Za-z]:\\$", current_path)
+                os.name == "nt" and re.match(r"^[A-Za-z]:\\$", current_path)
         ):
             parent_dir = os.path.dirname(current_path)
             if parent_dir == current_path:  # 已经是根目录
@@ -2155,7 +2155,7 @@ async def list_system_directories(path: str = ""):
         try:
             items = []
             timeout_occurred = False
-            
+
             for item in os.listdir(current_path):
                 item_path = os.path.join(current_path, item)
 
@@ -2192,7 +2192,7 @@ async def list_system_directories(path: str = ""):
         except PermissionError:
             raise HTTPException(
                 status_code=403,
-                detail = "没有权限访问此目录"
+                detail="没有权限访问此目录"
             )
 
         # 按名称排序
@@ -2206,12 +2206,12 @@ async def list_system_directories(path: str = ""):
             "total_count": len(items),
             "can_go_up": parent_path != "",
         }
-        
+
         # 如果发生了超时，添加超时信息
         if timeout_occurred:
             response_data["partial_results"] = True
             response_data["timeout_message"] = "部分目录因超时未能加载，已显示可访问的目录"
-        
+
         return JSONResponse(response_data)
 
     except HTTPException:
@@ -2232,19 +2232,19 @@ async def remote_click(data: dict):
         clicks = data.get("clicks", 1)
         monitor_index = data.get("monitor_index", 0)
         use_percentage = data.get("use_percentage", False)
-        
+
         coord_type = "百分比" if use_percentage else "像素"
         print(f"收到远程点击请求: {coord_type} x={x}, y={y}, monitor_index={monitor_index}")
-        
+
         if x is None or y is None:
             raise HTTPException(status_code=400, detail="缺少坐标参数")
-        
+
         # 坐标转换：从截图坐标转换为实际屏幕坐标
         actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
-        
+
         result = remote_controller.click(actual_x, actual_y, button, clicks)
         print(f"点击操作结果: {result}")
-        
+
         return JSONResponse(result)
     except HTTPException:
         raise
@@ -2263,13 +2263,13 @@ async def remote_double_click(data: dict):
         button = data.get("button", "left")
         monitor_index = data.get("monitor_index", 0)
         use_percentage = data.get("use_percentage", False)
-        
+
         if x is None or y is None:
             raise HTTPException(status_code=400, detail="缺少坐标参数")
-        
+
         # 坐标转换
         actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
-        
+
         result = remote_controller.double_click(actual_x, actual_y, button)
         return JSONResponse(result)
     except HTTPException:
@@ -2286,13 +2286,13 @@ async def remote_right_click(data: dict):
         y = data.get("y")
         monitor_index = data.get("monitor_index", 0)
         use_percentage = data.get("use_percentage", False)
-        
+
         if x is None or y is None:
             raise HTTPException(status_code=400, detail="缺少坐标参数")
-        
+
         # 坐标转换
         actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
-        
+
         result = remote_controller.right_click(actual_x, actual_y)
         return JSONResponse(result)
     except HTTPException:
@@ -2312,14 +2312,15 @@ async def remote_drag(data: dict):
         duration = data.get("duration", 0.5)
         monitor_index = data.get("monitor_index", 0)
         use_percentage = data.get("use_percentage", False)
-        
+
         if start_x is None or start_y is None or end_x is None or end_y is None:
             raise HTTPException(status_code=400, detail="缺少坐标参数")
-        
+
         # 坐标转换
-        actual_start_x, actual_start_y = convert_screenshot_coords_to_screen(start_x, start_y, monitor_index, use_percentage)
+        actual_start_x, actual_start_y = convert_screenshot_coords_to_screen(start_x, start_y, monitor_index,
+                                                                             use_percentage)
         actual_end_x, actual_end_y = convert_screenshot_coords_to_screen(end_x, end_y, monitor_index, use_percentage)
-        
+
         result = remote_controller.drag(actual_start_x, actual_start_y, actual_end_x, actual_end_y, duration)
         return JSONResponse(result)
     except HTTPException:
@@ -2335,7 +2336,7 @@ async def remote_type(data: dict):
         text = data.get("text", "")
         if not text:
             raise HTTPException(status_code=400, detail="缺少文本参数")
-        
+
         result = remote_controller.type_text(text)
         return JSONResponse(result)
     except HTTPException:
@@ -2351,7 +2352,7 @@ async def remote_press_key(data: dict):
         key = data.get("key")
         if not key:
             raise HTTPException(status_code=400, detail="缺少按键参数")
-        
+
         # 支持方向键的别名
         key_aliases = {
             "up": "up",
@@ -2381,7 +2382,7 @@ async def remote_hotkey(data: dict):
         keys = data.get("keys", [])
         if not keys:
             raise HTTPException(status_code=400, detail="缺少组合键参数")
-        
+
         result = remote_controller.hotkey(*keys)
         return JSONResponse(result)
     except HTTPException:
@@ -2399,10 +2400,10 @@ async def remote_scroll(data: dict):
         clicks = data.get("clicks", 3)
         monitor_index = data.get("monitor_index", 0)
         use_percentage = data.get("use_percentage", False)
-        
+
         if x is None or y is None:
             raise HTTPException(status_code=400, detail="缺少坐标参数")
-        
+
         # 坐标转换
         actual_x, actual_y = convert_screenshot_coords_to_screen(x, y, monitor_index, use_percentage)
 
@@ -2440,15 +2441,16 @@ def convert_screenshot_coords_to_screen(x: float, y: float, monitor_index: int =
         monitors = ui_generator.monitors
         if not monitors or monitor_index >= len(monitors):
             # 如果没有显示器信息，直接返回原坐标
-            print(f"显示器信息不可用或索引超出范围: monitor_index={monitor_index}, monitors_count={len(monitors) if monitors else 0}")
+            print(
+                f"显示器信息不可用或索引超出范围: monitor_index={monitor_index}, monitors_count={len(monitors) if monitors else 0}")
             return int(x), int(y)
-        
+
         monitor = monitors[monitor_index]
         monitor_left = monitor["left"]
         monitor_top = monitor["top"]
         monitor_width = monitor["width"]
         monitor_height = monitor["height"]
-        
+
         if use_percentage:
             # 百分比坐标转换：直接使用百分比计算实际屏幕位置
             actual_x = int(monitor_left + (x / 100.0) * monitor_width)
@@ -2458,25 +2460,24 @@ def convert_screenshot_coords_to_screen(x: float, y: float, monitor_index: int =
             # 像素坐标转换：考虑截图缩放
             screenshot_width = monitor.get("screenshot_width", monitor_width)
             screenshot_height = monitor.get("screenshot_height", monitor_height)
-            
+
             # 计算缩放比例
             scale_x = monitor_width / screenshot_width if screenshot_width > 0 else 1
             scale_y = monitor_height / screenshot_height if screenshot_height > 0 else 1
-            
+
             # 转换坐标
             actual_x = int(monitor_left + x * scale_x)
             actual_y = int(monitor_top + y * scale_y)
             # print(f"像素坐标转换: 显示器{monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, 截图尺寸 {screenshot_width}x{screenshot_height}, 缩放比例 {scale_x:.2f}x{scale_y:.2f}, 像素({x}, {y}) -> 实际({actual_x}, {actual_y})")
-        
+
         return actual_x, actual_y
-        
+
     except Exception as e:
         print(f"坐标转换失败: {e}")
         import traceback
         traceback.print_exc()
         # 转换失败时返回原坐标
         return int(x), int(y)
-
 
 if __name__ == "__main__":
     print("Starting Remote Viewer Server...")
