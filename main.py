@@ -27,12 +27,17 @@ def get_resource_path(relative_path: str) -> str:
 class SecondSightManager(tk.Tk):
     """千里眼远程桌面服务管理器主类"""
     # 配置常量
-    WINDOW_WIDTH: int = 400
-    WINDOW_HEIGHT: int = 560
+    WINDOW_WIDTH: int = 450
+    WINDOW_HEIGHT: int = 670
     SERVER_PORT: int = 8000  # 服务器默认端口
-    START_DELAY: int = 3000  # 服务器启动检查延迟(ms)
+    START_DELAY: int = 1000  # 服务器启动检查延迟(ms) - 优化为更短时间
     STOP_DELAY: int = 1500  # 服务器停止后重启延迟(ms)
     CHECK_TIMEOUT: int = 5  # 服务器状态检查超时(s)
+    OUTPUT_ENCODING: str = "utf-8"  # 服务器输出编码
+    FALLBACK_ENCODING: str = "latin-1"  # 编码失败时的备选编码
+    SERVER_READY_TIMEOUT: int = 15  # 服务器就绪超时时间(秒)
+    CONNECTION_RETRIES: int = 5  # 连接重试次数
+    RETRY_DELAY: int = 1  # 重试延迟(秒)
     
     # 前端文件路径配置
     STATIC_FOLDER: str = "static"  # 静态文件根目录
@@ -66,6 +71,7 @@ class SecondSightManager(tk.Tk):
         self.is_server_running: bool = False  # 服务器运行状态
         self._lock: threading.Lock = threading.Lock()  # 线程安全锁
         self._output_threads = []  # 存储输出处理线程，用于停止时清理
+        self.server_error_log = ""  # 存储服务器错误日志
         
         # 先隐藏窗口，避免居中过程可见
         self.withdraw()
@@ -159,6 +165,16 @@ class SecondSightManager(tk.Tk):
             foreground="#607D8B"
         )
         url_label.pack(pady=(5, 0))
+        
+        # 新增端口占用状态显示
+        self.port_status_var = tk.StringVar(value=f"端口状态: {self.SERVER_PORT} 可用")
+        port_label = ttk.Label(
+            status_frame, 
+            textvariable=self.port_status_var, 
+            font=self.default_font, 
+            foreground="#607D8B"
+        )
+        port_label.pack(pady=(5, 0))
     
     def _create_button_area(self, parent: ttk.Frame) -> None:
         """创建按钮区域"""
@@ -214,16 +230,30 @@ class SecondSightManager(tk.Tk):
                 messagebox.showinfo("提示", "服务器已在运行中")
                 return
                 
+        # 检查端口是否被占用
+        if self._is_port_in_use(self.SERVER_PORT):
+            self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 已被占用")
+            messagebox.showerror("错误", f"端口 {self.SERVER_PORT} 已被占用，请关闭占用程序或更换端口")
+            return
+            
+        self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 占用中")
         self.status_var.set("状态: 启动中...")
         self.update_idletasks()
         
         if not self._check_frontend_files():
+            self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 可用")
             return
         
         self._output_threads = []  # 清空之前的输出线程
+        self.server_error_log = ""  # 清空错误日志
         self.server_thread = threading.Thread(target=self._run_server, daemon=True)
         self.server_thread.start()
         self.after(self.START_DELAY, self._check_server_started)
+    
+    def _is_port_in_use(self, port) -> bool:
+        """检测端口是否被其他进程占用"""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(("localhost", port)) == 0
     
     def _check_frontend_files(self) -> bool:
         """检查前端文件是否存在"""
@@ -261,18 +291,24 @@ class SecondSightManager(tk.Tk):
                 return
             
             env = os.environ.copy()
+            # 设置输出编码环境变量
             env["PYTHONUTF8"] = "1"
-            env["PYTHONIOENCODING"] = "utf-8"
+            env["PYTHONIOENCODING"] = self.OUTPUT_ENCODING
+            
+            # 打包环境下补充路径
+            if getattr(sys, 'frozen', False):
+                env['PATH'] = sys._MEIPASS + os.pathsep + env.get('PATH', '')
+            
             static_abs_path = get_resource_path(self.STATIC_FOLDER)
             env["STATIC_DIR"] = static_abs_path
             env["INDEX_HTML_PATH"] = get_resource_path(self.INDEX_HTML)
             
+            # 启动服务器
             self.server_process = subprocess.Popen(
                 [sys.executable, "-m", "uvicorn", "server:app", 
                  "--host", "0.0.0.0", f"--port", f"{self.SERVER_PORT}"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
                 cwd=os.path.dirname(server_path),
                 env=env
             )
@@ -280,23 +316,33 @@ class SecondSightManager(tk.Tk):
             # 存储输出线程以便后续清理
             stdout_thread = threading.Thread(
                 target=self._read_server_output,
-                args=(self.server_process.stdout,),
+                args=(self.server_process.stdout, False),
                 daemon=True
             )
             stderr_thread = threading.Thread(
                 target=self._read_server_output,
-                args=(self.server_process.stderr,),
+                args=(self.server_process.stderr, True),
                 daemon=True
             )
             self._output_threads = [stdout_thread, stderr_thread]
             stdout_thread.start()
             stderr_thread.start()
             
-            with self._lock:
-                self.is_server_running = True
-            print(f"服务器已启动，PID: {self.server_process.pid}")
-            self.status_var.set("状态: 运行中")
-            self._update_button_states()
+            # 等待服务器真正就绪（端口可访问）
+            try:
+                self._wait_for_server_ready()
+                with self._lock:
+                    self.is_server_running = True
+                print(f"服务器已启动，PID: {self.server_process.pid}")
+                self.status_var.set("状态: 运行中")
+                self._update_button_states()
+            except TimeoutError:
+                print(f"服务器启动超时，{self.SERVER_READY_TIMEOUT}秒内未就绪")
+                self._collect_server_errors()
+                with self._lock:
+                    self.is_server_running = False
+                self.status_var.set("状态: 启动超时")
+                self._update_button_states()
                 
         except Exception as e:
             with self._lock:
@@ -304,17 +350,66 @@ class SecondSightManager(tk.Tk):
             self.status_var.set("状态: 启动失败")
             messagebox.showerror("错误", f"启动服务器时发生错误: {str(e)}")
             print(f"服务器启动错误: {str(e)}")
+        finally:
+            if not self.is_server_running:
+                self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 可用")
     
-    def _read_server_output(self, stream: Any) -> None:
-        """读取服务器输出（非阻塞方式）"""
+    def _wait_for_server_ready(self) -> None:
+        """等待服务器启动并监听端口，超时则判定启动失败"""
+        start_time = time.time()
+        retries = 0
+        
+        while time.time() - start_time < self.SERVER_READY_TIMEOUT:
+            if self._test_server_connection():
+                return
+            retries += 1
+            if retries % 3 == 0:  # 每3次重试更新一次状态
+                self.status_var.set(f"状态: 启动中（{int(time.time() - start_time)}秒）")
+                self.update_idletasks()
+            time.sleep(self.RETRY_DELAY)
+            
+        # 超时失败
+        raise TimeoutError(f"服务器在{self.SERVER_READY_TIMEOUT}秒内未能启动并监听端口")
+    
+    def _collect_server_errors(self) -> None:
+        """收集服务器错误日志用于调试"""
+        if self.server_error_log:
+            messagebox.showerror(
+                "启动失败", 
+                f"服务器进程已启动，但无法访问服务端口\n\n错误日志:\n{self.server_error_log[:500]}"
+            )
+        else:
+            messagebox.showerror(
+                "启动失败", 
+                f"服务器进程已启动，但无法访问服务端口\n\n请检查防火墙设置或端口占用情况"
+            )
+    
+    def _read_server_output(self, stream: Any, is_stderr: bool = False) -> None:
+        """读取服务器输出（使用指定编码解码，支持容错）"""
         try:
             while True:
                 if stream.closed:
                     break
-                line = stream.readline()
-                if not line:
+                # 读取原始字节
+                data = stream.read(1024)
+                if not data:
                     break
-                print(f"服务器输出: {line.strip()}")
+                
+                # 尝试用主要编码解码
+                try:
+                    line = data.decode(self.OUTPUT_ENCODING)
+                except UnicodeDecodeError:
+                    # 编码失败时使用备选编码
+                    line = data.decode(self.FALLBACK_ENCODING, errors="replace")
+                    print(f"警告: 无法用{self.OUTPUT_ENCODING}解码，已使用{self.FALLBACK_ENCODING}替代")
+                
+                # 输出处理后的内容
+                if line.strip():
+                    print(f"服务器{'错误' if is_stderr else '输出'}: {line.strip()}")
+                    # 如果是错误流，保存错误信息用于调试
+                    if is_stderr:
+                        self.server_error_log += line.strip() + "\n"
+                    
         except Exception as e:
             # 忽略流关闭导致的错误
             if "I/O operation on closed file" not in str(e):
@@ -328,7 +423,14 @@ class SecondSightManager(tk.Tk):
         if not running:
             return
             
-        success = self._test_server_connection()
+        # 多次重试检测，确保服务稳定
+        success = False
+        for _ in range(self.CONNECTION_RETRIES):
+            if self._test_server_connection():
+                success = True
+                break
+            time.sleep(self.RETRY_DELAY)
+        
         if success:
             self.status_var.set("状态: 运行中")
             print("服务器启动成功并可访问")
@@ -336,22 +438,31 @@ class SecondSightManager(tk.Tk):
             with self._lock:
                 self.is_server_running = False
             self.status_var.set("状态: 启动失败（服务不可访问）")
-            messagebox.showerror("启动失败", "服务器进程已启动，但无法访问服务端口")
+            self._collect_server_errors()
+            self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 可用")
     
     def _test_server_connection(self) -> bool:
-        """测试服务器端口是否可连接"""
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(2)
-                result = s.connect_ex(("localhost", self.SERVER_PORT))
-                return result == 0
-        except Exception as e:
-            print(f"测试服务器连接失败: {str(e)}")
-            return False
+        """测试服务器端口是否可连接，支持多地址测试"""
+        test_addresses = [
+            ("localhost", self.SERVER_PORT), 
+            ("127.0.0.1", self.SERVER_PORT)
+        ]
+        
+        for host, port in test_addresses:
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(1)  # 短超时，提高响应速度
+                    result = s.connect_ex((host, port))
+                    if result == 0:
+                        return True
+            except Exception as e:
+                print(f"检测 {host}:{port} 失败: {str(e)}")
+        
+        return False
     
-    # 停止服务器（核心修复部分）
+    # 停止服务器
     def stop_server(self) -> None:
-        """停止服务器进程（线程安全，修复资源释放问题）"""
+        """停止服务器进程（线程安全）"""
         with self._lock:
             if not self.is_server_running:
                 messagebox.showinfo("提示", "服务器未在运行")
@@ -362,15 +473,15 @@ class SecondSightManager(tk.Tk):
         
         if self.server_process:
             try:
-                # 关键修复1：先关闭输出流，避免日志写入错误
+                # 先关闭输出流
                 if self.server_process.stdout:
                     self.server_process.stdout.close()
                 if self.server_process.stderr:
                     self.server_process.stderr.close()
                 
-                # 关键修复2：Windows使用terminate()替代CTRL_C_EVENT，避免影响主程序
+                # Windows使用terminate()更安全
                 if os.name == "nt":
-                    self.server_process.terminate()  # 强制终止，更安全
+                    self.server_process.terminate()
                 else:
                     self.server_process.send_signal(signal.SIGINT)
                 
@@ -383,6 +494,7 @@ class SecondSightManager(tk.Tk):
         
         # 清理线程和状态
         self._cleanup_server_resources()
+        self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 可用")
     
     def _wait_for_server_stop(self) -> None:
         """等待服务器停止（非阻塞方式）"""
@@ -396,8 +508,7 @@ class SecondSightManager(tk.Tk):
         self.after(100, self._wait_for_server_stop)
     
     def _cleanup_server_resources(self) -> None:
-        """清理服务器相关资源（输出线程、进程对象）"""
-        # 标记状态为停止
+        """清理服务器相关资源"""
         with self._lock:
             self.is_server_running = False
         
@@ -421,6 +532,12 @@ class SecondSightManager(tk.Tk):
     # 检测服务器状态
     def check_status(self) -> None:
         """检查并更新服务器状态"""
+        # 先检查端口状态
+        if self._is_port_in_use(self.SERVER_PORT):
+            self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 已被占用")
+        else:
+            self.port_status_var.set(f"端口状态: {self.SERVER_PORT} 可用")
+        
         with self._lock:
             running = self.is_server_running
             process = self.server_process
@@ -457,6 +574,8 @@ class SecondSightManager(tk.Tk):
         self.deiconify()
         self.lift()
         self.calculate_center_position()
+        # 刷新状态
+        self.check_status()
     
     # 最小化到托盘
     def min_to_tray(self) -> None:
@@ -503,7 +622,7 @@ class SecondSightManager(tk.Tk):
     # 程序清理函数
     def cleanup(self) -> None:
         """程序退出时的清理工作"""
-        self._cleanup_server_resources()  # 统一清理资源
+        self._cleanup_server_resources()
         if self.tray_icon:
             self.tray_icon.stop()
         if self.server_thread and self.server_thread.is_alive():
@@ -515,8 +634,8 @@ if __name__ == "__main__":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     app = SecondSightManager()
     try:
-        # 关键修复3：捕获KeyboardInterrupt，避免程序意外退出
         app.mainloop()
     except KeyboardInterrupt:
         app.cleanup()
         sys.exit(0)
+    
