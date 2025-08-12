@@ -215,7 +215,6 @@ second-sight/
 
 - 项目主页: [GitHub Repository](https://github.com/dylanz666/second-sight)
 - 问题反馈: [Issues](https://github.com/dylanz666/second-sight/issues)
-- 功能建议: [Discussions](https://github.com/dylanz666/second-sight/discussions)
 
 ## 🙏 致谢
 
