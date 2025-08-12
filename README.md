@@ -4,6 +4,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+![app.png](app.png)
+
 **Second Sight** 是一个功能强大的远程桌面监控和控制系统，基于Python FastAPI构建，提供实时屏幕截图、远程键鼠控制、文件管理、系统监控等核心功能。
 
 ## ✨ 主要特性
