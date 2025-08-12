@@ -26,8 +26,6 @@ from pathlib import Path
 
 app = FastAPI(title="Remote Viewer Server", version="1.0.0")
 
-# 添加静态文件服务
-# app.mount("/static", StaticFiles(directory="."), name="static")
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -2670,5 +2668,4 @@ def convert_screenshot_coords_to_screen(
 
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

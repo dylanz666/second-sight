@@ -1,14 +1,9 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pillow==10.1.0
 pywin32==306
 psutil==5.9.6
 python-multipart==0.0.6
 pyautogui==0.9.54
-pyperclip==1.8.2 
-pyinstaller==5.13.2
-pystray==0.19.5
 requests==2.31.0
-tkinterdnd2==0.4.3
 opencv-python==4.8.1.78
 numpy==2.2.6

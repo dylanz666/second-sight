@@ -236,7 +236,6 @@ second-sight/
 - [FastAPI](https://fastapi.tiangolo.com/) - 现代、快速的Web框架
 - [Pillow](https://python-pillow.org/) - Python图像处理库
 - [PyAutoGUI](https://pyautogui.readthedocs.io/) - 跨平台GUI自动化
-- [psutil](https://psutil.readthedocs.io/) - 系统和进程监控
 
 ---
 
