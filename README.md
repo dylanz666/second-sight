@@ -68,18 +68,6 @@ python server.py
 4. **访问应用**
 打开浏览器访问: `http://localhost:8000`
 
-### 打包为EXE
-
-项目已包含PyInstaller配置，可以打包为独立的EXE程序：
-
-```bash
-# 使用项目中的打包脚本
-python package.py
-
-# 或手动打包
-pyinstaller --noconfirm --clean --onefile --windowed --name=千里眼(远程桌面) --icon=icon.ico main.py
-```
-
 ## 📖 使用说明
 
 ### 基本操作
@@ -109,9 +97,6 @@ pyinstaller --noconfirm --clean --onefile --windowed --name=千里眼(远程桌�
 ```
 second-sight/
 ├── server.py                 # 主服务器文件
-├── main.py                   # 主程序入口
-├── package.py                # 打包脚本
-├── stop_server.py            # 服务停止脚本
 ├── requirements.txt          # Python依赖
 ├── index.html                # 前端界面
 ├── static/                   # 静态资源
@@ -233,10 +218,17 @@ second-sight/
 ## 🙏 致谢
 
 感谢以下开源项目的支持：
-- [FastAPI](https://fastapi.tiangolo.com/) - 现代、快速的Web框架
-- [Pillow](https://python-pillow.org/) - Python图像处理库
-- [PyAutoGUI](https://pyautogui.readthedocs.io/) - 跨平台GUI自动化
 
+- [FastAPI](https://fastapi.tiangolo.com/) - 现代、高性能的 Python Web 框架，为 API 开发提供快速便捷的解决方案
+- [Uvicorn](https://www.uvicorn.org/) - 闪电般快速的 ASGI 服务器，为 FastAPI 提供可靠的运行环境
+- [pywin32](https://github.com/mhammond/pywin32) - 提供 Windows 系统 API 访问能力，助力系统级功能实现
+- [psutil](https://psutil.readthedocs.io/) - 跨平台系统监控库，轻松获取进程和系统资源信息
+- [PyAutoGUI](https://pyautogui.readthedocs.io/) - 简单易用的跨平台 GUI 自动化工具，实现鼠标、键盘操作控制
+- [requests](https://requests.readthedocs.io/en/latest/) - 优雅的 HTTP 库，简化网络请求处理流程
+- [OpenCV-Python](https://github.com/opencv/opencv-python) - 强大的计算机视觉库，提供丰富的图像处理能力
+- [NumPy](https://numpy.org/) - 科学计算的基础库，为数据处理和数值运算提供高效支持
 ---
+
+这些优秀的开源项目为 "千里眼 (远程桌面)" 的开发提供了坚实的技术基础，极大地提升了开发效率和产品质量。向所有项目的开发者和贡献者致以诚挚的感谢！
 
 ⭐ 如果这个项目对你有帮助，请给它一个星标！
