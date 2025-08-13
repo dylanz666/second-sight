@@ -985,7 +985,11 @@ except Exception as e:
 # 跟踪被收起的显示器（后端状态）
 collapsed_monitors = set()
 
-
+@app.get("/ping")
+async def ping():
+    """ping"""
+    return "success"
+    
 @app.get("/")
 async def get_index():
     """返回主页HTML"""
