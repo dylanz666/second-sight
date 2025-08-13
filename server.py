@@ -53,14 +53,13 @@ try:
         }
 
 except FileNotFoundError:
-    raise FileNotFoundError("未找到gist_info.txt文件，请检查文件是否存在")
+    pass
 except Exception as e:
-    raise Exception(f"读取文件时发生错误：{str(e)}")
+    pass
 # 每5分钟检查一次 ip，请求的间隔时间（秒），5分钟 = 300秒
 REQUEST_INTERVAL = 300
 LOCAL_IP = None
 LOCAL_COMPUTER_NAME = platform.node()
-
 
 def fetch_gist_sync():
     try:
@@ -127,8 +126,14 @@ async def lifespan(app: FastAPI):
     # 关闭时取消后台任务
     task.cancel()
     await task
-    
-app = FastAPI(lifespan=lifespan, title="Remote Viewer Server", version="1.0.0")
+
+# 兼容使用 GIST 与否两种情况
+if GIST_URL is None or GIST_HEADERS is None:
+    print("未配置 Gist URL 或 Authorization，无法启动周期性任务")
+    app = FastAPI(title="Remote Viewer Server", version="1.0.0")
+else:
+    print("已配置 Gist URL 和 Authorization，启动周期性任务")
+    app = FastAPI(lifespan=lifespan, title="Remote Viewer Server", version="1.0.0")
 
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
