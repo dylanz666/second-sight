@@ -23,8 +23,112 @@ from typing import List
 from PIL import Image, ImageDraw
 import psutil
 from pathlib import Path
+import asyncio
+import json
+import requests
+from contextlib import asynccontextmanager
+import platform
+import socket
 
-app = FastAPI(title="Remote Viewer Server", version="1.0.0")
+# 要请求的 GitHub Gist 接口地址
+GIST_URL = None
+GIST_HEADERS = None
+try:
+    with open("gist_info.txt", "r") as f:
+        # 读取第一行为GIST_URL（去除首尾空白字符）
+        GIST_URL = f.readline().strip()
+        # 读取第二行为Authorization（去除首尾空白字符）
+        auth_token = f.readline().strip()
+        
+        # 验证读取内容是否有效
+        if not GIST_URL:
+            raise ValueError("gist_info.txt中未找到有效的GIST URL（第一行）")
+        if not auth_token:
+            raise ValueError("gist_info.txt中未找到有效的Authorization信息（第二行）")
+        
+        # 构建请求头
+        GIST_HEADERS = {
+            "Authorization": auth_token,  # 使用文件中读取的认证信息
+            "Content-Type": "application/json"
+        }
+
+except FileNotFoundError:
+    raise FileNotFoundError("未找到gist_info.txt文件，请检查文件是否存在")
+except Exception as e:
+    raise Exception(f"读取文件时发生错误：{str(e)}")
+# 每5分钟检查一次 ip，请求的间隔时间（秒），5分钟 = 300秒
+REQUEST_INTERVAL = 300
+LOCAL_IP = None
+LOCAL_COMPUTER_NAME = platform.node()
+
+
+def fetch_gist_sync():
+    try:
+        # 创建一个 socket 对象
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # 连接到一个公共 DNS 服务器（例如 Google 的 8.8.8.8）
+        s.connect(("8.8.8.8", 80))
+        # 获取本地 IP 地址
+        LOCAL_IP = s.getsockname()[0]
+    finally:
+        s.close()
+    
+    """同步请求 GitHub Gist 接口（使用 requests）"""
+    try:
+        # 发送GET请求，设置15秒超时
+        response = requests.get(GIST_URL, timeout=15)
+        if response.status_code != 200:
+            print(f"获取 Gist 失败，状态码：{response.status_code}")
+            return
+         # 解析JSON响应（仅做演示，可根据需要处理内容）
+        content = response.json()
+        print(f"成功获取 Gist 内容，状态码：{response.status_code}")
+
+        json_content = json.loads(content.get('files', {}).get('devices.json', {}).get('content', '{}'))            
+        # 更新本地 IP 地址和电脑名到 gist 上
+        if LOCAL_COMPUTER_NAME not in json_content or json_content.get(LOCAL_COMPUTER_NAME) != LOCAL_IP:
+            json_content[LOCAL_COMPUTER_NAME] = LOCAL_IP
+            payload = {
+                "files": {
+                    "devices.json": {
+                        "content": json.dumps(json_content, indent=2)
+                    }
+                }
+            }
+            patch_response = requests.patch(
+                url=GIST_URL,
+                headers=GIST_HEADERS,
+                data=json.dumps(payload)
+            )
+            if patch_response.status_code != 200:
+                print(f"更新 Gist 失败，状态码：{response.status_code}")
+                return
+            print(f"成功更新 Gist 内容：{json_content}")
+            return
+        print("无需更新 Gist 内容")
+    except Exception as e:
+        print(f"请求发生错误：{str(e)}")
+        return False
+
+async def periodic_fetch():
+    """周期性执行同步请求的异步任务（通过线程转换避免阻塞）"""
+    while True:
+        # 将同步函数放入线程池执行，避免阻塞事件循环
+        await asyncio.to_thread(fetch_gist_sync)
+        # 等待指定的时间间隔
+        await asyncio.sleep(REQUEST_INTERVAL)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI的生命周期管理器，用于启动和停止后台任务"""
+    # 启动时创建并运行后台任务
+    task = asyncio.create_task(periodic_fetch())
+    yield
+    # 关闭时取消后台任务
+    task.cancel()
+    await task
+    
+app = FastAPI(lifespan=lifespan, title="Remote Viewer Server", version="1.0.0")
 
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -72,9 +176,6 @@ class NetworkMonitor:
     def check_network_status(self):
         """检查网络连接状态，每2秒钟检查一次"""
         try:
-            import socket
-            import time
-
             # 测试连接到Google DNS (8.8.8.8)
             start_time = time.time()
             socket.create_connection(("8.8.8.8", 53), timeout=3)
