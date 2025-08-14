@@ -1,3 +1,4 @@
+import threading
 from fastapi import (
     FastAPI,
     WebSocket,
@@ -30,36 +31,44 @@ from contextlib import asynccontextmanager
 import platform
 import socket
 
+APP_VERSION = "1.0.0"
 # 要请求的 GitHub Gist 接口地址
+USE_GIST = ""
 GIST_URL = None
 GIST_HEADERS = None
-try:
-    with open("gist_info.txt", "r") as f:
-        # 读取第一行为GIST_URL（去除首尾空白字符）
-        GIST_URL = f.readline().strip()
-        # 读取第二行为Authorization（去除首尾空白字符）
-        auth_token = f.readline().strip()
-        
-        # 验证读取内容是否有效
-        if not GIST_URL:
-            raise ValueError("gist_info.txt中未找到有效的GIST URL（第一行）")
-        if not auth_token:
-            raise ValueError("gist_info.txt中未找到有效的Authorization信息（第二行）")
-        
-        # 构建请求头
-        GIST_HEADERS = {
-            "Authorization": auth_token,  # 使用文件中读取的认证信息
-            "Content-Type": "application/json"
-        }
-
-except FileNotFoundError:
-    pass
-except Exception as e:
-    pass
 # 每5分钟检查一次 ip，请求的间隔时间（秒），5分钟 = 300秒
 REQUEST_INTERVAL = 300
 LOCAL_IP = None
 LOCAL_COMPUTER_NAME = platform.node()
+
+try:
+    with open("gist_info.json", "r") as f:
+        # 读取 JSON 数据
+        data = json.load(f)
+        USE_GIST = data.get("use_gist")
+        if USE_GIST.lower() == "true":
+            # 从 JSON 数据中提取 GIST_URL 和 token
+            GIST_URL = data.get("gist_url")
+            auth_token = data.get("token")
+
+            # 验证读取内容是否有效
+            if not GIST_URL:
+                raise ValueError("gist_info.json中未找到有效的GIST URL（gist_url）")
+            if not auth_token:
+                raise ValueError("gist_info.json中未找到有效的Authorization信息（token）")
+
+            # 构建请求头
+            GIST_HEADERS = {
+                "Authorization": auth_token,  # 使用文件中读取的认证信息
+                "Content-Type": "application/json",
+            }
+except FileNotFoundError:
+    print("错误：未找到 gist_info.json 文件。")
+except json.JSONDecodeError:
+    print("错误：gist_info.json 文件格式无效。")
+except Exception as e:
+    print(f"发生错误：{e}")
+
 
 def fetch_gist_sync():
     try:
@@ -69,9 +78,10 @@ def fetch_gist_sync():
         s.connect(("8.8.8.8", 80))
         # 获取本地 IP 地址
         LOCAL_IP = s.getsockname()[0]
+        print("本地 IP 地址:", LOCAL_IP)
     finally:
         s.close()
-    
+
     """同步请求 GitHub Gist 接口（使用 requests）"""
     try:
         # 发送GET请求，设置15秒超时
@@ -79,25 +89,27 @@ def fetch_gist_sync():
         if response.status_code != 200:
             print(f"获取 Gist 失败，状态码：{response.status_code}")
             return
-         # 解析JSON响应（仅做演示，可根据需要处理内容）
+        # 解析JSON响应（仅做演示，可根据需要处理内容）
         content = response.json()
         print(f"成功获取 Gist 内容，状态码：{response.status_code}")
 
-        json_content = json.loads(content.get('files', {}).get('devices.json', {}).get('content', '{}'))            
+        json_content = json.loads(
+            content.get("files", {}).get(
+                "devices.json", {}).get("content", "{}")
+        )
         # 更新本地 IP 地址和电脑名到 gist 上
-        if LOCAL_COMPUTER_NAME not in json_content or json_content.get(LOCAL_COMPUTER_NAME) != LOCAL_IP:
+        if (
+            LOCAL_COMPUTER_NAME not in json_content
+            or json_content.get(LOCAL_COMPUTER_NAME) != LOCAL_IP
+        ):
             json_content[LOCAL_COMPUTER_NAME] = LOCAL_IP
             payload = {
                 "files": {
-                    "devices.json": {
-                        "content": json.dumps(json_content, indent=2)
-                    }
+                    "devices.json": {"content": json.dumps(json_content, indent=2)}
                 }
             }
             patch_response = requests.patch(
-                url=GIST_URL,
-                headers=GIST_HEADERS,
-                data=json.dumps(payload)
+                url=GIST_URL, headers=GIST_HEADERS, data=json.dumps(payload)
             )
             if patch_response.status_code != 200:
                 print(f"更新 Gist 失败，状态码：{response.status_code}")
@@ -109,6 +121,7 @@ def fetch_gist_sync():
         print(f"请求发生错误：{str(e)}")
         return False
 
+
 async def periodic_fetch():
     """周期性执行同步请求的异步任务（通过线程转换避免阻塞）"""
     while True:
@@ -116,6 +129,7 @@ async def periodic_fetch():
         await asyncio.to_thread(fetch_gist_sync)
         # 等待指定的时间间隔
         await asyncio.sleep(REQUEST_INTERVAL)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -127,13 +141,19 @@ async def lifespan(app: FastAPI):
     task.cancel()
     await task
 
+
 # 兼容使用 GIST 与否两种情况
-if GIST_URL is None or GIST_HEADERS is None:
-    print("未配置 Gist URL 或 Authorization，无法启动周期性任务")
-    app = FastAPI(title="Remote Viewer Server", version="1.0.0")
+if USE_GIST.lower() != "true":
+    print("配置为不使用 Gist，同步任务跳过")
+    app = FastAPI(title="Remote Viewer Server", version=APP_VERSION)
 else:
-    print("已配置 Gist URL 和 Authorization，启动周期性任务")
-    app = FastAPI(lifespan=lifespan, title="Remote Viewer Server", version="1.0.0")
+    if GIST_URL is None or GIST_HEADERS is None:
+        print("未配置 Gist URL 或 Authorization，无法启动周期性任务")
+        app = FastAPI(title="Remote Viewer Server", version=APP_VERSION)
+    else:
+        print("已配置 Gist URL 和 Authorization，启动周期性任务")
+        app = FastAPI(lifespan=lifespan,
+                      title="Remote Viewer Server", version=APP_VERSION)
 
 # 配置静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -533,9 +553,12 @@ class DesktopScreenshotGenerator:
             self.monitors = []
 
             # 获取虚拟桌面信息
-            virtual_width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
-            virtual_height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
-            virtual_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+            virtual_width = win32api.GetSystemMetrics(
+                win32con.SM_CXVIRTUALSCREEN)
+            virtual_height = win32api.GetSystemMetrics(
+                win32con.SM_CYVIRTUALSCREEN)
+            virtual_left = win32api.GetSystemMetrics(
+                win32con.SM_XVIRTUALSCREEN)
             virtual_top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
 
             # 获取主显示器信息
@@ -853,9 +876,12 @@ class DesktopScreenshotGenerator:
             hwin = win32gui.GetDesktopWindow()
 
             # 获取虚拟桌面的尺寸（支持多显示器）
-            virtual_width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
-            virtual_height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
-            virtual_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
+            virtual_width = win32api.GetSystemMetrics(
+                win32con.SM_CXVIRTUALSCREEN)
+            virtual_height = win32api.GetSystemMetrics(
+                win32con.SM_CYVIRTUALSCREEN)
+            virtual_left = win32api.GetSystemMetrics(
+                win32con.SM_XVIRTUALSCREEN)
             virtual_top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
 
             # 如果虚拟桌面尺寸为0，则使用主显示器尺寸
@@ -881,7 +907,8 @@ class DesktopScreenshotGenerator:
             memdc.SelectObject(bmp)
 
             # 复制屏幕内容到位图（指定源区域）
-            memdc.BitBlt((0, 0), (width, height), srcdc, (left, top), win32con.SRCCOPY)
+            memdc.BitBlt((0, 0), (width, height), srcdc,
+                         (left, top), win32con.SRCCOPY)
 
             # 获取位图信息
             bmpinfo = bmp.GetInfo()
@@ -985,11 +1012,13 @@ except Exception as e:
 # 跟踪被收起的显示器（后端状态）
 collapsed_monitors = set()
 
+
 @app.get("/ping")
 async def ping():
     """ping"""
     return "success"
-    
+
+
 @app.get("/")
 async def get_index():
     """返回主页HTML"""
@@ -1045,7 +1074,8 @@ async def get_single_monitor_screenshot(monitor_index: int):
         img = ui_generator.capture_single_monitor(monitor_index)
 
         # 使用优化的图像传输函数
-        img_base64 = ui_generator._optimize_image_for_transmission(img, monitor_index)
+        img_base64 = ui_generator._optimize_image_for_transmission(
+            img, monitor_index)
 
         monitor = ui_generator.monitors[monitor_index]
 
@@ -1270,7 +1300,8 @@ async def get_monitors_config():
             },
             "monitors": monitors_info,
             "detection_method": (
-                "EnumDisplayMonitors" if len(monitors_info) > 1 else "Single Monitor"
+                "EnumDisplayMonitors" if len(
+                    monitors_info) > 1 else "Single Monitor"
             ),
             "timestamp": datetime.now().isoformat(),
         }
@@ -1345,7 +1376,8 @@ async def update_quality_settings(settings: dict):
                 settings["single_monitor"]
             )
         if "desktop" in settings:
-            ui_generator.quality_settings["desktop"].update(settings["desktop"])
+            ui_generator.quality_settings["desktop"].update(
+                settings["desktop"])
         if "png_quality" in settings:
             ui_generator.quality_settings["png_quality"] = settings["png_quality"]
         if "jpeg_quality" in settings:
@@ -1988,7 +2020,8 @@ async def create_folder(folder_data: dict):
                             )
             else:
                 # Downloads路径
-                full_path = os.path.join(DEFAULT_UPLOAD_DIR, parent_path, folder_name)
+                full_path = os.path.join(
+                    DEFAULT_UPLOAD_DIR, parent_path, folder_name)
                 # 确保路径在Downloads目录内
                 if not os.path.abspath(full_path).startswith(
                     os.path.abspath(DEFAULT_UPLOAD_DIR)
@@ -2440,7 +2473,8 @@ async def remote_click(data: dict):
 
         # 执行点击操作
         try:
-            result = remote_controller.click(actual_x, actual_y, button, clicks)
+            result = remote_controller.click(
+                actual_x, actual_y, button, clicks)
             print(f"点击操作结果: {result}")
             return JSONResponse(result)
         except Exception as e:
@@ -2744,7 +2778,8 @@ def convert_screenshot_coords_to_screen(
         else:
             # 像素坐标转换：考虑截图缩放
             screenshot_width = monitor.get("screenshot_width", monitor_width)
-            screenshot_height = monitor.get("screenshot_height", monitor_height)
+            screenshot_height = monitor.get(
+                "screenshot_height", monitor_height)
 
             # 验证截图尺寸
             if screenshot_width <= 0 or screenshot_height <= 0:
@@ -2778,4 +2813,14 @@ def convert_screenshot_coords_to_screen(
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # for local use
+    # uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    # for https use
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8443,
+        ssl_keyfile="cert/key.pem",
+        ssl_certfile="cert/cert.pem",
+    )
