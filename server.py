@@ -93,10 +93,10 @@ def fetch_gist_sync():
         content = response.json()
         print(f"成功获取 Gist 内容，状态码：{response.status_code}")
 
-        json_content = json.loads(
-            content.get("files", {}).get(
-                "devices.json", {}).get("content", "{}")
-        )
+        devices_content = content.get("files", {}).get(
+            "devices.json", {}).get("content", "{}")
+        json_content = json.loads(devices_content)
+        
         # 更新本地 IP 地址和电脑名到 gist 上
         if (
             LOCAL_COMPUTER_NAME not in json_content
@@ -105,15 +105,16 @@ def fetch_gist_sync():
             json_content[LOCAL_COMPUTER_NAME] = LOCAL_IP
             payload = {
                 "files": {
-                    "devices.json": {"content": json.dumps(json_content, indent=2)}
+                    "devices.json": {
+                        "content": json.dumps(json_content)
+                    }
                 }
             }
+            print(f"更新 Gist 内容：{payload}")
             patch_response = requests.patch(
-                url=GIST_URL, headers=GIST_HEADERS, data=json.dumps(payload)
+                url=GIST_URL, headers=GIST_HEADERS, json=payload
             )
-            if patch_response.status_code != 200:
-                print(f"更新 Gist 失败，状态码：{response.status_code}")
-                return
+            patch_response.raise_for_status()
             print(f"成功更新 Gist 内容：{json_content}")
             return
         print("无需更新 Gist 内容")
