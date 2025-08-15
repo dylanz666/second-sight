@@ -2831,11 +2831,11 @@ if __name__ == "__main__":
     # for local use
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
-    # for https use
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8443,
-        ssl_keyfile="cert/key.pem",
-        ssl_certfile="cert/cert.pem",
-    )
+    # # for https use
+    # uvicorn.run(
+    #     app,
+    #     host="0.0.0.0",
+    #     port=8443,
+    #     ssl_keyfile="cert/key.pem",
+    #     ssl_certfile="cert/cert.pem",
+    # )
