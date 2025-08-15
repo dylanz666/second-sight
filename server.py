@@ -36,8 +36,8 @@ APP_VERSION = "1.0.0"
 USE_GIST = ""
 GIST_URL = None
 GIST_HEADERS = None
-# 每5分钟检查一次 ip，请求的间隔时间（秒），5分钟 = 300秒
-REQUEST_INTERVAL = 300
+# 每5分钟检查一次 ip，请求的间隔时间（秒），2分钟 = 120秒
+REQUEST_INTERVAL = 120
 LOCAL_IP = None
 LOCAL_COMPUTER_NAME = platform.node()
 
@@ -96,28 +96,25 @@ def fetch_gist_sync():
         devices_content = content.get("files", {}).get(
             "devices.json", {}).get("content", "{}")
         json_content = json.loads(devices_content)
-        
-        # 更新本地 IP 地址和电脑名到 gist 上
-        if (
-            LOCAL_COMPUTER_NAME not in json_content
-            or json_content.get(LOCAL_COMPUTER_NAME) != LOCAL_IP
-        ):
-            json_content[LOCAL_COMPUTER_NAME] = LOCAL_IP
-            payload = {
-                "files": {
-                    "devices.json": {
-                        "content": json.dumps(json_content)
-                    }
+
+        # 更新电脑名、本地 IP 地址、时间戳到 gist 上-->类似心跳
+        json_content[LOCAL_COMPUTER_NAME] = {
+            "ip": LOCAL_IP,
+            "timestamp": get_baidu_timestamp(),
+        }
+        payload = {
+            "files": {
+                "devices.json": {
+                    "content": json.dumps(json_content)
                 }
             }
-            print(f"更新 Gist 内容：{payload}")
-            patch_response = requests.patch(
-                url=GIST_URL, headers=GIST_HEADERS, json=payload
-            )
-            patch_response.raise_for_status()
-            print(f"成功更新 Gist 内容：{json_content}")
-            return
-        print("无需更新 Gist 内容")
+        }
+        print(f"更新 Gist 内容：{payload}")
+        patch_response = requests.patch(
+            url=GIST_URL, headers=GIST_HEADERS, json=payload
+        )
+        patch_response.raise_for_status()
+        print(f"成功更新 Gist 内容：{json_content}")
     except Exception as e:
         print(f"请求发生错误：{str(e)}")
         return False
@@ -141,6 +138,23 @@ async def lifespan(app: FastAPI):
     # 关闭时取消后台任务
     task.cancel()
     await task
+    
+def get_baidu_timestamp():
+    """通过百度获取网络时间戳（秒级）"""
+    try:
+        # 发送HEAD请求（仅获取响应头，不下载内容）
+        response = requests.head("https://www.baidu.com", timeout=10)
+        # 从响应头获取GMT时间字符串
+        gmt_time_str = response.headers.get("Date")
+        if not gmt_time_str:
+            return None
+
+        # 解析GMT时间为时间戳（转换为Unix时间戳）
+        gmt_time = datetime.strptime(gmt_time_str, "%a, %d %b %Y %H:%M:%S GMT")
+        return int(gmt_time.timestamp())
+    except Exception as e:
+        print(f"获取失败: {e}")
+        return -1
 
 
 # 兼容使用 GIST 与否两种情况
@@ -2815,7 +2829,7 @@ def convert_screenshot_coords_to_screen(
 
 if __name__ == "__main__":
     # for local use
-    # uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
     # for https use
     uvicorn.run(
