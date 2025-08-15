@@ -85,7 +85,7 @@ def fetch_gist_sync():
     """同步请求 GitHub Gist 接口（使用 requests）"""
     try:
         # 发送GET请求，设置15秒超时
-        response = requests.get(GIST_URL, timeout=15)
+        response = requests.get(GIST_URL, headers=GIST_HEADERS, timeout=15)
         if response.status_code != 200:
             print(f"获取 Gist 失败，状态码：{response.status_code}")
             return
