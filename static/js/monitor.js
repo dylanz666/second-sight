@@ -66,7 +66,7 @@ function toggleAutoRefresh() {
         addLog('自动刷新', '已停止', 'info');
     } else {
         // 当前未自动刷新，启动它
-        autoRefreshInterval = setInterval(refreshAllMonitors, 800); // 0.8秒间隔，与WebSocket频率一致
+        autoRefreshInterval = setInterval(refreshAllMonitors, 500); // 0.5秒间隔
         autoRefreshBtn.textContent = '⏸️ 停止刷新';
         autoRefreshBtn.className = 'btn btn-danger';
         addLog('自动刷新', '已启动 (0.5秒间隔)', 'success');
@@ -80,7 +80,7 @@ function startAutoRefresh() {
         return;
     }
 
-    autoRefreshInterval = setInterval(refreshAllMonitors, 800); // 0.8秒间隔，与WebSocket频率一致
+    autoRefreshInterval = setInterval(refreshAllMonitors, 500); // 0.5秒间隔
     addLog('自动刷新', '已启动 (1秒间隔)', 'success');
     
     // 更新按钮状态
