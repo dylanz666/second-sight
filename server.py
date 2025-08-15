@@ -18,7 +18,7 @@ import base64
 import io
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import uvicorn
 from typing import List
 from PIL import Image, ImageDraw
@@ -149,8 +149,9 @@ def get_baidu_timestamp():
         if not gmt_time_str:
             return None
 
-        # 解析GMT时间为时间戳（转换为Unix时间戳）
+        # 解析GMT时间为时间戳（转换为Unix时间戳，强制为UTC）
         gmt_time = datetime.strptime(gmt_time_str, "%a, %d %b %Y %H:%M:%S GMT")
+        gmt_time = gmt_time.replace(tzinfo=timezone.utc)  # 关键：指定为UTC
         return int(gmt_time.timestamp())
     except Exception as e:
         print(f"获取失败: {e}")
