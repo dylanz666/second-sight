@@ -1,9 +1,9 @@
-// UI工具模块 - 日志、通知等UI相关功能
+// UI Utility Module - UI-related functions such as logs, notifications, etc.
 
-// 添加日志
+// Add log entry
 function addLog(source, message, type = 'info') {
     const logContainer = document.getElementById('log-container');
-    const timestamp = new Date().toLocaleString('zh-CN', { hour12: false });
+    const timestamp = new Date().toLocaleString('en-US', { hour12: false });
     const logEntry = document.createElement('div');
     logEntry.className = `log-entry ${type}`;
     logEntry.textContent = `[${timestamp}] [${source}] ${message}`;
@@ -11,25 +11,25 @@ function addLog(source, message, type = 'info') {
     logContainer.appendChild(logEntry);
     logContainer.scrollTop = logContainer.scrollHeight;
 
-    // 限制日志条目数量
+    // Limit number of log entries
     while (logContainer.children.length > 50) {
         logContainer.removeChild(logContainer.firstChild);
     }
 }
 
-// 显示通知提示
+// Show notification prompt
 function showNotification(message, type = 'info', duration = 3000) {
-    // 移除现有的通知
+    // Remove existing notification
     const existingNotification = document.querySelector('.notification-popup');
     if (existingNotification) {
         existingNotification.remove();
     }
 
-    // 创建通知元素
+    // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification-popup ${type}`;
 
-    // 设置图标和样式
+    // Set icon and style
     let icon = 'ℹ️';
     if (type === 'success') icon = '✅';
     else if (type === 'error') icon = '❌';
@@ -43,15 +43,15 @@ function showNotification(message, type = 'info', duration = 3000) {
         </div>
     `;
 
-    // 添加到页面
+    // Add to page
     document.body.appendChild(notification);
 
-    // 显示动画
+    // Show animation
     setTimeout(() => {
         notification.classList.add('show');
     }, 10);
 
-    // 自动隐藏
+    // Auto-hide
     if (duration > 0) {
         setTimeout(() => {
             notification.classList.remove('show');
@@ -64,35 +64,35 @@ function showNotification(message, type = 'info', duration = 3000) {
     }
 }
 
-// 更新模态框路径显示的统一函数
+// Unified function to update modal path display
 function updateModalPathDisplay(path) {
     const pathInput = document.getElementById('modalCurrentPathInput');
 
     let displayText = '';
     if (path && path !== '') {
-        // 检查是否是系统路径
-        const isSystemPath = path.startsWith('/') || /^[A-Z]:\\/.test(path) || path === '我的电脑';
+        // Check if it's a system path
+        const isSystemPath = path.startsWith('/') || /^[A-Z]:\\/.test(path) || path === 'My Computer';
         if (isSystemPath) {
             displayText = `📂 ${path}`;
         } else {
-            // Downloads路径
+            // Downloads path
             displayText = `📂 Downloads/${path}`;
         }
     } else {
-        // 没有选择路径时，默认显示Downloads目录
+        // When no path is selected, default to showing Downloads directory
         displayText = `📂 Downloads`;
     }
 
-    // 更新输入框的值
+    // Update input box value
     if (pathInput) {
         pathInput.value = displayText;
 
-        // 确保事件监听器仍然有效
+        // Ensure event listeners remain effective
         setupPathInputEventListeners();
     }
 }
 
-// 显示模态框Loading
+// Show modal loading state
 function showModalLoading() {
     const loadingOverlay = document.getElementById('modalLoadingOverlay');
     if (loadingOverlay) {
@@ -100,7 +100,7 @@ function showModalLoading() {
     }
 }
 
-// 隐藏模态框Loading
+// Hide modal loading state
 function hideModalLoading() {
     const loadingOverlay = document.getElementById('modalLoadingOverlay');
     if (loadingOverlay) {
@@ -108,7 +108,7 @@ function hideModalLoading() {
     }
 }
 
-// 设置全屏状态监听器
+// Set up fullscreen state listener
 function setupFullscreenListener() {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -116,22 +116,22 @@ function setupFullscreenListener() {
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 }
 
-// 处理全屏状态变化
+// Handle fullscreen state changes
 function handleFullscreenChange() {
-    if (!document.fullscreenElement && 
-        !document.webkitFullscreenElement && 
-        !document.mozFullScreenElement && 
+    if (!document.fullscreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.mozFullScreenElement &&
         !document.msFullscreenElement) {
-        addLog('截图', '已退出全屏模式', 'info');
+        addLog('Screenshot', 'Exited fullscreen mode', 'info');
     }
 }
 
-// 全屏查看截图
+// View screenshot in fullscreen
 function toggleFullscreen() {
     const screenshot = document.getElementById('screenshot');
 
     if (!document.fullscreenElement) {
-        // 进入全屏
+        // Enter fullscreen
         if (screenshot.requestFullscreen) {
             screenshot.requestFullscreen();
         } else if (screenshot.webkitRequestFullscreen) {
@@ -139,9 +139,9 @@ function toggleFullscreen() {
         } else if (screenshot.msRequestFullscreen) {
             screenshot.msRequestFullscreen();
         }
-        addLog('截图', '进入全屏模式', 'info');
+        addLog('Screenshot', 'Entered fullscreen mode', 'info');
     } else {
-        // 退出全屏
+        // Exit fullscreen
         if (document.exitFullscreen) {
             document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
@@ -149,6 +149,6 @@ function toggleFullscreen() {
         } else if (document.msExitFullscreen) {
             document.msExitFullscreen();
         }
-        addLog('截图', '退出全屏模式', 'info');
+        addLog('Screenshot', 'Exited fullscreen mode', 'info');
     }
-} 
+}
