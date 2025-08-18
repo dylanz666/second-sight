@@ -1614,31 +1614,29 @@ ALLOWED_EXTENSIONS = {
     ".rar",
     ".7z",
 }
-UPLOAD_FILE_SIZE_LIMIT = 100
+UPLOAD_FILE_SIZE_LIMIT = 200
 
-# 确保默认Downloads目录存在（通常已经存在）
+# Ensure the default Downloads directory exists (usually already exists)
 if not os.path.exists(DEFAULT_UPLOAD_DIR):
     os.makedirs(DEFAULT_UPLOAD_DIR, exist_ok=True)
 
 
 def get_upload_dir(folder_path=None):
-    """获取上传目录路径"""
     if folder_path:
-        # 检查是否是系统路径（绝对路径）
+        # Validate if it's an absolute path
         if (
             os.path.isabs(folder_path)
             or folder_path.startswith("/")
             or ":" in folder_path
         ):
-            # 系统路径，直接使用
             upload_dir = folder_path
         else:
-            # Downloads子目录，在Downloads目录下创建子文件夹
+            # Downloads subdirectory, create subfolder under Downloads
             upload_dir = os.path.join(DEFAULT_UPLOAD_DIR, folder_path)
 
-        # 确保目录存在
+        # Ensure the directory exists
         os.makedirs(upload_dir, exist_ok=True)
-        # 返回绝对路径，确保路径分隔符一致
+        # Return absolute path to ensure consistent path separators
         abs_upload_dir = os.path.abspath(upload_dir)
         return abs_upload_dir
     else:
@@ -1646,7 +1644,7 @@ def get_upload_dir(folder_path=None):
 
 
 def is_allowed_file(filename: str) -> bool:
-    """检查文件扩展名是否允许"""
+    # Validate file extension
     if not filename:
         return False
     file_ext = os.path.splitext(filename)[1].lower()
@@ -1655,34 +1653,31 @@ def is_allowed_file(filename: str) -> bool:
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None)):
-    """上传单个文件"""
+    # Upload a single file
     try:
-        # 检查文件大小 (限制为 UPLOAD_FILE_SIZE_LIMIT MB)
+        # Validate file size (limit to UPLOAD_FILE_SIZE_LIMIT MB)
         if file.size and file.size > UPLOAD_FILE_SIZE_LIMIT * 1024 * 1024:
             raise HTTPException(
-                status_code=400, detail=f"文件大小超过{UPLOAD_FILE_SIZE_LIMIT}MB限制"
+                status_code=400, detail=f"The file size is over {UPLOAD_FILE_SIZE_LIMIT}MB limit"
             )
 
-        # 获取上传目录
         upload_dir = get_upload_dir(folder_path)
 
-        # 生成安全的文件名
+        # Generate a safe filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_ext = os.path.splitext(file.filename)[1].lower()
         safe_filename = f"{timestamp}_{file.filename}"
         file_path = os.path.join(upload_dir, safe_filename)
 
-        # 保存文件
+        # Save file
         with open(file_path, "wb") as buffer:
             content = await file.read()
             buffer.write(content)
 
-        # 获取文件信息
+        # Get file size in MB
         file_size = len(content)
         file_size_mb = round(file_size / (1024 * 1024), 2)
-
         response_data = {
-            "message": "文件上传成功",
+            "message": "The file is saved successfully",
             "filename": safe_filename,
             "original_name": file.filename,
             "size_mb": file_size_mb,
@@ -1695,39 +1690,34 @@ async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 
 @app.post("/upload/multiple")
 async def upload_multiple_files(
     files: List[UploadFile] = File(...), folder_path: str = Form(None)
 ):
-    """上传多个文件"""
     try:
         if not files:
-            raise HTTPException(status_code=400, detail="没有选择文件")
+            raise HTTPException(status_code=400, detail="There is no file selected")
 
         if len(files) > 10:
-            raise HTTPException(status_code=400, detail="一次最多只能上传10个文件")
+            raise HTTPException(status_code=400, detail="It's limited to upload up to 10 files at a time")
 
-        # 获取上传目录
         upload_dir = get_upload_dir(folder_path)
 
         uploaded_files = []
         total_size = 0
-
         for file in files:
-            # 检查文件大小
             if file.size and file.size > UPLOAD_FILE_SIZE_LIMIT * 1024 * 1024:
-                continue  # 跳过过大的文件
+                continue
 
-            # 生成安全的文件名
+            # Create a safe filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_ext = os.path.splitext(file.filename)[1].lower()
             safe_filename = f"{timestamp}_{file.filename}"
             file_path = os.path.join(upload_dir, safe_filename)
 
-            # 保存文件
+            # Save file
             content = await file.read()
             with open(file_path, "wb") as buffer:
                 buffer.write(content)
@@ -1744,18 +1734,17 @@ async def upload_multiple_files(
             )
 
         response_data = {
-            "message": f"成功上传 {len(uploaded_files)} 个文件",
+            "message": f"Success to upload {len(uploaded_files)} files",
             "files": uploaded_files,
             "total_size_mb": round(total_size / (1024 * 1024), 2),
             "upload_time": datetime.now().isoformat(),
             "upload_dir": upload_dir,
         }
         return JSONResponse(response_data)
-
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 
 @app.get("/files")
