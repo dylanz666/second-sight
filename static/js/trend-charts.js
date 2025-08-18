@@ -1,6 +1,6 @@
-// 趋势图模块 - 内存、CPU、网络延迟趋势图功能
+// Trend Chart Module - Memory, CPU, and Network Latency trend chart functionality
 
-// 绘制内存使用率趋势图
+// Draw memory usage trend chart
 function drawMemoryTrendChart() {
     const canvas = document.getElementById('memory-trend-chart');
     if (!canvas || memoryTrendData.length === 0) return;
@@ -9,15 +9,15 @@ function drawMemoryTrendChart() {
     const width = canvas.width;
     const height = canvas.height;
 
-    // 清除画布
+    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // 固定数据范围为0-100
+    // Fixed data range 0-100
     const minValue = 0;
     const maxValue = 100;
     const range = maxValue - minValue;
 
-    // 绘制网格线
+    // Draw grid lines
     ctx.strokeStyle = '#e0e0e0';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
@@ -28,7 +28,7 @@ function drawMemoryTrendChart() {
         ctx.stroke();
     }
 
-    // 绘制趋势线
+    // Draw trend line
     ctx.strokeStyle = '#667eea';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -46,7 +46,7 @@ function drawMemoryTrendChart() {
 
     ctx.stroke();
 
-    // 绘制数据点
+    // Draw data points
     ctx.fillStyle = '#667eea';
     memoryTrendData.forEach((value, index) => {
         const x = (index / (memoryTrendData.length - 1)) * width;
@@ -58,7 +58,7 @@ function drawMemoryTrendChart() {
     });
 }
 
-// 绘制CPU使用率趋势图
+// Draw CPU usage trend chart
 function drawCpuTrendChart() {
     const canvas = document.getElementById('cpu-trend-chart');
     if (!canvas || cpuTrendData.length === 0) return;
@@ -67,15 +67,15 @@ function drawCpuTrendChart() {
     const width = canvas.width;
     const height = canvas.height;
 
-    // 清除画布
+    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // 固定数据范围为0-100
+    // Fixed data range 0-100
     const minValue = 0;
     const maxValue = 100;
     const range = maxValue - minValue;
 
-    // 绘制网格线
+    // Draw grid lines
     ctx.strokeStyle = '#e0e0e0';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
@@ -86,7 +86,7 @@ function drawCpuTrendChart() {
         ctx.stroke();
     }
 
-    // 绘制趋势线
+    // Draw trend line
     ctx.strokeStyle = '#56ab2f';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -104,7 +104,7 @@ function drawCpuTrendChart() {
 
     ctx.stroke();
 
-    // 绘制数据点
+    // Draw data points
     ctx.fillStyle = '#56ab2f';
     cpuTrendData.forEach((value, index) => {
         const x = (index / (cpuTrendData.length - 1)) * width;
@@ -116,7 +116,7 @@ function drawCpuTrendChart() {
     });
 }
 
-// 绘制网络延迟趋势图
+// Draw network latency trend chart
 function drawNetworkLatencyTrendChart() {
     const canvas = document.getElementById('network-latency-trend-chart');
     if (!canvas || networkLatencyTrendData.length === 0) return;
@@ -125,15 +125,15 @@ function drawNetworkLatencyTrendChart() {
     const width = canvas.width;
     const height = canvas.height;
 
-    // 清除画布
+    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // 固定数据范围为0-最大延迟值
+    // Fixed data range 0-max latency value
     const minValue = 0;
-    const maxValue = Math.max(...networkLatencyTrendData, 50); // 至少50ms，确保有足够范围
+    const maxValue = Math.max(...networkLatencyTrendData, 50); // At least 50ms to ensure sufficient range
     const range = maxValue - minValue;
 
-    // 绘制网格线
+    // Draw grid lines
     ctx.strokeStyle = '#e0e0e0';
     ctx.lineWidth = 0.5;
     for (let i = 0; i <= 4; i++) {
@@ -144,7 +144,7 @@ function drawNetworkLatencyTrendChart() {
         ctx.stroke();
     }
 
-    // 绘制趋势线
+    // Draw trend line
     ctx.strokeStyle = '#f39c12';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -162,7 +162,7 @@ function drawNetworkLatencyTrendChart() {
 
     ctx.stroke();
 
-    // 绘制数据点
+    // Draw data points
     ctx.fillStyle = '#f39c12';
     networkLatencyTrendData.forEach((value, index) => {
         const x = (index / (networkLatencyTrendData.length - 1)) * width;
@@ -174,67 +174,67 @@ function drawNetworkLatencyTrendChart() {
     });
 }
 
-// 添加内存使用率数据点
+// Add memory usage data point
 function addMemoryDataPoint(value) {
     if (typeof value === 'number' && !isNaN(value)) {
         memoryTrendData.push(value);
 
-        // 保持最多 MAX_TREND_POINTS 个数据点
+        // Keep maximum of MAX_TREND_POINTS data points
         if (memoryTrendData.length > MAX_TREND_POINTS) {
             memoryTrendData.shift();
         }
 
-        // 重新绘制趋势图
+        // Redraw trend chart
         drawMemoryTrendChart();
 
-        // 更新工具提示
+        // Update tooltip
         updateTrendChartTooltip();
     }
 }
 
-// 添加CPU使用率数据点
+// Add CPU usage data point
 function addCpuDataPoint(value) {
     if (typeof value === 'number' && !isNaN(value)) {
         cpuTrendData.push(value);
 
-        // 保持最多 MAX_TREND_POINTS 个数据点
+        // Keep maximum of MAX_TREND_POINTS data points
         if (cpuTrendData.length > MAX_TREND_POINTS) {
             cpuTrendData.shift();
         }
 
-        // 重新绘制趋势图
+        // Redraw trend chart
         drawCpuTrendChart();
 
-        // 更新工具提示
+        // Update tooltip
         updateTrendChartTooltip();
     }
 }
 
-// 添加网络延迟数据点
+// Add network latency data point
 function addNetworkLatencyDataPoint(value) {
     if (typeof value === 'number' && !isNaN(value)) {
         networkLatencyTrendData.push(value);
 
-        // 保持最多 MAX_TREND_POINTS 个数据点
+        // Keep maximum of MAX_TREND_POINTS data points
         if (networkLatencyTrendData.length > MAX_TREND_POINTS) {
             networkLatencyTrendData.shift();
         }
 
-        // 重新绘制趋势图
+        // Redraw trend chart
         drawNetworkLatencyTrendChart();
 
-        // 更新工具提示
+        // Update tooltip
         updateTrendChartTooltip();
     }
 }
 
-// 更新趋势图工具提示
+// Update trend chart tooltips
 function updateTrendChartTooltip() {
     const memoryCanvas = document.getElementById('memory-trend-chart');
     const cpuCanvas = document.getElementById('cpu-trend-chart');
     const networkLatencyCanvas = document.getElementById('network-latency-trend-chart');
 
-    // 更新内存趋势图工具提示
+    // Update memory trend chart tooltip
     if (memoryCanvas) {
         if (memoryTrendData.length > 0) {
             const latest = memoryTrendData[memoryTrendData.length - 1];
@@ -242,13 +242,13 @@ function updateTrendChartTooltip() {
             const max = Math.max(...memoryTrendData);
             const avg = (memoryTrendData.reduce((a, b) => a + b, 0) / memoryTrendData.length).toFixed(1);
 
-            memoryCanvas.title = `内存使用率趋势\n最新: ${latest}%\n最高: ${max}%\n最低: ${min}%\n平均: ${avg}%`;
+            memoryCanvas.title = `Memory Usage Trend\nLatest: ${latest}%\nHighest: ${max}%\nLowest: ${min}%\nAverage: ${avg}%`;
         } else {
-            memoryCanvas.title = '内存使用率趋势\n暂无数据';
+            memoryCanvas.title = 'Memory Usage Trend\nNo data available';
         }
     }
 
-    // 更新CPU趋势图工具提示
+    // Update CPU trend chart tooltip
     if (cpuCanvas) {
         if (cpuTrendData.length > 0) {
             const latest = cpuTrendData[cpuTrendData.length - 1];
@@ -256,13 +256,13 @@ function updateTrendChartTooltip() {
             const max = Math.max(...cpuTrendData);
             const avg = (cpuTrendData.reduce((a, b) => a + b, 0) / cpuTrendData.length).toFixed(1);
 
-            cpuCanvas.title = `CPU使用率趋势\n最新: ${latest}%\n最高: ${max}%\n最低: ${min}%\n平均: ${avg}%`;
+            cpuCanvas.title = `CPU Usage Trend\nLatest: ${latest}%\nHighest: ${max}%\nLowest: ${min}%\nAverage: ${avg}%`;
         } else {
-            cpuCanvas.title = 'CPU使用率趋势\n暂无数据';
+            cpuCanvas.title = 'CPU Usage Trend\nNo data available';
         }
     }
 
-    // 更新网络延迟趋势图工具提示
+    // Update network latency trend chart tooltip
     if (networkLatencyCanvas) {
         if (networkLatencyTrendData.length > 0) {
             const latest = networkLatencyTrendData[networkLatencyTrendData.length - 1];
@@ -270,9 +270,9 @@ function updateTrendChartTooltip() {
             const max = Math.max(...networkLatencyTrendData);
             const avg = (networkLatencyTrendData.reduce((a, b) => a + b, 0) / networkLatencyTrendData.length).toFixed(1);
 
-            networkLatencyCanvas.title = `网络延迟趋势\n最新: ${latest}ms\n最高: ${max}ms\n最低: ${min}ms\n平均: ${avg}ms`;
+            networkLatencyCanvas.title = `Network Latency Trend\nLatest: ${latest}ms\nHighest: ${max}ms\nLowest: ${min}ms\nAverage: ${avg}ms`;
         } else {
-            networkLatencyCanvas.title = '网络延迟趋势\n暂无数据';
+            networkLatencyCanvas.title = 'Network Latency Trend\nNo data available';
         }
     }
-} 
+}
