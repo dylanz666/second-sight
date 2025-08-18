@@ -1,52 +1,52 @@
-// 主入口文件 - 初始化逻辑和事件监听器
+// Main entry file - Initialization logic and event listeners
 
-// 初始化
+// Initialization
 document.addEventListener('DOMContentLoaded', function () {
-    addLog('系统', '页面加载完成', 'success');
+    addLog('System', 'Page loaded completely', 'success');
 
-    // 设置全屏状态监听器
+    // Set up fullscreen state listener
     setupFullscreenListener();
 
-    // 重置被收起的显示器状态
+    // Reset collapsed monitor states
     resetCollapsedMonitors();
 
-    // 初始化趋势图
+    // Initialize trend charts
     drawMemoryTrendChart();
-    drawCpuTrendChart(); // 初始化CPU趋势图
-    drawNetworkLatencyTrendChart(); // 初始化网络延迟趋势图
+    drawCpuTrendChart(); // Initialize CPU trend chart
+    drawNetworkLatencyTrendChart(); // Initialize network latency trend chart
     updateTrendChartTooltip();
 
-    // 初始化远程控制功能
+    // Initialize remote control functionality
     if (typeof initRemoteControl === 'function') {
         initRemoteControl();
     }
 
-    // 检测环境并显示信息
+    // Detect environment and display information
     const environment = detectEnvironment();
     const serverUrl = getServerBaseUrl();
-    addLog('系统', `服务器地址: ${serverUrl}`, 'info');
+    addLog('System', `Server address: ${serverUrl}`, 'info');
 
-    // 检查服务器状态
+    // Check server status
     checkServerStatus().then(serverAvailable => {
         if (serverAvailable) {
             connectWebSocket();
-            refreshAllMonitors(); // 默认加载多显示器模式
-            
-            // 启动自动刷新（默认行为）
+            refreshAllMonitors(); // Load multi-monitor mode by default
+
+            // Start auto-refresh (default behavior)
             startAutoRefresh();
-            
-            // 更新按钮状态
+
+            // Update button status
             const autoRefreshBtn = document.getElementById('autoRefreshBtn');
             if (autoRefreshBtn) {
-                autoRefreshBtn.textContent = '⏸️ 停止刷新';
+                autoRefreshBtn.textContent = '⏸️ Stop Refresh';
                 autoRefreshBtn.className = 'btn btn-danger';
             }
         } else {
-            addLog('系统', '请先启动服务器: python server.py', 'warning');
+            addLog('System', 'Please start the server first: python server.py', 'warning');
         }
     });
 
-    // 文件选择事件监听
+    // File selection event listener
     const fileInput = document.getElementById('fileInput');
     const pathInput = document.getElementById('pathInput');
 
@@ -58,30 +58,30 @@ document.addEventListener('DOMContentLoaded', function () {
         pathInput.addEventListener('change', handlePathSelectionEvent);
     }
 
-    // 初始化上传按钮状态
+    // Initialize upload button status
     updateFileSelectionUI();
 
-    // 初始化路径选择按钮状态
+    // Initialize path selection button status
     updatePathSelectionUI();
 
-    // 直接为路径按钮添加点击事件监听器
+    // Directly add click event listener to path button
     const pathBtn = document.getElementById('pathBtn');
     if (pathBtn) {
         pathBtn.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
 
-            // 总是打开模态框，无论是否已有选择的路径
+            // Always open modal regardless of whether a path is already selected
             openPathModal();
         });
     } else {
         console.error('pathBtn element not found!');
     }
 
-    // 自动加载文件列表，无需点击刷新按钮
+    // Automatically load file list without clicking refresh button
     loadFileList();
 
-    // 添加点击外部关闭模态框的事件监听
+    // Add event listener to close modal when clicking outside
     document.addEventListener('click', function (event) {
         const modal = document.getElementById('pathModal');
         const createFolderModal = document.getElementById('createFolderModal');
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // 添加ESC键关闭模态框的事件监听
+    // Add event listener to close modal with ESC key
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             const modal = document.getElementById('pathModal');
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// 处理路径选择事件 (保留用于文件选择的情况)
+// Handle path selection event (reserved for file selection cases)
 function handlePathSelectionEvent(event) {
     const file = event.target.files[0];
 
@@ -116,38 +116,38 @@ function handlePathSelectionEvent(event) {
         return;
     }
 
-    // 获取文件名作为路径提示
+    // Get file name as path hint
     const fileName = file.name;
 
-    // 使用prompt让用户确认或修改路径
-    const customPath = prompt(`检测到文件: ${fileName}\n请输入目标路径 (例如: Documents/MyFiles 或留空使用默认Downloads目录):`);
+    // Use prompt to let user confirm or modify path
+    const customPath = prompt(`Detected file: ${fileName}\nPlease enter target path (e.g.: Documents/MyFiles or leave empty to use default Downloads directory):`);
 
-    if (customPath !== null) { // 用户点击了确定
+    if (customPath !== null) { // User clicked OK
         if (customPath.trim() === '') {
-            // 用户输入了空路径，清除选择
+            // User entered empty path, clear selection
             clearSelectedPath();
         } else {
-            // 设置选中的路径
+            // Set selected path
             selectedPath = customPath.trim();
 
-            // 更新UI显示
+            // Update UI display
             updatePathSelectionUI();
 
-            // 显示成功消息
-            const successMsg = `已设置目标路径: ${selectedPath}`;
-            addLog('路径选择', successMsg, 'success');
+            // Show success message
+            const successMsg = `Target path set: ${selectedPath}`;
+            addLog('Path selection', successMsg, 'success');
             showNotification(successMsg, 'success', 3000);
 
-            // 自动刷新文件列表
+            // Automatically refresh file list
             loadFileList();
         }
     }
 
-    // 清除文件选择，避免影响后续操作
+    // Clear file selection to avoid affecting subsequent operations
     event.target.value = '';
 }
 
-// 更新路径选择UI
+// Update path selection UI
 function updatePathSelectionUI() {
     const pathInfo = document.getElementById('pathInfo');
     const currentPath = document.getElementById('currentPath');
@@ -156,50 +156,50 @@ function updatePathSelectionUI() {
     if (selectedPath !== null && selectedPath !== undefined) {
         pathInfo.style.display = 'block';
 
-        // 显示路径信息
+        // Display path information
         let displayPath;
-        // 检查是否是系统路径（包括所有盘符）
+        // Check if it's a system path (including all drives)
         const isSystemPath = selectedPath && selectedPath !== '' && (
             selectedPath.startsWith('/') ||
-            /^[A-Z]:\\/.test(selectedPath) // 使用正则表达式匹配任意盘符
+            /^[A-Z]:\\/.test(selectedPath) // Use regex to match any drive letter
         );
 
-        if (selectedPath === '我的电脑') {
-            // 我的电脑路径
-            displayPath = '我的电脑';
-            pathBtn.innerHTML = '已选路径';
+        if (selectedPath === 'My Computer') {
+            // My Computer path
+            displayPath = 'My Computer';
+            pathBtn.innerHTML = 'Selected Path';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         } else if (isSystemPath) {
-            // 系统路径
+            // System path
             displayPath = selectedPath;
-            pathBtn.innerHTML = '已选路径';
+            pathBtn.innerHTML = 'Selected Path';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         } else if (selectedPath === '') {
-            // 默认Downloads路径（空字符串）
+            // Default Downloads path (empty string)
             displayPath = 'Downloads';
-            pathBtn.innerHTML = '已选路径';
+            pathBtn.innerHTML = 'Selected Path';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         } else {
-            // Downloads子目录路径
+            // Downloads subdirectory path
             displayPath = `Downloads/${selectedPath}`;
-            pathBtn.innerHTML = '已选路径';
+            pathBtn.innerHTML = 'Selected Path';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         }
 
         currentPath.textContent = displayPath;
     } else {
         pathInfo.style.display = 'none';
-        pathBtn.innerHTML = '设置路径';
+        pathBtn.innerHTML = 'Set Path';
         pathBtn.style.background = '';
     }
 }
 
-// 清除选中的路径
+// Clear selected path
 function clearSelectedPath() {
     selectedPath = null;
     selectedPathName = null;
 
-    // 清除所有路径项的选中状态
+    // Clear selection state for all path items
     const allItems = document.querySelectorAll('.path-item');
     allItems.forEach(item => {
         item.classList.remove('selected');
@@ -207,98 +207,98 @@ function clearSelectedPath() {
 
     updatePathSelectionUI();
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 隐藏目标路径元素
+    // Hide target path element
     const pathInfo = document.getElementById('pathInfo');
     if (pathInfo) {
         pathInfo.style.display = 'none';
     }
 
-    const successMsg = '已清除路径设置，返回默认Downloads目录';
-    addLog('路径选择', successMsg, 'info');
+    const successMsg = 'Path settings cleared, returned to default Downloads directory';
+    addLog('Path selection', successMsg, 'info');
     showNotification(successMsg, 'info', 3000);
 
-    // 自动刷新文件列表
+    // Automatically refresh file list
     loadFileList();
 }
 
-// 更新创建文件夹位置显示
+// Update create folder location display
 function updateCreateFolderLocation() {
     const createFolderLocation = document.getElementById('createFolderLocation');
     if (!createFolderLocation) return;
 
     let locationText = '';
     if (selectedPath !== null && selectedPath !== undefined) {
-        // 检查是否是系统路径（包括所有盘符）
+        // Check if it's a system path (including all drives)
         const isSystemPath = selectedPath && selectedPath !== '' && (
             selectedPath.startsWith('/') ||
-            /^[A-Z]:\\/.test(selectedPath) // 使用正则表达式匹配任意盘符
+            /^[A-Z]:\\/.test(selectedPath) // Use regex to match any drive letter
         );
 
-        if (selectedPath === '我的电脑') {
-            // 我的电脑路径
-            locationText = '我的电脑';
+        if (selectedPath === 'My Computer') {
+            // My Computer path
+            locationText = 'My Computer';
         } else if (isSystemPath) {
-            // 系统路径
+            // System path
             locationText = selectedPath;
         } else if (selectedPath === '') {
-            // 默认Downloads路径（空字符串）
+            // Default Downloads path (empty string)
             locationText = 'Downloads';
         } else {
-            // Downloads子目录路径
+            // Downloads subdirectory path
             locationText = `Downloads/${selectedPath}`;
         }
     } else {
-        // 没有选择路径时，默认显示Downloads
+        // When no path is selected, default to showing Downloads
         locationText = 'Downloads';
     }
 
     createFolderLocation.textContent = locationText;
 }
 
-// 显示创建文件夹对话框
+// Show create folder dialog
 function showCreateFolderDialog() {
     const modal = document.getElementById('createFolderModal');
     modal.style.display = 'flex';
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 聚焦到输入框
+    // Focus on input box
     const folderNameInput = document.getElementById('folderNameInput');
     if (folderNameInput) {
         folderNameInput.focus();
     }
 }
 
-// 关闭创建文件夹对话框
+// Close create folder dialog
 function closeCreateFolderDialog() {
     const modal = document.getElementById('createFolderModal');
     modal.style.display = 'none';
 
-    // 清空输入框
+    // Clear input box
     const folderNameInput = document.getElementById('folderNameInput');
     if (folderNameInput) {
         folderNameInput.value = '';
     }
 }
 
-// 创建文件夹
+// Create folder
 async function createFolder() {
     const folderNameInput = document.getElementById('folderNameInput');
     const folderName = folderNameInput.value.trim();
 
     if (!folderName) {
-        showNotification('请输入文件夹名称', 'warning', 3000);
+        showNotification('Please enter a folder name', 'warning', 3000);
         return;
     }
 
-    // 检查文件夹名称是否包含非法字符
+    // Check if folder name contains invalid characters
     const invalidChars = /[<>:"/\\|?*]/;
     if (invalidChars.test(folderName)) {
-        showNotification('文件夹名称包含非法字符', 'error', 3000);
+        showNotification('Folder name contains invalid characters', 'error', 3000);
         return;
     }
 
@@ -316,152 +316,152 @@ async function createFolder() {
 
         if (response.ok) {
             const result = await response.json();
-            showNotification(`文件夹 "${folderName}" 创建成功`, 'success', 3000);
-            addLog('文件管理', `创建文件夹成功: ${folderName}`, 'info');
+            showNotification(`Folder "${folderName}" created successfully`, 'success', 3000);
+            addLog('File management', `Successfully created folder: ${folderName}`, 'info');
 
-            // 关闭对话框
+            // Close dialog
             closeCreateFolderDialog();
 
-            // 刷新路径列表
+            // Refresh path list
             refreshPathList();
         } else {
             const errorData = await response.json();
-            showNotification(`创建文件夹失败: ${errorData.detail || '未知错误'}`, 'error', 3000);
-            addLog('文件管理', `创建文件夹失败: ${folderName} - ${errorData.detail}`, 'error');
+            showNotification(`Failed to create folder: ${errorData.detail || 'Unknown error'}`, 'error', 3000);
+            addLog('File management', `Failed to create folder: ${folderName} - ${errorData.detail}`, 'error');
         }
     } catch (error) {
-        console.error('创建文件夹时发生错误:', error);
-        showNotification('创建文件夹时发生网络错误', 'error', 3000);
-        addLog('文件管理', `创建文件夹网络错误: ${folderName} - ${error.message}`, 'error');
+        console.error('Error occurred while creating folder:', error);
+        showNotification('Network error occurred while creating folder', 'error', 3000);
+        addLog('File management', `Network error creating folder: ${folderName} - ${error.message}`, 'error');
     }
 }
 
-// 设置路径输入框事件监听器
+// Set up path input event listeners
 function setupPathInputEventListeners() {
     const pathInput = document.getElementById('modalCurrentPathInput');
     if (!pathInput) return;
 
-    // 移除现有的事件监听器
+    // Remove existing event listeners
     pathInput.removeEventListener('click', pathInputClickHandler);
     pathInput.removeEventListener('dblclick', pathInputDblClickHandler);
     pathInput.removeEventListener('keydown', pathInputKeydownHandler);
     pathInput.removeEventListener('contextmenu', pathInputContextMenuHandler);
 
-    // 添加新的事件监听器
+    // Add new event listeners
     pathInput.addEventListener('click', pathInputClickHandler);
     pathInput.addEventListener('dblclick', pathInputDblClickHandler);
     pathInput.addEventListener('keydown', pathInputKeydownHandler);
     pathInput.addEventListener('contextmenu', pathInputContextMenuHandler);
 }
 
-// 路径输入框点击处理
+// Path input click handler
 function pathInputClickHandler(event) {
     event.preventDefault();
     event.stopPropagation();
-    // 可以在这里添加点击处理逻辑
+    // Click handling logic can be added here
 }
 
-// 路径输入框双击处理
+// Path input double click handler
 function pathInputDblClickHandler(event) {
     event.preventDefault();
     event.stopPropagation();
-    // 可以在这里添加双击处理逻辑
+    // Double click handling logic can be added here
 }
 
-// 路径输入框键盘处理
+// Path input keyboard handler
 function pathInputKeydownHandler(event) {
     if (event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
-        // 可以在这里添加回车处理逻辑
+        // Enter key handling logic can be added here
     }
 }
 
-// 路径输入框右键菜单处理
+// Path input context menu handler
 function pathInputContextMenuHandler(event) {
     event.preventDefault();
     event.stopPropagation();
-    // 可以在这里添加右键菜单处理逻辑
+    // Right-click menu handling logic can be added here
 }
 
-// 刷新路径列表
+// Refresh path list
 function refreshPathList() {
     showModalLoading();
 
-    // 检查是否是系统路径（包括所有盘符）
-    // 注意：只有明确的系统路径才被视为系统路径，空字符串默认是Downloads
+    // Check if it's a system path (including all drives)
+    // Note: Only explicit system paths are considered system paths, empty string defaults to Downloads
     const isSystemPath = currentModalPath && currentModalPath !== '' && (
         currentModalPath.startsWith('/') ||
         /^[A-Z]:\\/.test(currentModalPath) ||
-        currentModalPath === '我的电脑'
+        currentModalPath === 'My Computer'
     );
     console.log('DEBUG: refreshPathList - currentModalPath:', currentModalPath);
     console.log('DEBUG: refreshPathList - isSystemPath:', isSystemPath);
 
     if (isSystemPath) {
-        // 如果是系统路径，调用系统目录加载函数
-        if (currentModalPath === '我的电脑') {
+        // If it's a system path, call system directory loading function
+        if (currentModalPath === 'My Computer') {
             loadSystemDirectories('');
         } else {
             loadSystemDirectories(currentModalPath);
         }
     } else {
-        // 如果是Downloads路径或空路径，调用Downloads目录加载函数
+        // If it's Downloads path or empty path, call Downloads directory loading function
         loadModalPathList(currentModalPath);
     }
 }
 
-// 选择当前路径并关闭模态框
+// Select current path and close modal
 function selectCurrentPath() {
-    // 在弹窗中未选择文件夹的情况下，使用与 currentModalPath 相同的值
+    // When no folder is selected in the popup, use the same value as currentModalPath
     let finalSelectedPath;
     if (selectedPath !== null && selectedPath !== undefined && selectedPath !== '') {
-        // 用户已经选中了路径，使用选中的路径
+        // User has selected a path, use the selected path
         finalSelectedPath = selectedPath;
     } else {
-        // 用户没有选中路径，使用当前浏览的路径
+        // User hasn't selected a path, use currently browsed path
         finalSelectedPath = currentModalPath || '';
     }
-    // 设置选中的路径
+    // Set selected path
     selectedPath = finalSelectedPath;
 
-    // 更新UI
+    // Update UI
     updatePathSelectionUI();
 
-    // 隐藏目标路径元素
+    // Hide target path element
     const pathInfo = document.getElementById('pathInfo');
     if (pathInfo) {
         pathInfo.style.display = 'none';
     }
 
-    // 直接关闭模态框，不调用 closePathModal() 避免恢复原始状态
+    // Close modal directly without calling closePathModal() to avoid restoring original state
     const modal = document.getElementById('pathModal');
     modal.style.display = 'none';
 
-    // 显示成功消息
+    // Show success message
     let pathDisplay;
-    // 检查是否是系统路径（包括所有盘符）
+    // Check if it's a system path (including all drives)
     const isSystemPath = selectedPath && selectedPath !== '' && (
         selectedPath.startsWith('/') ||
-        /^[A-Z]:\\/.test(selectedPath) // 使用正则表达式匹配任意盘符
+        /^[A-Z]:\\/.test(selectedPath) // Use regex to match any drive letter
     );
 
     if (isSystemPath) {
-        // 系统路径
+        // System path
         pathDisplay = selectedPath;
     } else {
-        // Downloads路径（包括空字符串表示Downloads根目录）
+        // Downloads path (including empty string representing Downloads root directory)
         pathDisplay = selectedPath === '' ? 'Downloads' : `Downloads/${selectedPath}`;
     }
-    const successMsg = `已选文件夹: ${pathDisplay}`;
-    addLog('路径选择', successMsg, 'info');
+    const successMsg = `Selected folder: ${pathDisplay}`;
+    addLog('Path selection', successMsg, 'info');
     showNotification(successMsg, 'info', 3000);
 
-    // 自动刷新文件列表到选中的路径
+    // Automatically refresh file list to selected path
     loadFileList();
 
-    // 清除保存的模态框状态
+    // Clear saved modal state
     modalOriginalPath = null;
     modalOriginalPathName = null;
     modalOriginalCurrentPath = null;
-} 
+}
