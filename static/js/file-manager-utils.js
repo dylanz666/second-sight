@@ -1,10 +1,10 @@
-// 文件管理工具模块 - 文件列表、上传、下载等功能
+// File Management Tool Module - File List, Upload, Download, and Other Functions
 
-// 上传文件
+// Upload files
 async function uploadFiles() {
     if (selectedFiles.length === 0) {
-        const warningMsg = '没有选择文件';
-        addLog('上传文件', warningMsg, 'warning');
+        const warningMsg = 'No files selected';
+        addLog('Upload File', warningMsg, 'warning');
         showNotification(warningMsg, 'warning', 3000);
         return;
     }
@@ -16,7 +16,7 @@ async function uploadFiles() {
 
     try {
         uploadBtn.disabled = true;
-        uploadBtn.innerHTML = '⏳ 上传中...';
+        uploadBtn.innerHTML = '⏳ Uploading...';
         uploadProgress.style.display = 'block';
 
         const formData = new FormData();
@@ -24,14 +24,14 @@ async function uploadFiles() {
             formData.append('files', file);
         });
 
-        // 如果有选择的文件夹，添加到请求中
+        // If a folder is selected, add it to the request
         if (selectedPath !== null && selectedPath !== undefined) {
             formData.append('folder_path', selectedPath);
         }
 
         const xhr = new XMLHttpRequest();
 
-        // 监听上传进度
+        // Listen for upload progress
         xhr.upload.addEventListener('progress', function (event) {
             if (event.lengthComputable) {
                 const percentComplete = (event.loaded / event.total) * 100;
@@ -40,84 +40,84 @@ async function uploadFiles() {
             }
         });
 
-        // 监听上传完成
+        // Listen for upload completion
         xhr.addEventListener('load', function () {
             if (xhr.status === 200) {
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    addLog('上传文件', response.message, 'success');
+                    addLog('Upload File', response.message, 'success');
                     showNotification(response.message, 'success', 5000);
 
-                    // 清空选择
+                    // Clear selection
                     selectedFiles = [];
                     document.getElementById('fileInput').value = '';
                     updateFileSelectionUI();
 
-                    // 刷新文件列表
+                    // Refresh file list
                     loadFileList();
 
                 } catch (error) {
-                    const errorMsg = '解析响应失败: ' + error.message;
-                    addLog('上传文件', errorMsg, 'error');
+                    const errorMsg = 'Failed to parse response: ' + error.message;
+                    addLog('Upload File', errorMsg, 'error');
                     showNotification(errorMsg, 'error', 5000);
                 }
             } else {
-                const errorMsg = '上传失败: HTTP ' + xhr.status;
-                addLog('上传文件', errorMsg, 'error');
+                const errorMsg = 'Upload failed: HTTP ' + xhr.status;
+                addLog('Upload File', errorMsg, 'error');
                 showNotification(errorMsg, 'error', 5000);
             }
 
-            // 重置UI
+            // Reset UI
             uploadProgress.style.display = 'none';
             progressFill.style.width = '0%';
             progressText.textContent = '0%';
             updateFileSelectionUI();
         });
 
-        // 监听上传错误
+        // Listen for upload errors
         xhr.addEventListener('error', function () {
-            const errorMsg = '网络错误，上传失败';
-            addLog('上传文件', errorMsg, 'error');
+            const errorMsg = 'Network error, upload failed';
+            addLog('Upload File', errorMsg, 'error');
             showNotification(errorMsg, 'error', 5000);
             uploadProgress.style.display = 'none';
             updateFileSelectionUI();
         });
 
-        // 发送请求
+        // Send request
         xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
         xhr.send(formData);
 
     } catch (error) {
-        const errorMsg = '上传失败: ' + error.message;
-        addLog('上传文件', errorMsg, 'error');
+        const errorMsg = 'Upload failed: ' + error.message;
+        addLog('Upload File', errorMsg, 'error');
         showNotification(errorMsg, 'error', 5000);
         uploadProgress.style.display = 'none';
         updateFileSelectionUI();
     }
 }
 
-// 加载文件列表
+// Load file list
 async function loadFileList() {
     const fileList = document.getElementById('fileList');
 
-    fileList.innerHTML = '<div class="file-list-placeholder">加载中...</div>';
+    fileList.innerHTML = '<div class="file-list-placeholder">Loading...</div>';
 
-    // 构建请求URL，包含文件夹路径参数
+    // Build request URL, including folder path parameter
     let url = getServerBaseUrl() + '/files';
     if (selectedPath !== null && selectedPath !== undefined) {
         url += `?folder=${encodeURIComponent(selectedPath)}`;
     }
 
-    // 创建AbortController用于超时控制
+    // Create AbortController for timeout control
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
 
     try {
         const response = await fetch(url, {
             signal: controller.signal
         });
 
-        // 清除超时定时器
+        // Clear timeout timer
         clearTimeout(timeoutId);
 
         if (!response.ok) {
@@ -129,30 +129,30 @@ async function loadFileList() {
         if (data.files && data.files.length > 0) {
             fileList.innerHTML = '';
 
-            // 显示当前文件夹信息
+            // Display current folder information
             const folderHeader = document.createElement('div');
             folderHeader.style.cssText = 'padding: 8px; background: #e9ecef; border-radius: 4px; margin-bottom: 8px; font-size: 12px; color: #495057;';
 
-            // 构建完整的文件夹路径显示
+            // Build complete folder path display
             let folderDisplay;
-            // 检查是否是系统路径（包括所有盘符）
+            // Check if it is a system path (including all drives)
             const isSystemFolder = data.current_folder && (
                 data.current_folder.startsWith('/') ||
-                /^[A-Z]:\\/.test(data.current_folder) // 使用正则表达式匹配任意盘符
+                /^[A-Z]:\\/.test(data.current_folder) // Use regex to match any drive letter
             );
 
             if (isSystemFolder) {
-                // 系统路径
+                // System path
                 folderDisplay = data.current_folder;
             } else if (data.current_folder && data.current_folder !== 'Downloads') {
-                // Downloads子目录
+                // Downloads subdirectory
                 folderDisplay = `Downloads/${data.current_folder}`;
             } else {
-                // Downloads根目录
+                // Downloads root directory
                 folderDisplay = 'Downloads';
             }
 
-            folderHeader.innerHTML = `<span>📁 当前文件夹: ${folderDisplay} (${data.files.length} 个文件)</span>`;
+            folderHeader.innerHTML = `<span>📁 Current Folder: ${folderDisplay} (${data.files.length} files)</span>`;
             fileList.appendChild(folderHeader);
 
             data.files.forEach(file => {
@@ -160,92 +160,92 @@ async function loadFileList() {
                 fileList.appendChild(fileItem);
             });
 
-            addLog('文件管理', `已加载 ${data.files.length} 个文件`, 'info');
+            addLog('File Management', `Loaded ${data.files.length} files`, 'info');
         } else {
-            // 构建完整的文件夹路径显示
+            // Build complete folder path display
             let folderDisplay;
-            // 检查是否是系统路径（包括所有盘符）
+            // Check if it is a system path (including all drives)
             const isSystemFolder = data.current_folder && (
                 data.current_folder.startsWith('/') ||
-                /^[A-Z]:\\/.test(data.current_folder) || data.current_folder === '我的电脑'
+                /^[A-Z]:\\/.test(data.current_folder) || data.current_folder === 'My Computer'
             );
 
             if (isSystemFolder) {
-                // 系统路径
+                // System path
                 folderDisplay = data.current_folder;
-                fileList.innerHTML = `<div class="file-list-placeholder">🏠 ${folderDisplay} 下暂无文件</div>`;
+                fileList.innerHTML = `<div class="file-list-placeholder">🏠 No files in ${folderDisplay}</div>`;
                 return;
             }
             if (data.current_folder && data.current_folder !== 'Downloads') {
-                // Downloads子目录
+                // Downloads subdirectory
                 folderDisplay = `Downloads/${data.current_folder}`;
             } else {
-                // Downloads根目录
+                // Downloads root directory
                 folderDisplay = 'Downloads';
             }
-            fileList.innerHTML = `<div class="file-list-placeholder">📁 ${folderDisplay} 文件夹下暂无文件</div>`;
+            fileList.innerHTML = `<div class="file-list-placeholder">📁 No files in ${folderDisplay}</div>`;
         }
 
     } catch (error) {
-        // 清除超时定时器
+        // Clear timeout timer
         clearTimeout(timeoutId);
 
         let userFriendlyMessage = '';
 
-        // 根据错误类型提供用户友好的提示
+        // Provide user-friendly prompts based on error type
         if (error.name === 'AbortError') {
-            userFriendlyMessage = '请求超时，请检查网络连接或稍后重试';
+            userFriendlyMessage = 'Request timed out, please check your network connection or try again later';
         } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            userFriendlyMessage = '无法连接到服务器，请确保服务器正在运行';
+            userFriendlyMessage = 'Unable to connect to the server, please ensure the server is running';
         } else if (error.message.includes('status: 403')) {
-            userFriendlyMessage = '没有权限访问此目录的文件，请选择其他路径';
+            userFriendlyMessage = 'No permission to access files in this directory, please choose another path';
         } else if (error.message.includes('status: 404')) {
-            userFriendlyMessage = '目录不存在或已被删除';
+            userFriendlyMessage = 'Directory does not exist or has been deleted';
         } else if (error.message.includes('status: 408')) {
-            userFriendlyMessage = '请求超时，请稍后重试';
+            userFriendlyMessage = 'Request timed out, please try again later';
         } else if (error.message.includes('status: 500')) {
-            userFriendlyMessage = '服务器内部错误，请稍后重试';
+            userFriendlyMessage = 'Internal server error, please try again later';
         } else {
-            userFriendlyMessage = '加载文件列表失败，请重试';
+            userFriendlyMessage = 'Failed to load file list, please try again';
         }
 
         fileList.innerHTML = `<div class="error-placeholder">${userFriendlyMessage}</div>`;
-        addLog('文件管理', userFriendlyMessage, 'error');
+        addLog('File Management', userFriendlyMessage, 'error');
         showNotification(userFriendlyMessage, 'error', 3000);
     }
 }
 
-// 创建文件项
+// Create file item
 function createFileItem(file) {
     const fileItem = document.createElement('div');
     fileItem.className = 'file-item';
 
     const uploadTime = new Date(file.upload_time).toLocaleString('zh-CN', { hour12: false });
 
-    // 转义文件名中的特殊字符，防止JavaScript语法错误
+    // Escape special characters in filename to prevent JavaScript syntax errors
     const escapedFilename = file.filename.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     fileItem.innerHTML = `
         <div class="file-info">
             <div class="file-name">${file.filename}</div>
             <div class="file-details">
-                <span>大小: ${file.size_mb}MB</span>
-                <span>日期: ${uploadTime}</span>
+                <span>Size: ${file.size_mb}MB</span>
+                <span>Date: ${uploadTime}</span>
             </div>
         </div>
         <div class="file-actions">
-            <button class="file-btn file-btn-download" onclick="downloadFile('${escapedFilename}')" title="下载">📥</button>
-            <button class="file-btn file-btn-delete" onclick="deleteFile('${escapedFilename}')" title="删除">🗑️</button>
+            <button class="file-btn file-btn-download" onclick="downloadFile('${escapedFilename}')" title="Download">📥</button>
+            <button class="file-btn file-btn-delete" onclick="deleteFile('${escapedFilename}')" title="Delete">🗑️</button>
         </div>
     `;
 
     return fileItem;
 }
 
-// 下载文件
+// Download file
 async function downloadFile(filename) {
     try {
-        // 构建请求URL，包含文件夹路径参数
+        // Build request URL, including folder path parameter
         let url = getServerBaseUrl() + `/files/${filename}`;
         if (selectedPath !== null && selectedPath !== undefined) {
             url += `?folder=${encodeURIComponent(selectedPath)}`;
@@ -264,29 +264,29 @@ async function downloadFile(filename) {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
 
-            const successMsg = `文件 ${filename} 下载成功`;
-            addLog('文件管理', successMsg, 'success');
+            const successMsg = `File ${filename} downloaded successfully`;
+            addLog('File Management', successMsg, 'success');
             showNotification(successMsg, 'success', 3000);
         } else {
-            const errorMsg = `下载文件 ${filename} 失败: HTTP ${response.status}`;
-            addLog('文件管理', errorMsg, 'error');
+            const errorMsg = `Failed to download file ${filename}: HTTP ${response.status}`;
+            addLog('File Management', errorMsg, 'error');
             showNotification(errorMsg, 'error', 3000);
         }
     } catch (error) {
-        const errorMsg = `下载文件 ${filename} 失败: ${error.message}`;
-        addLog('文件管理', errorMsg, 'error');
+        const errorMsg = `Failed to download file ${filename}: ${error.message}`;
+        addLog('File Management', errorMsg, 'error');
         showNotification(errorMsg, 'error', 3000);
     }
 }
 
-// 删除文件
+// Delete file
 async function deleteFile(filename) {
-    if (!confirm(`确定要删除文件 "${filename}" 吗？\n\n此操作不可撤销！`)) {
+    if (!confirm(`Are you sure you want to delete the file "${filename}"?\n\nThis action cannot be undone!`)) {
         return;
     }
 
     try {
-        // 构建请求URL，包含文件夹路径参数
+        // Build request URL, including folder path parameter
         let url = getServerBaseUrl() + `/files/${filename}`;
         if (selectedPath !== null && selectedPath !== undefined) {
             url += `?folder=${encodeURIComponent(selectedPath)}`;
@@ -297,39 +297,39 @@ async function deleteFile(filename) {
         });
 
         if (response.ok) {
-            const successMsg = `文件 ${filename} 删除成功`;
-            addLog('文件管理', successMsg, 'success');
+            const successMsg = `File ${filename} deleted successfully`;
+            addLog('File Management', successMsg, 'success');
             showNotification(successMsg, 'success', 3000);
 
-            // 刷新文件列表
+            // Refresh file list
             loadFileList();
         } else {
             const errorData = await response.json();
-            const errorMsg = `删除文件 ${filename} 失败: ${errorData.detail || '未知错误'}`;
-            addLog('文件管理', errorMsg, 'error');
+            const errorMsg = `Failed to delete file ${filename}: ${errorData.detail || 'Unknown error'}`;
+            addLog('File Management', errorMsg, 'error');
             showNotification(errorMsg, 'error', 3000);
         }
     } catch (error) {
-        const errorMsg = `删除文件 ${filename} 失败: ${error.message}`;
-        addLog('文件管理', errorMsg, 'error');
+        const errorMsg = `Failed to delete file ${filename}: ${error.message}`;
+        addLog('File Management', errorMsg, 'error');
         showNotification(errorMsg, 'error', 3000);
     }
 }
 
-// 删除文件夹
+// Delete folder
 async function deleteFolder(folderPath) {
     const decodedPath = decodeURIComponent(folderPath);
 
-    // 检查是否为关键系统路径
+    // Check if it is a critical system path
     const criticalPaths = ['C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root', 'Downloads'];
     if (criticalPaths.some(criticalPath => decodedPath === criticalPath || decodedPath.startsWith(criticalPath + '/'))) {
-        showNotification('不能删除系统关键目录', 'error', 3000);
-        addLog('文件管理', `尝试删除关键目录被阻止: ${decodedPath}`, 'warning');
+        showNotification('Cannot delete critical system directories', 'error', 3000);
+        addLog('File Management', `Attempt to delete critical directory blocked: ${decodedPath}`, 'warning');
         return;
     }
 
-    // 确认删除
-    if (!confirm(`确定要删除文件夹 "${decodedPath}" 吗？\n\n此操作不可撤销！`)) {
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete the folder "${decodedPath}"?\n\nThis action cannot be undone!`)) {
         return;
     }
 
@@ -346,31 +346,31 @@ async function deleteFolder(folderPath) {
 
         if (response.ok) {
             const result = await response.json();
-            showNotification(`文件夹 "${decodedPath}" 删除成功`, 'success', 3000);
-            addLog('文件管理', `删除文件夹成功: ${decodedPath}`, 'info');
+            showNotification(`Folder "${decodedPath}" deleted successfully`, 'success', 3000);
+            addLog('File Management', `Folder deletion successful: ${decodedPath}`, 'info');
 
-            // 如果删除的是当前选中的路径，清除选择
+            // If the deleted folder is the currently selected path, clear selection
             if (selectedPath === decodedPath) {
                 selectedPath = null;
                 selectedPathName = null;
                 updateCreateFolderLocation();
             }
 
-            // 刷新路径列表
+            // Refresh path list
             refreshPathList();
         } else {
             const errorData = await response.json();
-            showNotification(`删除失败: ${errorData.detail || '未知错误'}`, 'error', 3000);
-            addLog('文件管理', `删除文件夹失败: ${decodedPath} - ${errorData.detail}`, 'error');
+            showNotification(`Deletion failed: ${errorData.detail || 'Unknown error'}`, 'error', 3000);
+            addLog('File Management', `Failed to delete folder: ${decodedPath} - ${errorData.detail}`, 'error');
         }
     } catch (error) {
-        console.error('删除文件夹时发生错误:', error);
-        showNotification('删除文件夹时发生网络错误', 'error', 3000);
-        addLog('文件管理', `删除文件夹网络错误: ${decodedPath} - ${error.message}`, 'error');
+        console.error('Error occurred while deleting folder:', error);
+        showNotification('Network error occurred while deleting folder', 'error', 3000);
+        addLog('File Management', `Network error while deleting folder: ${decodedPath} - ${error.message}`, 'error');
     }
 }
 
-// 更新文件选择UI
+// Update file selection UI
 function updateFileSelectionUI() {
     const uploadBtn = document.getElementById('uploadBtn');
     const uploadInfo = document.getElementById('uploadInfo');
@@ -379,8 +379,8 @@ function updateFileSelectionUI() {
         uploadBtn.disabled = false;
         uploadInfo.style.display = 'block';
 
-        // 创建文件列表HTML
-        let fileListHTML = `<div style="margin-bottom: 8px;"><span style="font-weight: bold;">已选择 ${selectedFiles.length} 个文件:</span></div>`;
+        // Create file list HTML
+        let fileListHTML = `<div style="margin-bottom: 8px;"><span style="font-weight: bold;">Selected ${selectedFiles.length} files:</span></div>`;
 
         selectedFiles.forEach((file, index) => {
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
@@ -391,7 +391,7 @@ function updateFileSelectionUI() {
                     <button 
                         class="delete-btn"
                         onclick="removeSelectedFile(${index})" 
-                        title="删除此文件"
+                        title="Remove this file"
                     >
                         ✕
                     </button>
@@ -401,29 +401,29 @@ function updateFileSelectionUI() {
 
         uploadInfo.innerHTML = fileListHTML;
 
-        // 更新按钮文本，表示可以上传
-        uploadBtn.innerHTML = '⬆️ 上传';
+        // Update button text to indicate upload is possible
+        uploadBtn.innerHTML = '⬆️ Upload';
     } else {
-        uploadBtn.disabled = false; // 按钮不再禁用，而是用于选择文件
+        uploadBtn.disabled = false; // Button is no longer disabled, but used for file selection
         uploadInfo.style.display = 'none';
 
-        // 更新按钮文本，表示可以选择文件
-        uploadBtn.innerHTML = '上传文件';
+        // Update button text to indicate file selection is possible
+        uploadBtn.innerHTML = 'Upload File';
     }
 }
 
-// 删除选中的文件
+// Remove selected file
 function removeSelectedFile(fileIndex) {
     if (fileIndex >= 0 && fileIndex < selectedFiles.length) {
         const removedFile = selectedFiles[fileIndex];
         selectedFiles.splice(fileIndex, 1);
 
-        // 显示删除成功消息
-        const successMsg = `已从上传列表中移除: ${removedFile.name}`;
-        addLog('文件管理', successMsg, 'info');
+        // Show success message for removal
+        const successMsg = `Removed from upload list: ${removedFile.name}`;
+        addLog('File Management', successMsg, 'info');
         showNotification(successMsg, 'info', 2000);
 
-        // 更新UI
+        // Update UI
         updateFileSelectionUI();
     }
-} 
+}
