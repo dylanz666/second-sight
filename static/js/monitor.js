@@ -431,7 +431,7 @@ function displayCollapsedMonitorsPlaceholder() {
         <div class="collapsed-placeholder-content">
             <div class="collapsed-placeholder-icon">📷</div>
             <div class="collapsed-placeholder-text">All monitors are collapsed</div>
-            <div class="collapsed-placeholder-subtext">Click the button below to redisplay all monitor screenshots</div>
+            <div class="collapsed-placeholder-subtext">Click the button below to start displaying monitor screenshots</div>
             <button class="btn btn-primary expand-all-btn" onclick="resetCollapsedMonitors()" style="margin-top: 20px;">
                 👁️ Expand All Monitors
             </button>
