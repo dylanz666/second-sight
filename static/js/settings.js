@@ -1,23 +1,23 @@
-// 设置模块 - 质量设置和缓存管理功能
+// Settings Module - Quality settings and cache management functionality
 
-// 打开质量设置
+// Open quality settings
 async function openQualitySettings() {
     const modal = document.getElementById('qualitySettingsModal');
     modal.style.display = 'flex';
 
-    // 获取当前设置
+    // Get current settings
     try {
         const response = await fetch(`${getServerBaseUrl()}/quality-settings`);
         const data = await response.json();
-        
-        // 调试：记录后端返回的数据
-        console.log('后端返回的质量设置数据:', data);
-        addLog('设置', `获取到后端数据: ${JSON.stringify(data)}`, 'info');
 
-        // 从嵌套的settings对象中获取实际设置
+        // Debug: Log data returned from backend
+        console.log('Quality settings data from backend:', data);
+        addLog('Settings', `Received backend data: ${JSON.stringify(data)}`, 'info');
+
+        // Get actual settings from nested settings object
         const settings = data.settings || data;
-        
-        // 填充设置值 - 使用从后端获取的实际数据
+
+        // Populate setting values - using actual data from backend
         document.getElementById('singleMonitorWidth').value = settings.single_monitor?.max_width || settings.max_width || 1920;
         document.getElementById('singleMonitorHeight').value = settings.single_monitor?.max_height || settings.max_height || 1080;
         document.getElementById('desktopWidth').value = settings.desktop?.max_width || 1920;
@@ -28,80 +28,80 @@ async function openQualitySettings() {
         document.getElementById('compressionLevel').value = settings.compression_level || 6;
         document.getElementById('optimizePng').checked = settings.optimize || false;
 
-        // 更新显示值 - 使用从后端获取的实际值
+        // Update display values - using actual values from backend
         const pngQualityValue = settings.png_quality || 60;
         const jpegQualityValue = settings.jpeg_quality || 60;
         const compressionLevelValue = settings.compression_level || 6;
-        
-        // 强制更新显示值
+
+        // Force update display values
         const pngQualityValueElement = document.getElementById('pngQualityValue');
         const jpegQualityValueElement = document.getElementById('jpegQualityValue');
         const compressionLevelValueElement = document.getElementById('compressionLevelValue');
-        
+
         pngQualityValueElement.textContent = pngQualityValue;
         jpegQualityValueElement.textContent = jpegQualityValue;
         compressionLevelValueElement.textContent = compressionLevelValue;
-        
-        // 强制触发重绘
-        pngQualityValueElement.style.display = 'none';
-        pngQualityValueElement.offsetHeight; // 触发重排
-        pngQualityValueElement.style.display = '';
-        
-        jpegQualityValueElement.style.display = 'none';
-        jpegQualityValueElement.offsetHeight; // 触发重排
-        jpegQualityValueElement.style.display = '';
-        
-        compressionLevelValueElement.style.display = 'none';
-        compressionLevelValueElement.offsetHeight; // 触发重排
-        compressionLevelValueElement.style.display = '';
-        
-        // 调试：记录设置后的值
-        addLog('设置', `PNG质量设置为: ${pngQualityValue}, JPEG质量设置为: ${jpegQualityValue}, 优化设置为: ${settings.optimize}`, 'info');
 
-        // 设置滑块事件监听器
+        // Force repaint
+        pngQualityValueElement.style.display = 'none';
+        pngQualityValueElement.offsetHeight; // Trigger reflow
+        pngQualityValueElement.style.display = '';
+
+        jpegQualityValueElement.style.display = 'none';
+        jpegQualityValueElement.offsetHeight; // Trigger reflow
+        jpegQualityValueElement.style.display = '';
+
+        compressionLevelValueElement.style.display = 'none';
+        compressionLevelValueElement.offsetHeight; // Trigger reflow
+        compressionLevelValueElement.style.display = '';
+
+        // Debug: Log set values
+        addLog('Settings', `PNG quality set to: ${pngQualityValue}, JPEG quality set to: ${jpegQualityValue}, Optimization set to: ${settings.optimize}`, 'info');
+
+        // Set up slider event listeners
         setupQualitySettingsSliders();
 
     } catch (error) {
-        addLog('设置', '获取质量设置失败: ' + error.message, 'error');
-        showNotification('获取质量设置失败', 'error', 3000);
+        addLog('Settings', 'Failed to retrieve quality settings: ' + error.message, 'error');
+        showNotification('Failed to retrieve quality settings', 'error', 3000);
     }
 }
 
-// 关闭质量设置
+// Close quality settings
 function closeQualitySettings() {
     const modal = document.getElementById('qualitySettingsModal');
     modal.style.display = 'none';
 }
 
-// 设置质量设置滑块
+// Set up quality settings sliders
 function setupQualitySettingsSliders() {
     const pngQualitySlider = document.getElementById('pngQuality');
     const jpegQualitySlider = document.getElementById('jpegQuality');
     const compressionLevelSlider = document.getElementById('compressionLevel');
 
-    // 移除现有的事件监听器（如果存在）
+    // Remove existing event listeners if any
     pngQualitySlider.removeEventListener('input', pngQualitySlider._inputHandler);
     jpegQualitySlider.removeEventListener('input', jpegQualitySlider._inputHandler);
     compressionLevelSlider.removeEventListener('input', compressionLevelSlider._inputHandler);
 
-    // 创建新的事件处理器
-    pngQualitySlider._inputHandler = function() {
+    // Create new event handlers
+    pngQualitySlider._inputHandler = function () {
         document.getElementById('pngQualityValue').textContent = this.value;
     };
-    jpegQualitySlider._inputHandler = function() {
+    jpegQualitySlider._inputHandler = function () {
         document.getElementById('jpegQualityValue').textContent = this.value;
     };
-    compressionLevelSlider._inputHandler = function() {
+    compressionLevelSlider._inputHandler = function () {
         document.getElementById('compressionLevelValue').textContent = this.value;
     };
 
-    // 添加事件监听器
+    // Add event listeners
     pngQualitySlider.addEventListener('input', pngQualitySlider._inputHandler);
     jpegQualitySlider.addEventListener('input', jpegQualitySlider._inputHandler);
     compressionLevelSlider.addEventListener('input', compressionLevelSlider._inputHandler);
 }
 
-// 保存质量设置
+// Save quality settings
 async function saveQualitySettings() {
     const settings = {
         max_width: parseInt(document.getElementById('singleMonitorWidth').value),
@@ -128,44 +128,44 @@ async function saveQualitySettings() {
 
         if (response.ok) {
             const result = await response.json();
-            addLog('设置', '质量设置保存成功', 'success');
-            showNotification('质量设置保存成功', 'success', 3000);
+            addLog('Settings', 'Quality settings saved successfully', 'success');
+            showNotification('Quality settings saved successfully', 'success', 3000);
             closeQualitySettings();
         } else {
             const errorData = await response.json();
-            addLog('设置', '保存质量设置失败: ' + (errorData.detail || '未知错误'), 'error');
-            showNotification('保存质量设置失败', 'error', 3000);
+            addLog('Settings', 'Failed to save quality settings: ' + (errorData.detail || 'Unknown error'), 'error');
+            showNotification('Failed to save quality settings', 'error', 3000);
         }
     } catch (error) {
-        addLog('设置', '保存质量设置失败: ' + error.message, 'error');
-        showNotification('保存质量设置失败', 'error', 3000);
+        addLog('Settings', 'Failed to save quality settings: ' + error.message, 'error');
+        showNotification('Failed to save quality settings', 'error', 3000);
     }
 }
 
-// 打开缓存管理
+// Open cache manager
 async function openCacheManager() {
     const modal = document.getElementById('cacheManagerModal');
     modal.style.display = 'flex';
 
-    // 调试：记录打开缓存管理
-    addLog('缓存', '打开缓存管理弹窗', 'info');
+    // Debug: Log opening cache manager
+    addLog('Cache', 'Opening cache manager modal', 'info');
 
-    // 刷新缓存统计
+    // Refresh cache statistics
     await refreshCacheStats();
 }
 
-// 关闭缓存管理
+// Close cache manager
 function closeCacheManager() {
     const modal = document.getElementById('cacheManagerModal');
     modal.style.display = 'none';
 }
 
-// 刷新缓存统计
+// Refresh cache statistics
 async function refreshCacheStats() {
     try {
         const serverUrl = getServerBaseUrl();
-        
-        // 使用正确的API路径
+
+        // Use correct API paths
         const possiblePaths = [
             '/cache-stats',
             '/cache/stats',
@@ -179,123 +179,123 @@ async function refreshCacheStats() {
             '/system/cache',
             '/system/stats'
         ];
-        
+
         let response = null;
         let apiUrl = '';
-        
-        // 尝试每个可能的路径
+
+        // Try each possible path
         for (const path of possiblePaths) {
             apiUrl = `${serverUrl}${path}`;
-            addLog('缓存', `尝试API路径: ${apiUrl}`, 'info');
-            
+            addLog('Cache', `Trying API path: ${apiUrl}`, 'info');
+
             try {
                 response = await fetch(apiUrl);
                 if (response.ok) {
-                    addLog('缓存', `找到有效的API路径: ${apiUrl}`, 'success');
+                    addLog('Cache', `Found valid API path: ${apiUrl}`, 'success');
                     break;
                 } else {
-                    addLog('缓存', `路径 ${apiUrl} 返回 ${response.status}`, 'info');
+                    addLog('Cache', `Path ${apiUrl} returned ${response.status}`, 'info');
                 }
             } catch (error) {
-                addLog('缓存', `路径 ${apiUrl} 请求失败: ${error.message}`, 'info');
+                addLog('Cache', `Request to path ${apiUrl} failed: ${error.message}`, 'info');
             }
         }
-        
+
         if (!response || !response.ok) {
-            addLog('缓存', `所有API路径都失败，最后尝试: ${apiUrl}`, 'error');
-            
-            // 显示提示信息
+            addLog('Cache', `All API paths failed, last attempt: ${apiUrl}`, 'error');
+
+            // Show message
             const currentCacheSizeElement = document.getElementById('currentCacheSize');
             const maxCacheSizeElement = document.getElementById('maxCacheSizeDisplay');
             const cacheHitRateElement = document.getElementById('cacheHitRate');
             const totalRequestsElement = document.getElementById('totalRequests');
             const cacheHitsElement = document.getElementById('cacheHits');
-            
-            if (currentCacheSizeElement) currentCacheSizeElement.textContent = 'API未实现';
-            if (maxCacheSizeElement) maxCacheSizeElement.textContent = 'API未实现';
-            if (cacheHitRateElement) cacheHitRateElement.textContent = 'API未实现';
-            if (totalRequestsElement) totalRequestsElement.textContent = 'API未实现';
-            if (cacheHitsElement) cacheHitsElement.textContent = 'API未实现';
-            
-            showNotification('缓存管理API未实现，请联系后端开发人员', 'warning', 5000);
+
+            if (currentCacheSizeElement) currentCacheSizeElement.textContent = 'API not implemented';
+            if (maxCacheSizeElement) maxCacheSizeElement.textContent = 'API not implemented';
+            if (cacheHitRateElement) cacheHitRateElement.textContent = 'API not implemented';
+            if (totalRequestsElement) totalRequestsElement.textContent = 'API not implemented';
+            if (cacheHitsElement) cacheHitsElement.textContent = 'API not implemented';
+
+            showNotification('Cache management API not implemented, please contact backend developer', 'warning', 5000);
             return;
         }
-        
+
         const data = await response.json();
-        
-        // 调试：记录后端返回的数据
-        console.log('后端返回的缓存统计数据:', data);
-        addLog('缓存', `获取到缓存数据: ${JSON.stringify(data)}`, 'info');
-        
-        // 处理可能的数据结构差异
+
+        // Debug: Log data returned from backend
+        console.log('Cache statistics data from backend:', data);
+        addLog('Cache', `Received cache data: ${JSON.stringify(data)}`, 'info');
+
+        // Handle possible data structure differences
         const stats = data.stats || data;
-        
-        // 更新UI显示
+
+        // Update UI display
         const currentSize = stats.current_size || stats.cache_size || 0;
         const maxSize = stats.max_size || stats.max_cache_size || 100;
         const hitRate = stats.hit_rate || 0;
         const totalRequests = stats.total_requests || stats.requests || 0;
         const cacheHits = stats.cache_hits || stats.hits || 0;
-        
-        // 调试：检查DOM元素是否存在
+
+        // Debug: Check if DOM elements exist
         const currentCacheSizeElement = document.getElementById('currentCacheSize');
         const maxCacheSizeElement = document.getElementById('maxCacheSizeDisplay');
         const cacheHitRateElement = document.getElementById('cacheHitRate');
         const totalRequestsElement = document.getElementById('totalRequests');
         const cacheHitsElement = document.getElementById('cacheHits');
-        
+
         if (!currentCacheSizeElement) {
-            addLog('缓存', '错误：找不到currentCacheSize元素', 'error');
+            addLog('Cache', 'Error: Could not find currentCacheSize element', 'error');
         }
         if (!maxCacheSizeElement) {
-            addLog('缓存', '错误：找不到maxCacheSizeDisplay元素', 'error');
+            addLog('Cache', 'Error: Could not find maxCacheSizeDisplay element', 'error');
         }
         if (!cacheHitRateElement) {
-            addLog('缓存', '错误：找不到cacheHitRate元素', 'error');
+            addLog('Cache', 'Error: Could not find cacheHitRate element', 'error');
         }
         if (!totalRequestsElement) {
-            addLog('缓存', '错误：找不到totalRequests元素', 'error');
+            addLog('Cache', 'Error: Could not find totalRequests element', 'error');
         }
         if (!cacheHitsElement) {
-            addLog('缓存', '错误：找不到cacheHits元素', 'error');
+            addLog('Cache', 'Error: Could not find cacheHits element', 'error');
         }
-        
-        // 更新UI显示
+
+        // Update UI display
         if (currentCacheSizeElement) currentCacheSizeElement.textContent = currentSize;
         if (maxCacheSizeElement) maxCacheSizeElement.textContent = maxSize;
         if (cacheHitRateElement) cacheHitRateElement.textContent = hitRate ? `${(hitRate * 100).toFixed(1)}%` : '0%';
         if (totalRequestsElement) totalRequestsElement.textContent = totalRequests;
         if (cacheHitsElement) cacheHitsElement.textContent = cacheHits;
-        
-        // 调试：记录设置后的值
-        addLog('缓存', `当前缓存数量: ${currentSize}, 最大缓存数量: ${maxSize}, 命中率: ${hitRate}`, 'info');
 
-        addLog('缓存', '缓存统计刷新成功', 'info');
-        
-        // 调试：验证UI更新
+        // Debug: Log set values
+        addLog('Cache', `Current cache count: ${currentSize}, Max cache count: ${maxSize}, Hit rate: ${hitRate}`, 'info');
+
+        addLog('Cache', 'Cache statistics refreshed successfully', 'info');
+
+        // Debug: Verify UI update
         setTimeout(() => {
             const currentCacheSizeElement = document.getElementById('currentCacheSize');
             if (currentCacheSizeElement) {
-                addLog('缓存', `UI显示值: ${currentCacheSizeElement.textContent}`, 'info');
+                addLog('Cache', `UI display value: ${currentCacheSizeElement.textContent}`, 'info');
             }
         }, 100);
-        
+
     } catch (error) {
-        addLog('缓存', '刷新缓存统计失败: ' + error.message, 'error');
-        showNotification('刷新缓存统计失败', 'error', 3000);
+        addLog('Cache', 'Failed to refresh cache statistics: ' + error.message, 'error');
+        showNotification('Failed to refresh cache statistics', 'error', 3000);
     }
 }
 
-// 清除缓存
+// Clear cache
 async function clearCache() {
-    if (!confirm('确定要清除所有缓存吗？\n\n这将删除所有缓存的截图数据。')) {
+    if (!confirm('Are you sure you want to clear all cache?\n\nThis will delete all cached screenshot data.')) {
         return;
     }
 
     try {
         const serverUrl = getServerBaseUrl();
-        
-        // 使用正确的清除缓存API路径
+
+        // Use correct clear cache API paths
         const possibleClearPaths = [
             '/clear-cache',
             '/cache/clear',
@@ -304,49 +304,49 @@ async function clearCache() {
             '/cache/remove',
             '/cache'
         ];
-        
+
         let response = null;
         let apiUrl = '';
-        
-        // 尝试每个可能的路径
+
+        // Try each possible path
         for (const path of possibleClearPaths) {
             apiUrl = `${serverUrl}${path}`;
-            addLog('缓存', `尝试清除缓存API路径: ${apiUrl}`, 'info');
-            
+            addLog('Cache', `Trying clear cache API path: ${apiUrl}`, 'info');
+
             try {
                 response = await fetch(apiUrl, { method: 'POST' });
                 if (response.ok) {
-                    addLog('缓存', `找到有效的清除缓存API路径: ${apiUrl}`, 'success');
+                    addLog('Cache', `Found valid clear cache API path: ${apiUrl}`, 'success');
                     break;
                 } else {
-                    addLog('缓存', `清除缓存路径 ${apiUrl} 返回 ${response.status}`, 'info');
+                    addLog('Cache', `Clear cache path ${apiUrl} returned ${response.status}`, 'info');
                 }
             } catch (error) {
-                addLog('缓存', `清除缓存路径 ${apiUrl} 请求失败: ${error.message}`, 'info');
+                addLog('Cache', `Request to clear cache path ${apiUrl} failed: ${error.message}`, 'info');
             }
         }
-        
+
         if (!response || !response.ok) {
-            addLog('缓存', `所有清除缓存API路径都失败，最后尝试: ${apiUrl}`, 'error');
-            showNotification('清除缓存API未实现，请联系后端开发人员', 'warning', 5000);
+            addLog('Cache', `All clear cache API paths failed, last attempt: ${apiUrl}`, 'error');
+            showNotification('Clear cache API not implemented, please contact backend developer', 'warning', 5000);
             return;
         }
 
-        // 如果到这里，说明找到了有效的API路径
+        // If we get here, we found a valid API path
         const result = await response.json();
-        addLog('缓存', '缓存清除成功', 'success');
-        showNotification('缓存清除成功', 'success', 3000);
+        addLog('Cache', 'Cache cleared successfully', 'success');
+        showNotification('Cache cleared successfully', 'success', 3000);
 
-        // 刷新缓存统计
+        // Refresh cache statistics
         await refreshCacheStats();
     } catch (error) {
-        addLog('缓存', '清除缓存失败: ' + error.message, 'error');
-        showNotification('清除缓存失败', 'error', 3000);
+        addLog('Cache', 'Failed to clear cache: ' + error.message, 'error');
+        showNotification('Failed to clear cache', 'error', 3000);
     }
 }
 
-// 测试缓存统计（调试用）
+// Test cache statistics (for debugging)
 async function testCacheStats() {
-    addLog('缓存', '开始测试缓存统计...', 'info');
+    addLog('Cache', 'Starting cache statistics test...', 'info');
     await refreshCacheStats();
-} 
+}
