@@ -1,21 +1,21 @@
-// 显示器模块 - 显示器截图和显示功能
+// Monitor module - Monitor screenshot and display functionality
 
-// 刷新截图
+// Refresh screenshot
 async function refreshScreenshot() {
     try {
         const screenshot = document.getElementById('screenshot');
-        
-        // 如果当前处于全屏状态，暂停自动刷新
+
+        // If currently in fullscreen mode, pause auto-refresh
         if (document.fullscreenElement === screenshot) {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
                 autoRefreshInterval = null;
-                addLog('截图', '检测到全屏状态，已暂停自动刷新', 'info');
+                addLog('Screenshot', 'Fullscreen mode detected, auto-refresh paused', 'info');
             }
             return;
         }
-        
-        // 显示加载指示器
+
+        // Show loading indicator
         const loadingIndicator = document.getElementById('loading-indicator');
         loadingIndicator.style.display = 'block';
         screenshot.style.opacity = '0.5';
@@ -25,301 +25,301 @@ async function refreshScreenshot() {
         const data = await response.json();
 
         if (data.image) {
-            // 创建新图片对象以预加载
+            // Create new image object for preloading
             const newImage = new Image();
             newImage.onload = function () {
                 screenshot.src = this.src;
                 screenshot.style.opacity = '1';
                 loadingIndicator.style.display = 'none';
-                addLog('截图', '刷新成功', 'success');
+                addLog('Screenshot', 'Refresh successful', 'success');
             };
             newImage.onerror = function () {
                 loadingIndicator.style.display = 'none';
                 screenshot.style.opacity = '1';
-                addLog('截图', '图片加载失败', 'error');
+                addLog('Screenshot', 'Image loading failed', 'error');
             };
             newImage.src = 'data:image/png;base64,' + data.image;
         } else if (data.error) {
             loadingIndicator.style.display = 'none';
             screenshot.style.opacity = '1';
-            addLog('截图', '刷新失败: ' + data.error, 'error');
+            addLog('Screenshot', 'Refresh failed: ' + data.error, 'error');
         }
     } catch (error) {
         const loadingIndicator = document.getElementById('loading-indicator');
         const screenshot = document.getElementById('screenshot');
         loadingIndicator.style.display = 'none';
         screenshot.style.opacity = '1';
-        addLog('截图', '网络错误: ' + error.message, 'error');
+        addLog('Screenshot', 'Network error: ' + error.message, 'error');
     }
 }
 
-// 切换自动刷新状态
+// Toggle auto-refresh status
 function toggleAutoRefresh() {
     const autoRefreshBtn = document.getElementById('autoRefreshBtn');
-    
+
     if (autoRefreshInterval) {
-        // 当前正在自动刷新，停止它
+        // Currently auto-refreshing, stop it
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        autoRefreshBtn.textContent = '🔄 自动刷新';
+        autoRefreshBtn.textContent = '🔄 Auto Refresh';
         autoRefreshBtn.className = 'btn btn-primary';
-        addLog('自动刷新', '已停止', 'info');
+        addLog('Auto Refresh', 'Stopped', 'info');
     } else {
-        // 当前未自动刷新，启动它
-        autoRefreshInterval = setInterval(refreshAllMonitors, 500); // 0.5秒间隔
-        autoRefreshBtn.textContent = '⏸️ 停止刷新';
+        // Not currently auto-refreshing, start it
+        autoRefreshInterval = setInterval(refreshAllMonitors, 500); // 0.5 second interval
+        autoRefreshBtn.textContent = '⏸️ Stop Refresh';
         autoRefreshBtn.className = 'btn btn-danger';
-        addLog('自动刷新', '已启动 (0.5秒间隔)', 'success');
+        addLog('Auto Refresh', 'Started (0.5s interval)', 'success');
     }
 }
 
-// 开始自动刷新
+// Start auto-refresh
 function startAutoRefresh() {
     if (autoRefreshInterval) {
-        addLog('自动刷新', '已经在运行中', 'warning');
+        addLog('Auto Refresh', 'Already running', 'warning');
         return;
     }
 
-    autoRefreshInterval = setInterval(refreshAllMonitors, 500); // 0.5秒间隔
-    addLog('自动刷新', '已启动 (1秒间隔)', 'success');
-    
-    // 更新按钮状态
+    autoRefreshInterval = setInterval(refreshAllMonitors, 500); // 0.5 second interval
+    addLog('Auto Refresh', 'Started (1s interval)', 'success');
+
+    // Update button status
     const autoRefreshBtn = document.getElementById('autoRefreshBtn');
     if (autoRefreshBtn) {
-        autoRefreshBtn.textContent = '⏸️ 停止刷新';
+        autoRefreshBtn.textContent = '⏸️ Stop Refresh';
         autoRefreshBtn.className = 'btn btn-danger';
     }
 }
 
-// 停止自动刷新
+// Stop auto-refresh
 function stopAutoRefresh() {
     if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        addLog('自动刷新', '已停止', 'info');
-        
-        // 更新按钮状态
+        addLog('Auto Refresh', 'Stopped', 'info');
+
+        // Update button status
         const autoRefreshBtn = document.getElementById('autoRefreshBtn');
         if (autoRefreshBtn) {
-            autoRefreshBtn.textContent = '🔄 自动刷新';
+            autoRefreshBtn.textContent = '🔄 Auto Refresh';
             autoRefreshBtn.className = 'btn btn-primary';
         }
     }
 }
 
-// 获取截图信息
+// Get screenshot information
 async function getScreenshotInfo() {
     try {
-        addLog('截图', '正在获取截图信息...', 'info');
+        addLog('Screenshot', 'Retrieving screenshot information...', 'info');
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/screenshot-info`);
         const data = await response.json();
 
         if (data.virtual_screen) {
-            let info = `虚拟屏幕: ${data.virtual_screen.width}x${data.virtual_screen.height} | 主屏幕: ${data.primary_screen.width}x${data.primary_screen.height} | 当前截图: ${data.current_screenshot.width}x${data.current_screenshot.height}`;
-            addLog('截图', info, 'success');
+            let info = `Virtual Screen: ${data.virtual_screen.width}x${data.virtual_screen.height} | Primary Screen: ${data.primary_screen.width}x${data.primary_screen.height} | Current Screenshot: ${data.current_screenshot.width}x${data.current_screenshot.height}`;
+            addLog('Screenshot', info, 'success');
 
-            // 显示显示器详细信息
+            // Display monitor details
             if (data.monitors && data.monitors.length > 0) {
-                addLog('截图', `检测到 ${data.monitor_count} 个显示器:`, 'info');
+                addLog('Screenshot', `Detected ${data.monitor_count} monitors:`, 'info');
                 data.monitors.forEach(monitor => {
-                    const monitorInfo = `显示器 ${monitor.index + 1}${monitor.primary ? ' (主)' : ''}: ${monitor.width}x${monitor.height} 位置(${monitor.left},${monitor.top})`;
-                    addLog('截图', monitorInfo, 'info');
+                    const monitorInfo = `Monitor ${monitor.index + 1}${monitor.primary ? ' (Primary)' : ''}: ${monitor.width}x${monitor.height} Position(${monitor.left},${monitor.top})`;
+                    addLog('Screenshot', monitorInfo, 'info');
                 });
             }
         }
     } catch (error) {
-        addLog('截图', '获取截图信息失败: ' + error.message, 'error');
+        addLog('Screenshot', 'Failed to retrieve screenshot information: ' + error.message, 'error');
     }
 }
 
-// 获取显示器配置信息
+// Get monitor configuration information
 async function getMonitorsConfig() {
     try {
-        addLog('显示器', '正在获取显示器配置信息...', 'info');
+        addLog('Monitor', 'Retrieving monitor configuration information...', 'info');
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/monitors/config`);
         const data = await response.json();
 
         if (data.system_info && data.monitors) {
-            let configInfo = `系统信息:\n`;
-            configInfo += `  显示器数量: ${data.system_info.monitor_count}\n`;
-            configInfo += `  虚拟桌面: ${data.system_info.virtual_screen.width}x${data.system_info.virtual_screen.height} 位置(${data.system_info.virtual_screen.left},${data.system_info.virtual_screen.top})\n`;
-            configInfo += `  主显示器: ${data.system_info.primary_screen.width}x${data.system_info.primary_screen.height}\n`;
-            configInfo += `  检测方法: ${data.detection_method}\n\n`;
+            let configInfo = `System Information:\n`;
+            configInfo += `  Monitor Count: ${data.system_info.monitor_count}\n`;
+            configInfo += `  Virtual Desktop: ${data.system_info.virtual_screen.width}x${data.system_info.virtual_screen.height} Position(${data.system_info.virtual_screen.left},${data.system_info.virtual_screen.top})\n`;
+            configInfo += `  Primary Monitor: ${data.system_info.primary_screen.width}x${data.system_info.primary_screen.height}\n`;
+            configInfo += `  Detection Method: ${data.detection_method}\n\n`;
 
-            configInfo += `显示器详情:\n`;
+            configInfo += `Monitor Details:\n`;
             data.monitors.forEach(monitor => {
-                configInfo += `  显示器 ${monitor.index + 1}${monitor.primary ? ' (主显示器)' : ''}: \n`;
-                configInfo += `    分辨率: ${monitor.width}x${monitor.height}\n`;
-                configInfo += `    位置: (${monitor.left}, ${monitor.top})\n`;
-                configInfo += `    区域: (${monitor.left}, ${monitor.top}, ${monitor.right}, ${monitor.bottom})\n`;
-                configInfo += `    面积: ${monitor.area.toLocaleString()} 像素\n`;
+                configInfo += `  Monitor ${monitor.index + 1}${monitor.primary ? ' (Primary)' : ''}: \n`;
+                configInfo += `    Resolution: ${monitor.width}x${monitor.height}\n`;
+                configInfo += `    Position: (${monitor.left}, ${monitor.top})\n`;
+                configInfo += `    Area: (${monitor.left}, ${monitor.top}, ${monitor.right}, ${monitor.bottom})\n`;
+                configInfo += `    Pixel Area: ${monitor.area.toLocaleString()}\n`;
             });
 
-            addLog('显示器', configInfo, 'success');
+            addLog('Monitor', configInfo, 'success');
         } else {
-            addLog('显示器', '未获取到显示器配置信息', 'warning');
+            addLog('Monitor', 'No monitor configuration information retrieved', 'warning');
         }
     } catch (error) {
-        addLog('显示器', '获取显示器配置信息失败: ' + error.message, 'error');
+        addLog('Monitor', 'Failed to retrieve monitor configuration: ' + error.message, 'error');
     }
 }
 
-// 刷新所有显示器截图
+// Refresh all monitor screenshots
 async function refreshAllMonitors() {
     try {
-        // 检查是否所有显示器都被收起
+        // Check if all monitors are collapsed
         if (areAllMonitorsCollapsed()) {
-            // 所有显示器都被收起时，不调用API，直接显示占位符
-            addLog('截图', '所有显示器都已收起，跳过截图获取', 'info');
+            // When all monitors are collapsed, don't call API, show placeholder directly
+            addLog('Screenshot', 'All monitors are collapsed, skipping screenshot retrieval', 'info');
             displayCollapsedMonitorsPlaceholder();
             return;
         }
 
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/screenshots/all`, {
-            timeout: 10000 // 10秒超时
+            timeout: 10000 // 10 second timeout
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
 
-        // 使用API返回的总显示器数量，而不是当前活跃的显示器数量
+        // Use total monitor count returned by API instead of currently active count
         if (data.total_monitor_count !== undefined) {
             totalMonitorCount = data.total_monitor_count;
         }
-        
+
         if (data.screenshots && data.screenshots.length > 0) {
             displayMultiMonitors(data.screenshots);
         } else if (data.screenshots && data.screenshots.length === 0) {
-            // 如果返回空数组，检查是否所有显示器都被收起
+            // If empty array is returned, check if all monitors are collapsed
             if (areAllMonitorsCollapsed()) {
-                addLog('调试', '检测到所有显示器都已收起，显示占位符', 'info');
+                addLog('Debug', 'Detected all monitors collapsed, showing placeholder', 'info');
                 displayCollapsedMonitorsPlaceholder();
             } else {
-                // 如果没有显示器数据但也不是全部收起，显示加载状态
-                addLog('调试', 'API返回空数组但并非全部收起，显示加载状态', 'info');
+                // If no monitor data but not all collapsed, show loading state
+                addLog('Debug', 'API returned empty array but not all collapsed, showing loading state', 'info');
                 const grid = document.getElementById('monitors-grid');
-                grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>正在加载显示器信息...</div>';
+                grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>Loading monitor information...</div>';
             }
         } else {
-            // 处理其他情况
-            addLog('调试', 'API返回数据格式异常', 'info');
+            // Handle other cases
+            addLog('Debug', 'API returned data in unexpected format', 'info');
             const grid = document.getElementById('monitors-grid');
-            grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>正在加载显示器信息...</div>';
+            grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>Loading monitor information...</div>';
         }
     } catch (error) {
-        addLog('截图', '获取多显示器截图失败: ' + error.message, 'error');
-        // 显示错误状态
+        addLog('Screenshot', 'Failed to retrieve multi-monitor screenshots: ' + error.message, 'error');
+        // Show error state
         const grid = document.getElementById('monitors-grid');
-        grid.innerHTML = '<div class="monitor-error">❌ 获取显示器信息失败，请检查服务器连接</div>';
+        grid.innerHTML = '<div class="monitor-error">❌ Failed to retrieve monitor information, please check server connection</div>';
     }
 }
 
-// 显示多显示器截图
+// Display multi-monitor screenshots
 function displayMultiMonitors(screenshots) {
     const grid = document.getElementById('monitors-grid');
-    
+
     if (!screenshots || screenshots.length === 0) {
-        grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>正在加载显示器信息...</div>';
+        grid.innerHTML = '<div class="monitor-loading"><div class="loading"></div>Loading monitor information...</div>';
         return;
     }
 
-    // 自动收起非主显示器（仅在首次检测到多个显示器时）
+    // Auto-collapse non-primary monitors (only when multiple monitors are first detected)
     autoCollapseNonPrimaryMonitors(screenshots);
 
-    // 检查是否有任何显示器处于全屏状态
-    const hasFullscreenMonitor = document.fullscreenElement && 
-        document.fullscreenElement.classList && 
+    // Check if any monitor is in fullscreen state
+    const hasFullscreenMonitor = document.fullscreenElement &&
+        document.fullscreenElement.classList &&
         document.fullscreenElement.classList.contains('monitor-image');
-    
-    // 如果没有任何显示器处于全屏状态，正常重建DOM
+
+    // If no monitors are in fullscreen state, rebuild DOM normally
     if (!hasFullscreenMonitor) {
         grid.innerHTML = '';
-        
-        // 为所有显示器创建元素，包括被收起的显示器
+
+        // Create elements for all monitors, including collapsed ones
         for (let i = 0; i < totalMonitorCount; i++) {
             const screenshot = screenshots.find(s => s.monitor_index === i);
             if (screenshot) {
-                // 如果API返回了这个显示器的数据，使用真实数据
+                // Use real data if API returned data for this monitor
                 createMonitorElement(screenshot, i, grid);
             } else if (collapsedMonitors.has(i)) {
-                // 如果显示器被收起且API没有返回数据，创建占位元素
+                // Create placeholder element if monitor is collapsed and API didn't return data
                 createCollapsedMonitorElement(i, grid);
             }
         }
         return;
     }
 
-    // 如果有显示器处于全屏状态，采用保守更新策略
+    // If any monitor is in fullscreen state, use conservative update strategy
     screenshots.forEach((screenshot, index) => {
         const existingMonitorDiv = document.getElementById(`monitor-${screenshot.monitor_index}`);
-        
+
         if (existingMonitorDiv) {
-            // 更新现有显示器元素
+            // Update existing monitor element
             updateExistingMonitorElement(screenshot, existingMonitorDiv);
         } else {
-            // 如果显示器不存在，创建新的
+            // Create new if monitor doesn't exist
             createMonitorElement(screenshot, index, grid);
         }
     });
 }
 
-// 创建新的显示器元素
+// Create new monitor element
 function createMonitorElement(screenshot, index, grid) {
     const monitorDiv = document.createElement('div');
     monitorDiv.className = `monitor-item ${screenshot.primary ? 'primary' : ''}`;
     monitorDiv.id = `monitor-${screenshot.monitor_index}`;
 
-    // 设置分辨率信息到右上角标签
-    const monitorType = screenshot.primary ? '主显示器' : '副显示器';
-    monitorDiv.setAttribute('data-resolution', `${monitorType}（${screenshot.width}×${screenshot.height}）`);
+    // Set resolution information to top-right label
+    const monitorType = screenshot.primary ? 'Primary Monitor' : 'Secondary Monitor';
+    monitorDiv.setAttribute('data-resolution', `${monitorType} (${screenshot.width}×${screenshot.height})`);
 
     const img = document.createElement('img');
     img.className = 'monitor-image';
-    
-    // 检查显示器是否被收起
+
+    // Check if monitor is collapsed
     const isCollapsed = collapsedMonitors.has(screenshot.monitor_index);
-    
+
     if (isCollapsed) {
-        // 如果被收起，使用占位图片
+        // Use placeholder image if collapsed
         img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
         img.style.display = 'none';
         monitorDiv.classList.add('collapsed');
     } else {
-        // 如果活跃，使用实际截图
+        // Use actual screenshot if active
         if (screenshot.image) {
             img.src = 'data:image/png;base64,' + screenshot.image;
             img.style.display = 'block';
         } else {
-            // 如果没有截图数据，也显示占位符
+            // Show placeholder if no screenshot data
             img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
             img.style.display = 'none';
             monitorDiv.classList.add('collapsed');
         }
     }
-    
+
     img.alt = `${monitorType} ${screenshot.monitor_index + 1}`;
 
     const controls = document.createElement('div');
     controls.className = 'monitor-controls';
     controls.innerHTML = `
         <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${screenshot.monitor_index})">
-            🔄 刷新
+            🔄 Refresh
         </button>
         <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${screenshot.monitor_index})">
-            ⛶ 全屏
+            ⛶ Fullscreen
         </button>
         <button class="monitor-btn monitor-btn-toggle" id="toggle-btn-${screenshot.monitor_index}" onclick="toggleMonitorImage(${screenshot.monitor_index})">
-            ${isCollapsed ? '👁️ 展开' : '📷 收起'}
+            ${isCollapsed ? '👁️ Expand' : '📷 Collapse'}
         </button>
     `;
 
-    // 设置按钮状态
+    // Set button state
     const toggleBtn = controls.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
     if (isCollapsed) {
         toggleBtn.classList.add('collapsed');
@@ -334,32 +334,32 @@ function createMonitorElement(screenshot, index, grid) {
     grid.appendChild(monitorDiv);
 }
 
-// 为被收起的显示器创建占位元素
+// Create placeholder element for collapsed monitor
 function createCollapsedMonitorElement(monitorIndex, grid) {
     const monitorDiv = document.createElement('div');
     monitorDiv.className = 'monitor-item collapsed';
     monitorDiv.id = `monitor-${monitorIndex}`;
 
-    // 设置分辨率信息到右上角标签（使用默认值）
-    monitorDiv.setAttribute('data-resolution', `副显示器（收起状态）`);
+    // Set resolution information to top-right label (using default)
+    monitorDiv.setAttribute('data-resolution', 'Secondary Monitor (Collapsed)');
 
     const img = document.createElement('img');
     img.className = 'monitor-image';
     img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
     img.style.display = 'none';
-    img.alt = `副显示器 ${monitorIndex + 1}`;
+    img.alt = `Secondary Monitor ${monitorIndex + 1}`;
 
     const controls = document.createElement('div');
     controls.className = 'monitor-controls';
     controls.innerHTML = `
         <button class="monitor-btn monitor-btn-refresh" onclick="refreshSingleMonitor(${monitorIndex})">
-            🔄 刷新
+            🔄 Refresh
         </button>
         <button class="monitor-btn monitor-btn-fullscreen" onclick="toggleMonitorFullscreen(${monitorIndex})">
-            ⛶ 全屏
+            ⛶ Fullscreen
         </button>
         <button class="monitor-btn monitor-btn-toggle collapsed" id="toggle-btn-${monitorIndex}" onclick="toggleMonitorImage(${monitorIndex})" data-expanded="false">
-            👁️ 展开
+            👁️ Expand
         </button>
     `;
 
@@ -368,72 +368,72 @@ function createCollapsedMonitorElement(monitorIndex, grid) {
     grid.appendChild(monitorDiv);
 }
 
-// 更新现有的显示器元素
+// Update existing monitor element
 function updateExistingMonitorElement(screenshot, monitorDiv) {
     const img = monitorDiv.querySelector('.monitor-image');
     if (!img) return;
 
-    // 检查显示器是否被收起
+    // Check if monitor is collapsed
     const isCollapsed = collapsedMonitors.has(screenshot.monitor_index);
-    
-    // 如果图片当前处于全屏状态，跳过更新
+
+    // Skip update if image is currently in fullscreen
     if (document.fullscreenElement === img) {
-        addLog('截图', `显示器 ${screenshot.monitor_index + 1} 处于全屏状态，跳过更新`, 'info');
+        addLog('Screenshot', `Monitor ${screenshot.monitor_index + 1} is in fullscreen, skipping update`, 'info');
         return;
     }
-    
+
     if (isCollapsed) {
-        // 如果被收起，使用占位图片
+        // Use placeholder image if collapsed
         img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
         img.style.display = 'none';
         monitorDiv.classList.add('collapsed');
     } else {
-        // 如果活跃，使用实际截图
+        // Use actual screenshot if active
         if (screenshot.image) {
             img.src = 'data:image/png;base64,' + screenshot.image;
             img.style.display = 'block';
         } else {
-            // 如果没有截图数据，也显示占位符
+            // Show placeholder if no screenshot data
             img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
             img.style.display = 'none';
             monitorDiv.classList.add('collapsed');
         }
     }
-    
-    // 更新按钮状态
+
+    // Update button state
     const toggleBtn = monitorDiv.querySelector(`#toggle-btn-${screenshot.monitor_index}`);
     if (toggleBtn) {
         if (isCollapsed) {
             toggleBtn.classList.add('collapsed');
             toggleBtn.dataset.expanded = "false";
-            toggleBtn.textContent = '👁️ 展开';
+            toggleBtn.textContent = '👁️ Expand';
         } else {
             toggleBtn.classList.remove('collapsed');
             toggleBtn.dataset.expanded = "true";
-            toggleBtn.textContent = '📷 收起';
+            toggleBtn.textContent = '📷 Collapse';
         }
     }
-    
-    // 更新分辨率信息
-    const monitorType = screenshot.primary ? '主显示器' : '副显示器';
-    monitorDiv.setAttribute('data-resolution', `${monitorType}（${screenshot.width}×${screenshot.height}）`);
+
+    // Update resolution information
+    const monitorType = screenshot.primary ? 'Primary Monitor' : 'Secondary Monitor';
+    monitorDiv.setAttribute('data-resolution', `${monitorType} (${screenshot.width}×${screenshot.height})`);
 }
 
-// 显示所有显示器收起时的占位符
+// Display placeholder when all monitors are collapsed
 function displayCollapsedMonitorsPlaceholder() {
     const grid = document.getElementById('monitors-grid');
     grid.innerHTML = '';
 
-    // 创建占位符显示
+    // Create placeholder display
     const placeholderDiv = document.createElement('div');
     placeholderDiv.className = 'monitor-item collapsed-placeholder';
     placeholderDiv.innerHTML = `
         <div class="collapsed-placeholder-content">
             <div class="collapsed-placeholder-icon">📷</div>
-            <div class="collapsed-placeholder-text">所有显示器都已收起</div>
-            <div class="collapsed-placeholder-subtext">点击下方按钮可重新显示所有显示器截图</div>
+            <div class="collapsed-placeholder-text">All monitors are collapsed</div>
+            <div class="collapsed-placeholder-subtext">Click the button below to redisplay all monitor screenshots</div>
             <button class="btn btn-primary expand-all-btn" onclick="resetCollapsedMonitors()" style="margin-top: 20px;">
-                👁️ 展开所有显示器
+                👁️ Expand All Monitors
             </button>
         </div>
     `;
@@ -441,93 +441,93 @@ function displayCollapsedMonitorsPlaceholder() {
     grid.appendChild(placeholderDiv);
 }
 
-// 刷新单个显示器
+// Refresh single monitor
 async function refreshSingleMonitor(monitorIndex) {
     try {
         const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
         if (!monitorDiv) {
-            addLog('截图', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+            addLog('Screenshot', `Container for monitor ${monitorIndex + 1} not found`, 'error');
             return;
         }
 
-        // 检查显示器是否被收起
+        // Check if monitor is collapsed
         if (collapsedMonitors.has(monitorIndex)) {
-            addLog('截图', `显示器 ${monitorIndex + 1} 已被收起，无法刷新`, 'warning');
+            addLog('Screenshot', `Monitor ${monitorIndex + 1} is collapsed, cannot refresh`, 'warning');
             return;
         }
 
         const img = monitorDiv.querySelector('.monitor-image');
-        
-        // 如果当前处于全屏状态，暂停自动刷新
+
+        // If currently in fullscreen mode, pause auto-refresh
         if (document.fullscreenElement === img) {
             if (autoRefreshInterval) {
                 clearInterval(autoRefreshInterval);
                 autoRefreshInterval = null;
-                addLog('截图', `检测到显示器 ${monitorIndex + 1} 全屏状态，已暂停自动刷新`, 'info');
+                addLog('Screenshot', `Fullscreen detected on monitor ${monitorIndex + 1}, auto-refresh paused`, 'info');
             }
             return;
         }
-        
-        // 显示加载状态
+
+        // Show loading state
         const originalSrc = img.src;
         img.style.opacity = '0.5';
 
-        addLog('截图', `正在刷新显示器 ${monitorIndex + 1}...`, 'info');
+        addLog('Screenshot', `Refreshing monitor ${monitorIndex + 1}...`, 'info');
 
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/screenshot/monitor/${monitorIndex}`);
         const data = await response.json();
 
         if (data.image) {
-            // 创建新图片对象以预加载
+            // Create new image object for preloading
             const newImage = new Image();
             newImage.onload = function () {
                 img.src = this.src;
                 img.style.opacity = '1';
 
-                // 更新时间戳
+                // Update timestamp
                 const info = monitorDiv.querySelector('.monitor-info');
                 if (info) {
                     info.innerHTML = `
-                                <span>更新时间: ${new Date().toLocaleTimeString()}</span>
+                                <span>Update time: ${new Date().toLocaleTimeString()}</span>
                             `;
                 }
 
-                addLog('截图', `显示器 ${monitorIndex + 1} 刷新成功`, 'success');
+                addLog('Screenshot', `Monitor ${monitorIndex + 1} refreshed successfully`, 'success');
             };
             newImage.onerror = function () {
                 img.src = originalSrc;
                 img.style.opacity = '1';
-                addLog('截图', `显示器 ${monitorIndex + 1} 图片加载失败`, 'error');
+                addLog('Screenshot', `Monitor ${monitorIndex + 1} image failed to load`, 'error');
             };
             newImage.src = 'data:image/png;base64,' + data.image;
         } else if (data.error) {
             img.src = originalSrc;
             img.style.opacity = '1';
-            addLog('截图', `显示器 ${monitorIndex + 1} 刷新失败: ${data.error}`, 'error');
+            addLog('Screenshot', `Monitor ${monitorIndex + 1} refresh failed: ${data.error}`, 'error');
         }
     } catch (error) {
-        addLog('截图', `显示器 ${monitorIndex + 1} 刷新失败: ${error.message}`, 'error');
+        addLog('Screenshot', `Monitor ${monitorIndex + 1} refresh failed: ${error.message}`, 'error');
     }
 }
 
-// 切换显示器全屏
+// Toggle monitor fullscreen
 function toggleMonitorFullscreen(monitorIndex) {
     const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
     if (!monitorDiv) {
-        addLog('截图', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+        addLog('Screenshot', `Container for monitor ${monitorIndex + 1} not found`, 'error');
         return;
     }
 
-    // 检查显示器是否被收起
+    // Check if monitor is collapsed
     if (collapsedMonitors.has(monitorIndex)) {
-        addLog('截图', `显示器 ${monitorIndex + 1} 已被收起，无法全屏查看`, 'warning');
+        addLog('Screenshot', `Monitor ${monitorIndex + 1} is collapsed, cannot view in fullscreen`, 'warning');
         return;
     }
 
     const img = monitorDiv.querySelector('.monitor-image');
     if (!document.fullscreenElement) {
-        // 进入全屏
+        // Enter fullscreen
         if (img.requestFullscreen) {
             img.requestFullscreen();
         } else if (img.webkitRequestFullscreen) {
@@ -535,9 +535,9 @@ function toggleMonitorFullscreen(monitorIndex) {
         } else if (img.msRequestFullscreen) {
             img.msRequestFullscreen();
         }
-        addLog('截图', `进入显示器 ${monitorIndex + 1} 全屏模式`, 'info');
+        addLog('Screenshot', `Entered fullscreen mode for monitor ${monitorIndex + 1}`, 'info');
     } else {
-        // 退出全屏
+        // Exit fullscreen
         if (document.exitFullscreen) {
             document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
@@ -545,28 +545,28 @@ function toggleMonitorFullscreen(monitorIndex) {
         } else if (document.msExitFullscreen) {
             document.msExitFullscreen();
         }
-        addLog('截图', `退出显示器 ${monitorIndex + 1} 全屏模式`, 'info');
+        addLog('Screenshot', `Exited fullscreen mode for monitor ${monitorIndex + 1}`, 'info');
     }
 }
 
-// 调试显示器 (模拟刷新单个显示器)
+// Debug monitor (simulate refreshing single monitor)
 async function debugMonitor(monitorIndex) {
     try {
-        addLog('调试', `正在调试显示器 ${monitorIndex + 1}...`, 'info');
+        addLog('Debug', `Debugging monitor ${monitorIndex + 1}...`, 'info');
         const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
         if (!monitorDiv) {
-            addLog('调试', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+            addLog('Debug', `Container for monitor ${monitorIndex + 1} not found`, 'error');
             return;
         }
 
         const img = monitorDiv.querySelector('.monitor-image');
-        
-        // 如果当前处于全屏状态，暂停调试
+
+        // If currently in fullscreen state, pause debugging
         if (document.fullscreenElement === img) {
-            addLog('调试', `显示器 ${monitorIndex + 1} 当前处于全屏状态，暂停调试以避免退出全屏`, 'info');
+            addLog('Debug', `Monitor ${monitorIndex + 1} is currently in fullscreen, pausing debug to avoid exiting fullscreen`, 'info');
             return;
         }
-        
+
         const originalSrc = img.src;
         img.style.opacity = '0.5';
 
@@ -579,61 +579,61 @@ async function debugMonitor(monitorIndex) {
             newImage.onload = function () {
                 img.src = this.src;
                 img.style.opacity = '1';
-                addLog('调试', `显示器 ${monitorIndex + 1} 调试成功`, 'success');
+                addLog('Debug', `Monitor ${monitorIndex + 1} debug successful`, 'success');
             };
             newImage.onerror = function () {
                 img.src = originalSrc;
                 img.style.opacity = '1';
-                addLog('调试', `显示器 ${monitorIndex + 1} 调试失败: 图片加载失败`, 'error');
+                addLog('Debug', `Monitor ${monitorIndex + 1} debug failed: Image load failed`, 'error');
             };
             newImage.src = 'data:image/png;base64,' + data.image;
         } else if (data.error) {
             img.src = originalSrc;
             img.style.opacity = '1';
-            addLog('调试', `显示器 ${monitorIndex + 1} 调试失败: ${data.error}`, 'error');
+            addLog('Debug', `Monitor ${monitorIndex + 1} debug failed: ${data.error}`, 'error');
         }
     } catch (error) {
-        addLog('调试', `显示器 ${monitorIndex + 1} 调试失败: ${error.message}`, 'error');
+        addLog('Debug', `Monitor ${monitorIndex + 1} debug failed: ${error.message}`, 'error');
     }
 }
 
-// 强制重新检测显示器
+// Force redetect monitors
 async function forceRedetect() {
     try {
-        addLog('显示器', '正在强制重新检测显示器...', 'info');
+        addLog('Monitor', 'Force redetecting monitors...', 'info');
         const serverUrl = getServerBaseUrl();
         const response = await fetch(`${serverUrl}/force-redetect`);
         const data = await response.json();
 
         if (data.message) {
-            addLog('显示器', data.message, 'success');
+            addLog('Monitor', data.message, 'success');
 
-            // 显示重新检测的结果
+            // Display redetection results
             if (data.monitors) {
-                let redetectInfo = `重新检测结果:\n`;
+                let redetectInfo = `Redetection results:\n`;
                 data.monitors.forEach(monitor => {
-                    redetectInfo += `  显示器 ${monitor.index + 1}${monitor.primary ? ' (主显示器)' : ''}: ${monitor.width}x${monitor.height} 位置(${monitor.left},${monitor.top})\n`;
+                    redetectInfo += `  Monitor ${monitor.index + 1}${monitor.primary ? ' (Primary)' : ''}: ${monitor.width}x${monitor.height} Position(${monitor.left},${monitor.top})\n`;
                 });
-                addLog('显示器', redetectInfo, 'info');
+                addLog('Monitor', redetectInfo, 'info');
             }
 
-            // 刷新所有显示器截图
+            // Refresh all monitor screenshots
             setTimeout(() => {
                 refreshAllMonitors();
             }, 1000);
         } else if (data.error) {
-            addLog('显示器', '显示器重新检测失败: ' + data.error, 'error');
+            addLog('Monitor', 'Monitor redetection failed: ' + data.error, 'error');
         }
     } catch (error) {
-        addLog('显示器', '强制重新检测失败: ' + error.message, 'error');
+        addLog('Monitor', 'Force redetection failed: ' + error.message, 'error');
     }
 }
 
-// 切换显示器图片的收起/展开状态
+// Toggle monitor image collapse/expand state
 function toggleMonitorImage(monitorIndex) {
     const monitorDiv = document.getElementById(`monitor-${monitorIndex}`);
     if (!monitorDiv) {
-        addLog('截图', `找不到显示器 ${monitorIndex + 1} 的容器`, 'error');
+        addLog('Screenshot', `Container for monitor ${monitorIndex + 1} not found`, 'error');
         return;
     }
 
@@ -641,44 +641,44 @@ function toggleMonitorImage(monitorIndex) {
     const toggleBtn = document.getElementById(`toggle-btn-${monitorIndex}`);
 
     if (!img || !toggleBtn) {
-        addLog('截图', `显示器 ${monitorIndex + 1} 的元素不完整`, 'error');
+        addLog('Screenshot', `Elements for monitor ${monitorIndex + 1} are incomplete`, 'error');
         return;
     }
 
-    // 检查当前状态
+    // Check current state
     const isCollapsed = collapsedMonitors.has(monitorIndex);
 
     if (isCollapsed) {
-        // 展开：显示图片
+        // Expand: show image
         collapsedMonitors.delete(monitorIndex);
         monitorDiv.classList.remove('collapsed');
         img.style.display = 'block';
         img.classList.add('expanding');
 
-        // 使用requestAnimationFrame确保动画流畅
+        // Use requestAnimationFrame for smooth animation
         requestAnimationFrame(() => {
             img.classList.remove('expanding');
             img.classList.add('expanded');
             img.style.opacity = '1';
         });
 
-        toggleBtn.innerHTML = '📷 收起';
+        toggleBtn.innerHTML = '📷 Collapse';
         toggleBtn.classList.remove('collapsed');
         toggleBtn.dataset.expanded = "true";
-        addLog('截图', `展开显示器 ${monitorIndex + 1}，将重新获取截图`, 'info');
-        
-        // 同步到后端
+        addLog('Screenshot', `Expanded monitor ${monitorIndex + 1}, will reload screenshot`, 'info');
+
+        // Sync to backend
         syncCollapsedMonitorsToBackend();
-        
-        // 检查是否从全部收起状态恢复，如果是则刷新显示
+
+        // Check if recovering from fully collapsed state, refresh display if so
         if (areAllMonitorsCollapsed() === false && totalMonitorCount > 0) {
-            // 从全部收起状态恢复，需要重新获取截图
+            // Recovering from fully collapsed state, need to reload screenshots
             setTimeout(() => {
                 refreshAllMonitors();
             }, 100);
         }
     } else {
-        // 收起：隐藏图片但保持显示器元素可见
+        // Collapse: hide image but keep monitor element visible
         collapsedMonitors.add(monitorIndex);
         img.style.opacity = '0';
         img.classList.remove('expanded');
@@ -689,21 +689,21 @@ function toggleMonitorImage(monitorIndex) {
             monitorDiv.classList.add('collapsed');
         }, 300);
 
-        toggleBtn.innerHTML = '👁️ 展开';
+        toggleBtn.innerHTML = '👁️ Expand';
         toggleBtn.classList.add('collapsed');
         toggleBtn.dataset.expanded = "false";
-        addLog('截图', `收起显示器 ${monitorIndex + 1}，将停止获取截图`, 'info');
-        
-        // 同步到后端
+        addLog('Screenshot', `Collapsed monitor ${monitorIndex + 1}, will stop retrieving screenshots`, 'info');
+
+        // Sync to backend
         syncCollapsedMonitorsToBackend();
-        
-        // 检查是否所有显示器都被收起
+
+        // Check if all monitors are collapsed
         if (areAllMonitorsCollapsed()) {
-            addLog('截图', '所有显示器都已收起，将停止自动刷新', 'info');
-            // 显示占位符
+            addLog('Screenshot', 'All monitors collapsed, will stop auto-refresh', 'info');
+            // Show placeholder
             setTimeout(() => {
                 displayCollapsedMonitorsPlaceholder();
             }, 300);
         }
     }
-} 
+}
