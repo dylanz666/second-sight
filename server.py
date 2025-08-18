@@ -34,6 +34,7 @@ import win32api
 import win32con
 import win32gui
 import win32ui
+import re
 
 APP_VERSION = "1.0.0"
 # GitHub Gist API URL to request
@@ -1218,7 +1219,7 @@ async def get_system_info():
     try:
         system_info = system_monitor.get_system_info()
 
-        # 获取更详细的系统信息
+        # Get memory, CPU, and disk usage
         memory = psutil.virtual_memory()
         cpu_count = psutil.cpu_count()
         disk = psutil.disk_usage("/")
@@ -1739,12 +1740,11 @@ async def upload_multiple_files(
 
 @app.get("/files")
 async def list_uploaded_files(folder: str = None):
-    """获取已上传文件列表"""
     start_time = time.time()
     timeout_seconds = 15
 
     try:
-        # 使用统一的路径处理逻辑
+        # Use the unified path handling logic
         list_dir = get_upload_dir(folder)
         if not os.path.exists(list_dir):
             return JSONResponse(
@@ -1759,9 +1759,8 @@ async def list_uploaded_files(folder: str = None):
         files = []
         if os.path.exists(list_dir):
             for filename in os.listdir(list_dir):
-                # 检查超时
                 if time.time() - start_time > timeout_seconds:
-                    raise HTTPException(status_code=408, detail="请求超时")
+                    raise HTTPException(status_code=408, detail="Timeout while listing files")
 
                 file_path = os.path.join(list_dir, filename)
                 if os.path.isfile(file_path):
@@ -1777,7 +1776,7 @@ async def list_uploaded_files(folder: str = None):
                         }
                     )
 
-        # 按上传时间倒序排列
+        # Order files by upload time in descending order
         files.sort(key=lambda x: x["upload_time"], reverse=True)
 
         return JSONResponse(
@@ -1790,34 +1789,34 @@ async def list_uploaded_files(folder: str = None):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取文件列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
 
 
 @app.get("/files/{filename}")
 async def download_uploaded_file(filename: str, folder: str = None):
-    """下载上传的文件"""
+    """Download a specific uploaded file"""
     try:
-        # 使用统一的路径处理逻辑
+        # Use the unified path handling logic
         file_dir = get_upload_dir(folder)
 
         file_path = os.path.join(file_dir, filename)
 
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="文件不存在")
+            raise HTTPException(status_code=404, detail="The file is not found")
 
-        # 安全检查：确保文件路径是有效的
+        # Security check: ensure the file path is valid
         try:
-            # 验证路径是否在允许的范围内
+            # Validate if the file path is within the allowed directory
             abs_file_path = os.path.abspath(file_path)
             abs_dir_path = os.path.abspath(file_dir)
 
-            # 确保文件路径在目录路径内（防止路径遍历攻击）
+            # Ensure the file path is within the directory path (prevent path traversal attacks)
             if not abs_file_path.startswith(abs_dir_path):
-                raise HTTPException(status_code=400, detail="无效的文件路径")
+                raise HTTPException(status_code=400, detail="Invalid file path")
         except Exception:
-            raise HTTPException(status_code=400, detail="无效的文件路径")
+            raise HTTPException(status_code=400, detail="Invalid file path")
 
-        # 返回文件流
+        # Return the file as a streaming response
         return StreamingResponse(
             open(file_path, "rb"),
             media_type="application/octet-stream",
@@ -1827,80 +1826,78 @@ async def download_uploaded_file(filename: str, folder: str = None):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
 
 
 @app.delete("/files/{filename}")
 async def delete_uploaded_file(filename: str, folder: str = None):
-    """删除上传的文件"""
     try:
-        # 使用统一的路径处理逻辑
+        # Use the unified path handling logic
         file_dir = get_upload_dir(folder)
 
         file_path = os.path.join(file_dir, filename)
 
-        # 检查文件是否存在
+        # Validate if the file exists
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="文件不存在")
+            raise HTTPException(status_code=404, detail="The file is not found")
 
-        # 安全检查：确保文件路径是有效的
+        # Security check: ensure the file path is valid
         try:
-            # 验证路径是否在允许的范围内
+            # Validate if the file path is within the allowed directory
             abs_file_path = os.path.abspath(file_path)
             abs_dir_path = os.path.abspath(file_dir)
 
-            # 确保文件路径在目录路径内（防止路径遍历攻击）
+            # Ensure the file path is within the directory path (prevent path traversal attacks)
             if not abs_file_path.startswith(abs_dir_path):
-                raise HTTPException(status_code=400, detail="无效的文件路径")
+                raise HTTPException(status_code=400, detail="Invalid file path")
         except Exception:
-            raise HTTPException(status_code=400, detail="无效的文件路径")
+            raise HTTPException(status_code=400, detail="Invalid file path")
 
         # 删除文件
         os.remove(file_path)
 
-        return JSONResponse({"message": "文件删除成功", "filename": filename})
+        return JSONResponse({"message": "The file is deleted", "filename": filename})
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件删除失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
 
 
 @app.delete("/delete_folder")
 async def delete_folder(folder_data: dict):
-    """删除文件夹"""
     try:
         import shutil
 
         folder_path = folder_data.get("folder_path")
         if not folder_path:
-            raise HTTPException(status_code=400, detail="缺少文件夹路径参数")
+            raise HTTPException(status_code=400, detail="Insufficient folder path provided")
 
-        # 使用统一的路径处理逻辑
+        # Use the unified path handling logic
         target_dir = get_upload_dir(folder_path)
 
-        # 检查文件夹是否存在
+        # Validate if the target directory exists
         if not os.path.exists(target_dir):
-            raise HTTPException(status_code=404, detail="文件夹不存在")
+            raise HTTPException(status_code=404, detail="The folder does not exist")
 
         if not os.path.isdir(target_dir):
-            raise HTTPException(status_code=400, detail="指定路径不是文件夹")
+            raise HTTPException(status_code=400, detail="The specified path is not a folder")
 
-        # 安全检查：确保文件夹路径是有效的
+        # Security check: ensure the folder path is valid
         try:
-            # 验证路径是否在允许的范围内
+            # Validate if the folder path is within the allowed directory
             abs_target_dir = os.path.abspath(target_dir)
 
-            # 对于Downloads子目录，确保在Downloads目录内
+            # Ensure the folder path is within the Downloads directory
             if not folder_path.startswith("/") and ":" not in folder_path:
-                # Downloads子目录
+                # Subdirectory under Downloads
                 abs_downloads_dir = os.path.abspath(DEFAULT_UPLOAD_DIR)
                 if not abs_target_dir.startswith(abs_downloads_dir):
                     raise HTTPException(
-                        status_code=403, detail="不能删除Downloads目录外的文件夹"
+                        status_code=403, detail="Can't delete folders that out side of Downloads directory"
                     )
             else:
-                # 系统路径，进行额外的安全检查
+                # Security check for system critical directories
                 critical_paths = [
                     "C:\\",
                     "D:\\",
@@ -1918,49 +1915,46 @@ async def delete_folder(folder_data: dict):
                         critical + os.sep
                     ):
                         raise HTTPException(
-                            status_code=403, detail="不能删除系统关键目录"
+                            status_code=403, detail="Can't delete system critical directories"
                         )
         except HTTPException:
             raise
         except Exception:
-            raise HTTPException(status_code=400, detail="无效的文件夹路径")
+            raise HTTPException(status_code=400, detail="Invalid folder path")
 
-        # 删除文件夹及其所有内容
+        # Delete the folder and all its contents
         shutil.rmtree(target_dir)
 
-        return JSONResponse({"message": "文件夹删除成功", "folder_path": folder_path})
+        return JSONResponse({"message": "Successfully deleted the folder", "folder_path": folder_path})
 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件夹删除失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete folder: {str(e)}")
 
 
 @app.post("/create_folder")
 async def create_folder(folder_data: dict):
-    """创建新文件夹"""
     try:
         folder_name = folder_data.get("folder_name", "").strip()
         parent_path = folder_data.get("parent_path", "")
         if not folder_name:
-            raise HTTPException(status_code=400, detail="文件夹名称不能为空")
+            raise HTTPException(status_code=400, detail="Folder name is required")
 
         # 检查文件夹名称是否包含非法字符
-        import re
-
         invalid_chars = r'[<>:"/\\|?*]'
         if re.search(invalid_chars, folder_name):
-            raise HTTPException(status_code=400, detail="文件夹名称包含非法字符")
+            raise HTTPException(status_code=400, detail="Folder name contains invalid characters")
 
         # 构建完整路径
         if parent_path:
-            # 检查是否是系统路径
+            # Validate if parent_path is absolute or starts with a drive letter
             if parent_path.startswith("/") or re.match(r"^[A-Za-z]:\\", parent_path):
-                # 系统路径
+                # System path, ensure it's a valid directory
                 full_path = os.path.join(parent_path, folder_name)
-                # 安全检查：确保路径在允许的范围内
+                # Security check for system critical directories
                 if os.name == "nt":  # Windows
-                    # 检查是否在系统关键目录之外
+                    # Validate if the path is within the allowed directories
                     system_dirs = [
                         "C:\\Windows",
                         "C:\\System32",
@@ -1970,7 +1964,7 @@ async def create_folder(folder_data: dict):
                     for sys_dir in system_dirs:
                         if full_path.startswith(sys_dir):
                             raise HTTPException(
-                                status_code=403, detail="不能在系统目录中创建文件夹"
+                                status_code=403, detail="Cannot create folders in system directories"
                             )
                 else:  # Linux/Mac
                     forbidden_paths = [
@@ -1988,10 +1982,10 @@ async def create_folder(folder_data: dict):
                                 status_code=403, detail="Cannot create folders in system directories"
                             )
             else:
-                # Downloads路径
+                # Downloads directory
                 full_path = os.path.join(
                     DEFAULT_UPLOAD_DIR, parent_path, folder_name)
-                # 确保路径在Downloads目录内
+                # Ensure the path is within the Downloads directory
                 if not os.path.abspath(full_path).startswith(
                     os.path.abspath(DEFAULT_UPLOAD_DIR)
                 ):
@@ -2167,8 +2161,6 @@ async def list_system_directories(path: str = ""):
                     pass
 
                 # 处理Windows路径格式问题 - 支持所有盘符
-                import re
-
                 # 匹配盘符模式：如 "C:", "D:", "E:" 等
                 drive_pattern = re.match(r"^([A-Za-z]:)(.+)$", path)
                 if drive_pattern:
