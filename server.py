@@ -2142,16 +2142,16 @@ async def list_available_directories(path: str = ""):
 
 @app.get("/system-directories")
 async def list_system_directories(path: str = ""):
-    """浏览系统根目录下的文件系统"""
+    """Browse the file system under the root directory"""
     start_time = time.time()
     timeout_seconds = 10
 
     try:
-        # 构建目标路径
+        # Build target path
         if path:
-            # 处理Windows路径的特殊情况
+            # Handle special cases for Windows paths
             if os.name == "nt":
-                # 首先进行URL解码
+                # First URL decode
                 import urllib.parse
 
                 try:
@@ -2160,30 +2160,30 @@ async def list_system_directories(path: str = ""):
                 except Exception as e:
                     pass
 
-                # 处理Windows路径格式问题 - 支持所有盘符
-                # 匹配盘符模式：如 "C:", "D:", "E:" 等
+                # Handle Windows path format issues - support all drives
+                # Match drive letter pattern: e.g., "C:", "D:", "E:", etc.
                 drive_pattern = re.match(r"^([A-Za-z]:)(.+)$", path)
                 if drive_pattern:
                     drive_letter = drive_pattern.group(1)
                     remaining_path = drive_pattern.group(2)
-                    # 如果盘符后没有反斜杠，添加反斜杠
+                    # If there is no backslash after the drive letter, add a backslash
                     if not remaining_path.startswith("\\"):
                         path = drive_letter + "\\" + remaining_path
 
-                # 确保路径中的反斜杠是正确的 - 支持所有盘符
+                # Ensure backslashes in the path are correct - support all drives
                 if re.match(r"^[A-Za-z]:\\", path):
-                    # 替换所有正斜杠为反斜杠（如果存在）
+                    # Replace all forward slashes with backslashes (if any)
                     path = path.replace("/", "\\")
 
-            # 确保路径是绝对路径且安全
+            # Ensure the path is an absolute path and safe
             if os.path.isabs(path):
                 target_path = path
             else:
                 target_path = os.path.abspath(path)
         else:
-            # 根目录 - 在Windows上列出所有可用盘符
+            # Root directory - list all available drives on Windows
             if os.name == "nt":
-                # 获取所有可用盘符
+                # Get all available drives
                 import string
 
                 available_drives = []
@@ -2193,18 +2193,18 @@ async def list_system_directories(path: str = ""):
                         available_drives.append(drive_path)
 
                 if available_drives:
-                    # 如果有可用盘符，返回盘符列表
+                    # If there are available drives, return the list of drives
                     items = []
                     timeout_occurred = False
 
                     for drive in available_drives:
-                        # 检查超时
+                        # Check for timeout
                         if time.time() - start_time > timeout_seconds:
                             timeout_occurred = True
                             break
 
                         try:
-                            # 获取盘符的卷标（如果可用）
+                            # Get the volume label of the drive (if available)
                             import subprocess
 
                             try:
@@ -2222,7 +2222,7 @@ async def list_system_directories(path: str = ""):
                             except:
                                 volume_label = ""
 
-                            # 计算该盘符下的文件夹数量，带超时处理
+                            # Count the number of folders under the drive, with timeout handling
                             try:
                                 folder_count = len(
                                     [
@@ -2234,8 +2234,8 @@ async def list_system_directories(path: str = ""):
                             except PermissionError:
                                 folder_count = 0
                             except Exception as e:
-                                # 如果计算文件夹数量时出错（可能是超时或其他问题），返回特殊值
-                                folder_count = -1  # 使用-1表示超时或错误
+                                # If an error occurs while counting folders (timeout or other), return special value
+                                folder_count = -1  # Use -1 to indicate timeout or error
 
                             items.append(
                                 {
@@ -2247,8 +2247,8 @@ async def list_system_directories(path: str = ""):
                                 }
                             )
                         except Exception as e:
-                            # 如果处理某个盘符时出错，跳过该盘符，继续处理其他盘符
-                            print(f"处理盘符 {drive} 时出错: {e}")
+                            # If an error occurs while processing a drive, skip that drive and continue with others
+                            print(f"Error processing drive {drive}: {e}")
                             continue
 
                     response_data = {
@@ -2260,22 +2260,22 @@ async def list_system_directories(path: str = ""):
                         "can_go_up": False,
                     }
 
-                    # 如果发生了超时，添加超时信息
+                    # If timeout occurred, add timeout info
                     if timeout_occurred:
                         response_data["partial_results"] = True
                         response_data["timeout_message"] = (
-                            "部分盘符因超时未能加载，已显示可访问的盘符"
+                            "Some drives could not be loaded due to timeout, only accessible drives are shown"
                         )
 
                     return JSONResponse(response_data)
                 else:
-                    # 如果没有可用盘符，使用C盘作为默认
+                    # If there are no available drives, use C: as default
                     target_path = "C:\\"
             else:
                 target_path = "/"
 
-        # 安全检查：防止访问系统关键目录（仅在非Windows系统上）
-        if os.name != "nt":  # 非Windows系统
+        # Safety check: prevent access to critical system directories (only on non-Windows systems)
+        if os.name != "nt":  # Non-Windows systems
             forbidden_paths = [
                 os.path.expanduser("~/.ssh"),
                 "/etc/passwd",
@@ -2287,32 +2287,32 @@ async def list_system_directories(path: str = ""):
 
             for forbidden in forbidden_paths:
                 if target_path.startswith(forbidden):
-                    raise HTTPException(status_code=403, detail="访问被拒绝")
+                    raise HTTPException(status_code=403, detail="Access denied")
 
         if not os.path.exists(target_path):
-            raise HTTPException(status_code=404, detail="路径不存在")
+            raise HTTPException(status_code=404, detail="Path does not exist")
 
         if not os.path.isdir(target_path):
-            raise HTTPException(status_code=400, detail="指定路径不是目录")
+            raise HTTPException(status_code=400, detail="Specified path is not a directory")
 
-        # 获取当前路径
+        # Get current path
         current_path = target_path
 
-        # 获取父目录路径
+        # Get parent directory path
         parent_path = ""
         if current_path != "/" and not (
             os.name == "nt" and re.match(r"^[A-Za-z]:\\$", current_path)
         ):
             parent_dir = os.path.dirname(current_path)
-            if parent_dir == current_path:  # 已经是根目录
+            if parent_dir == current_path:  # Already at root directory
                 parent_path = ""
             else:
                 parent_path = parent_dir
-                # 修复Windows路径问题：确保盘符后有反斜杠
+                # Fix Windows path issue: ensure backslash after drive letter
                 if os.name == "nt" and re.match(r"^[A-Za-z]:$", parent_path):
                     parent_path += "\\"
 
-        # 获取目录列表
+        # Get directory list
         try:
             items = []
             timeout_occurred = False
@@ -2320,13 +2320,13 @@ async def list_system_directories(path: str = ""):
             for item in os.listdir(current_path):
                 item_path = os.path.join(current_path, item)
 
-                # 检查超时
+                # Check for timeout
                 if time.time() - start_time > timeout_seconds:
                     timeout_occurred = True
                     break
 
                 if os.path.isdir(item_path):
-                    # 计算文件夹数量，带超时处理
+                    # Count folders, with timeout handling
                     try:
                         folder_count = len(
                             [
@@ -2338,8 +2338,8 @@ async def list_system_directories(path: str = ""):
                     except PermissionError:
                         folder_count = 0
                     except Exception as e:
-                        # 如果计算文件夹数量时出错（可能是超时或其他问题），返回特殊值
-                        folder_count = -1  # 使用-1表示超时或错误
+                        # If an error occurs while counting folders (timeout or other), return special value
+                        folder_count = -1  # Use -1 to indicate timeout or error
 
                     items.append(
                         {
@@ -2351,9 +2351,9 @@ async def list_system_directories(path: str = ""):
                         }
                     )
         except PermissionError:
-            raise HTTPException(status_code=403, detail="没有权限访问此目录")
+            raise HTTPException(status_code=403, detail="No permission to access this directory")
 
-        # 按名称排序
+        # Sort by name
         items.sort(key=lambda x: x["name"].lower())
 
         response_data = {
@@ -2365,11 +2365,11 @@ async def list_system_directories(path: str = ""):
             "can_go_up": parent_path != "",
         }
 
-        # 如果发生了超时，添加超时信息
+        # If timeout occurred, add timeout info
         if timeout_occurred:
             response_data["partial_results"] = True
             response_data["timeout_message"] = (
-                "部分目录因超时未能加载，已显示可访问的目录"
+                "Some directories could not be loaded due to timeout, only accessible directories are shown"
             )
 
         return JSONResponse(response_data)
@@ -2377,19 +2377,19 @@ async def list_system_directories(path: str = ""):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取系统目录列表失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get system directory list: {str(e)}")
 
 
-# ==================== 远程键鼠控制API ====================
+# ==================== Remote Mouse and Keyboard Control API ====================
 
 
 @app.post("/remote/click")
 async def remote_click(data: dict):
-    """远程鼠标点击"""
+    """Remote mouse click"""
     try:
-        # 验证输入数据
+        # Validate input data
         if not isinstance(data, dict):
-            return JSONResponse({"success": False, "message": "无效的请求数据格式"})
+            return JSONResponse({"success": False, "message": "Invalid request data format"})
 
         x = data.get("x")
         y = data.get("y")
@@ -2398,59 +2398,59 @@ async def remote_click(data: dict):
         monitor_index = data.get("monitor_index", 0)
         use_percentage = data.get("use_percentage", False)
 
-        coord_type = "百分比" if use_percentage else "像素"
+        coord_type = "percentage" if use_percentage else "pixels"
         print(
-            f"收到远程点击请求: {coord_type} x={x}, y={y}, monitor_index={monitor_index}"
+            f"Received remote click request: {coord_type} x={x}, y={y}, monitor_index={monitor_index}"
         )
 
         if x is None or y is None:
-            return JSONResponse({"success": False, "message": "缺少坐标参数"})
+            return JSONResponse({"success": False, "message": "Missing coordinate parameters"})
 
-        # 验证坐标类型
+        # Validate coordinate types
         try:
             x = float(x)
             y = float(y)
         except (ValueError, TypeError):
-            return JSONResponse({"success": False, "message": "坐标参数必须是数字"})
+            return JSONResponse({"success": False, "message": "Coordinate parameters must be numbers"})
 
-        # 验证显示器索引
+        # Validate monitor index
         if not hasattr(ui_generator, "monitors") or not ui_generator.monitors:
-            print("警告: 显示器信息未初始化，尝试更新...")
+            print("Warning: Monitor information not initialized, attempting to update...")
             try:
                 ui_generator.update_monitor_info()
             except Exception as e:
-                print(f"更新显示器信息失败: {e}")
+                print(f"Failed to update monitor information: {e}")
                 return JSONResponse(
-                    {"success": False, "message": "显示器信息初始化失败"}
+                    {"success": False, "message": "Failed to initialize monitor information"}
                 )
 
-        # 坐标转换：从截图坐标转换为实际屏幕坐标
+        # Coordinate conversion: from screenshot coordinates to actual screen coordinates
         try:
             actual_x, actual_y = convert_screenshot_coords_to_screen(
                 x, y, monitor_index, use_percentage
             )
-            print(f"坐标转换: ({x}, {y}) -> ({actual_x}, {actual_y})")
+            print(f"Coordinate conversion: ({x}, {y}) -> ({actual_x}, {actual_y})")
         except Exception as e:
-            print(f"坐标转换失败: {e}")
+            print(f"Coordinate conversion failed: {e}")
             return JSONResponse(
-                {"success": False, "message": f"坐标转换失败: {str(e)}"}
+                {"success": False, "message": f"Coordinate conversion failed: {str(e)}"}
             )
 
-        # 执行点击操作
+        # Execute click operation
         try:
             result = remote_controller.click(
                 actual_x, actual_y, button, clicks)
-            print(f"点击操作结果: {result}")
+            print(f"Click operation result: {result}")
             return JSONResponse(result)
         except Exception as e:
-            print(f"pyautogui点击操作失败: {e}")
+            print(f"pyautogui click operation failed: {e}")
             return JSONResponse(
-                {"success": False, "message": f"点击操作执行失败: {str(e)}"}
+                {"success": False, "message": f"Click operation execution failed: {str(e)}"}
             )
 
     except Exception as e:
-        error_msg = f"点击操作失败: {str(e)}"
-        print(f"远程点击异常: {error_msg}")
+        error_msg = f"Click operation failed: {str(e)}"
+        print(f"Remote click exception: {error_msg}")
         import traceback
 
         traceback.print_exc()
@@ -2459,7 +2459,7 @@ async def remote_click(data: dict):
 
 @app.post("/remote/double-click")
 async def remote_double_click(data: dict):
-    """远程鼠标双击"""
+    """Remote mouse double-click"""
     try:
         x = data.get("x")
         y = data.get("y")
@@ -2468,38 +2468,38 @@ async def remote_double_click(data: dict):
         use_percentage = data.get("use_percentage", False)
 
         if x is None or y is None:
-            return JSONResponse({"success": False, "message": "缺少坐标参数"})
+            return JSONResponse({"success": False, "message": "Missing coordinate parameters"})
 
-        # 验证坐标类型
+        # Validate coordinate types
         try:
             x = float(x)
             y = float(y)
         except (ValueError, TypeError):
-            return JSONResponse({"success": False, "message": "坐标参数必须是数字"})
+            return JSONResponse({"success": False, "message": "Coordinate parameters must be numbers"})
 
-        # 坐标转换
+        # Coordinate conversion
         try:
             actual_x, actual_y = convert_screenshot_coords_to_screen(
                 x, y, monitor_index, use_percentage
             )
         except Exception as e:
             return JSONResponse(
-                {"success": False, "message": f"坐标转换失败: {str(e)}"}
+                {"success": False, "message": f"Coordinate conversion failed: {str(e)}"}
             )
 
         result = remote_controller.double_click(actual_x, actual_y, button)
         return JSONResponse(result)
     except Exception as e:
-        return JSONResponse({"success": False, "message": f"双击操作失败: {str(e)}"})
+        return JSONResponse({"success": False, "message": f"Double-click operation failed: {str(e)}"})
 
 
 @app.post("/remote/right-click")
 async def remote_right_click(data: dict):
-    """远程鼠标右键点击"""
+    """Remote mouse right-click"""
     try:
-        # 验证输入数据
+        # Validate input data
         if not isinstance(data, dict):
-            return JSONResponse({"success": False, "message": "无效的请求数据格式"})
+            return JSONResponse({"success": False, "message": "Invalid request data format"})
 
         x = data.get("x")
         y = data.get("y")
@@ -2507,36 +2507,36 @@ async def remote_right_click(data: dict):
         use_percentage = data.get("use_percentage", False)
 
         if x is None or y is None:
-            return JSONResponse({"success": False, "message": "缺少坐标参数"})
+            return JSONResponse({"success": False, "message": "Missing coordinate parameters"})
 
-        # 验证坐标类型
+        # Validate coordinate types
         try:
             x = float(x)
             y = float(y)
         except (ValueError, TypeError):
-            return JSONResponse({"success": False, "message": "坐标参数必须是数字"})
+            return JSONResponse({"success": False, "message": "Coordinate parameters must be numbers"})
 
-        # 坐标转换
+        # Coordinate conversion
         try:
             actual_x, actual_y = convert_screenshot_coords_to_screen(
                 x, y, monitor_index, use_percentage
             )
         except Exception as e:
             return JSONResponse(
-                {"success": False, "message": f"坐标转换失败: {str(e)}"}
+                {"success": False, "message": f"Coordinate conversion failed: {str(e)}"}
             )
 
         result = remote_controller.right_click(actual_x, actual_y)
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse(
-            {"success": False, "message": f"右键点击操作失败: {str(e)}"}
+            {"success": False, "message": f"Right-click operation failed: {str(e)}"}
         )
 
 
 @app.post("/remote/drag")
 async def remote_drag(data: dict):
-    """远程鼠标拖拽"""
+    """Remote mouse drag"""
     try:
         start_x = data.get("start_x")
         start_y = data.get("start_y")
@@ -2547,9 +2547,9 @@ async def remote_drag(data: dict):
         use_percentage = data.get("use_percentage", False)
 
         if start_x is None or start_y is None or end_x is None or end_y is None:
-            raise HTTPException(status_code=400, detail="缺少坐标参数")
+            raise HTTPException(status_code=400, detail="Missing coordinate parameters")
 
-        # 坐标转换
+        # Coordinate conversion
         actual_start_x, actual_start_y = convert_screenshot_coords_to_screen(
             start_x, start_y, monitor_index, use_percentage
         )
@@ -2564,34 +2564,34 @@ async def remote_drag(data: dict):
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse({"success": False, "message": f"拖拽操作失败: {str(e)}"})
+        return JSONResponse({"success": False, "message": f"Drag operation failed: {str(e)}"})
 
 
 @app.post("/remote/type")
 async def remote_type(data: dict):
-    """远程文本输入"""
+    """Remote text input"""
     try:
         text = data.get("text", "")
         if not text:
-            raise HTTPException(status_code=400, detail="缺少文本参数")
+            raise HTTPException(status_code=400, detail="Missing text parameter")
 
         result = remote_controller.type_text(text)
         return JSONResponse(result)
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse({"success": False, "message": f"文本输入失败: {str(e)}"})
+        return JSONResponse({"success": False, "message": f"Text input failed: {str(e)}"})
 
 
 @app.post("/remote/press-key")
 async def remote_press_key(data: dict):
-    """远程按键"""
+    """Remote key press"""
     try:
         key = data.get("key")
         if not key:
-            raise HTTPException(status_code=400, detail="缺少按键参数")
+            raise HTTPException(status_code=400, detail="Missing key parameter")
 
-        # 支持方向键的别名
+        # Support aliases for arrow keys
         key_aliases = {
             "up": "up",
             "down": "down",
@@ -2610,28 +2610,28 @@ async def remote_press_key(data: dict):
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse({"success": False, "message": f"按键操作失败: {str(e)}"})
+        return JSONResponse({"success": False, "message": f"Key press operation failed: {str(e)}"})
 
 
 @app.post("/remote/hotkey")
 async def remote_hotkey(data: dict):
-    """远程组合键"""
+    """Remote hotkey"""
     try:
         keys = data.get("keys", [])
         if not keys:
-            raise HTTPException(status_code=400, detail="缺少组合键参数")
+            raise HTTPException(status_code=400, detail="Missing hotkey parameter")
 
         result = remote_controller.hotkey(*keys)
         return JSONResponse(result)
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse({"success": False, "message": f"组合键操作失败: {str(e)}"})
+        return JSONResponse({"success": False, "message": f"Hotkey operation failed: {str(e)}"})
 
 
 @app.post("/remote/scroll")
 async def remote_scroll(data: dict):
-    """远程鼠标滚轮"""
+    """Remote mouse scroll wheel"""
     try:
         x = data.get("x")
         y = data.get("y")
@@ -2640,141 +2640,141 @@ async def remote_scroll(data: dict):
         use_percentage = data.get("use_percentage", False)
 
         if x is None or y is None:
-            raise HTTPException(status_code=400, detail="缺少坐标参数")
+            raise HTTPException(status_code=400, detail="Missing coordinate parameters")
 
-        # 坐标转换
+        # Coordinate conversion
         actual_x, actual_y = convert_screenshot_coords_to_screen(
             x, y, monitor_index, use_percentage
         )
 
-        # 放大滚动幅度（如每次滚动乘以10，可根据实际需要调整倍数）
+        # Amplify scroll amount (e.g., multiply each scroll by 10, adjust as needed)
         amplified_clicks = int(clicks) * 10
 
-        # 先移动鼠标到指定位置，再滚动
+        # Move the mouse to the specified position before scrolling
         try:
             pyautogui.moveTo(actual_x, actual_y)
             pyautogui.scroll(amplified_clicks)
             result = {
                 "success": True,
-                "message": f"滚轮成功: ({actual_x}, {actual_y}) 滚动 {amplified_clicks}",
+                "message": f"Scroll successful: ({actual_x}, {actual_y}) scrolled {amplified_clicks}",
             }
         except Exception as e:
-            result = {"success": False, "message": f"滚轮失败: {str(e)}"}
+            result = {"success": False, "message": f"Scroll failed: {str(e)}"}
         return JSONResponse(result)
     except HTTPException:
         raise
     except Exception as e:
-        return JSONResponse({"success": False, "message": f"滚轮操作失败: {str(e)}"})
+        return JSONResponse({"success": False, "message": f"Scroll operation failed: {str(e)}"})
 
 
 @app.get("/remote/mouse-position")
 async def get_mouse_position():
-    """获取当前鼠标位置"""
+    """Get current mouse position"""
     try:
         result = remote_controller.get_mouse_position()
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse(
-            {"success": False, "message": f"获取鼠标位置失败: {str(e)}"}
+            {"success": False, "message": f"Failed to get mouse position: {str(e)}"}
         )
 
 
 def convert_screenshot_coords_to_screen(
     x: float, y: float, monitor_index: int = 0, use_percentage: bool = False
 ):
-    """将截图坐标转换为实际屏幕坐标"""
+    """Convert screenshot coordinates to actual screen coordinates"""
     try:
-        # 验证输入参数
+        # Validate input parameters
         if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
             raise ValueError(
-                f"坐标参数必须是数字，收到: x={type(x)}({x}), y={type(y)}({y})"
+                f"Coordinate parameters must be numbers, received: x={type(x)}({x}), y={type(y)}({y})"
             )
 
         if not isinstance(monitor_index, int) or monitor_index < 0:
-            raise ValueError(f"显示器索引必须是正整数，收到: {monitor_index}")
+            raise ValueError(f"Monitor index must be a positive integer, received: {monitor_index}")
 
-        # 获取显示器信息
+        # Get monitor information
         if not hasattr(ui_generator, "monitors"):
-            raise RuntimeError("ui_generator.monitors 属性不存在")
+            raise RuntimeError("ui_generator.monitors attribute does not exist")
 
         monitors = ui_generator.monitors
         if not monitors:
-            print("警告: 显示器列表为空，尝试更新显示器信息...")
+            print("Warning: Monitor list is empty, attempting to update monitor information...")
             try:
                 ui_generator.update_monitor_info()
                 monitors = ui_generator.monitors
                 if not monitors:
-                    raise RuntimeError("无法获取显示器信息")
+                    raise RuntimeError("Unable to retrieve monitor information")
             except Exception as e:
-                raise RuntimeError(f"更新显示器信息失败: {e}")
+                raise RuntimeError(f"Failed to update monitor information: {e}")
 
         if monitor_index >= len(monitors):
-            raise ValueError(f"显示器索引超出范围: {monitor_index} >= {len(monitors)}")
+            raise ValueError(f"Monitor index out of range: {monitor_index} >= {len(monitors)}")
 
         monitor = monitors[monitor_index]
         if not isinstance(monitor, dict):
-            raise ValueError(f"显示器信息格式错误: {type(monitor)}")
+            raise ValueError(f"Monitor information format error: {type(monitor)}")
 
-        # 验证显示器信息完整性
+        # Validate monitor information completeness
         required_keys = ["left", "top", "width", "height"]
         for key in required_keys:
             if key not in monitor or not isinstance(monitor[key], (int, float)):
-                raise ValueError(f"显示器信息缺少或无效的 {key}: {monitor.get(key)}")
+                raise ValueError(f"Monitor information missing or invalid {key}: {monitor.get(key)}")
 
         monitor_left = int(monitor["left"])
         monitor_top = int(monitor["top"])
         monitor_width = int(monitor["width"])
         monitor_height = int(monitor["height"])
 
-        # 验证显示器尺寸
+        # Validate monitor dimensions
         if monitor_width <= 0 or monitor_height <= 0:
-            raise ValueError(f"显示器尺寸无效: {monitor_width}x{monitor_height}")
+            raise ValueError(f"Invalid monitor dimensions: {monitor_width}x{monitor_height}")
 
         if use_percentage:
-            # 百分比坐标转换：直接使用百分比计算实际屏幕位置
+            # Percentage coordinate conversion: directly calculate actual screen position using percentage
             if not (0 <= x <= 100 and 0 <= y <= 100):
-                raise ValueError(f"百分比坐标超出范围: x={x}%, y={y}%")
+                raise ValueError(f"Percentage coordinates out of range: x={x}%, y={y}%")
 
             actual_x = int(monitor_left + (x / 100.0) * monitor_width)
             actual_y = int(monitor_top + (y / 100.0) * monitor_height)
             print(
-                f"百分比坐标转换: 显示器{monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, 百分比({x:.2f}%, {y:.2f}%) -> 实际({actual_x}, {actual_y})"
+                f"Percentage coordinate conversion: Monitor {monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, percentage({x:.2f}%, {y:.2f}%) -> actual({actual_x}, {actual_y})"
             )
         else:
-            # 像素坐标转换：考虑截图缩放
+            # Pixel coordinate conversion: consider screenshot scaling
             screenshot_width = monitor.get("screenshot_width", monitor_width)
             screenshot_height = monitor.get(
                 "screenshot_height", monitor_height)
 
-            # 验证截图尺寸
+            # Validate screenshot dimensions
             if screenshot_width <= 0 or screenshot_height <= 0:
                 screenshot_width = monitor_width
                 screenshot_height = monitor_height
 
-            # 计算缩放比例
+            # Calculate scaling factors
             scale_x = monitor_width / screenshot_width if screenshot_width > 0 else 1
             scale_y = monitor_height / screenshot_height if screenshot_height > 0 else 1
 
-            # 转换坐标
+            # Convert coordinates
             actual_x = int(monitor_left + x * scale_x)
             actual_y = int(monitor_top + y * scale_y)
             print(
-                f"像素坐标转换: 显示器{monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, 截图尺寸 {screenshot_width}x{screenshot_height}, 缩放比例 {scale_x:.2f}x{scale_y:.2f}, 像素({x}, {y}) -> 实际({actual_x}, {actual_y})"
+                f"Pixel coordinate conversion: Monitor {monitor_index} ({monitor_left},{monitor_top}) {monitor_width}x{monitor_height}, screenshot size {screenshot_width}x{screenshot_height}, scaling factors {scale_x:.2f}x{scale_y:.2f}, pixels({x}, {y}) -> actual({actual_x}, {actual_y})"
             )
 
-        # 验证转换后的坐标是否在合理范围内
+        # Validate that converted coordinates are within reasonable bounds
         if actual_x < 0 or actual_y < 0:
-            print(f"警告: 转换后的坐标为负值: ({actual_x}, {actual_y})")
+            print(f"Warning: Converted coordinates are negative: ({actual_x}, {actual_y})")
 
         return actual_x, actual_y
 
     except Exception as e:
-        print(f"坐标转换失败: {e}")
+        print(f"Coordinate conversion failed: {e}")
         import traceback
 
         traceback.print_exc()
-        # 转换失败时抛出异常，让调用者处理
-        raise RuntimeError(f"坐标转换失败: {str(e)}")
+        # Raise an exception on conversion failure for the caller to handle
+        raise RuntimeError(f"Coordinate conversion failed: {str(e)}")
 
 
 if __name__ == "__main__":
