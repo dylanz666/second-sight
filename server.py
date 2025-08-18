@@ -30,74 +30,81 @@ import requests
 from contextlib import asynccontextmanager
 import platform
 import socket
+import win32api
+import win32con
+import win32gui
+import win32ui
 
 APP_VERSION = "1.0.0"
-# 要请求的 GitHub Gist 接口地址
+# GitHub Gist API URL to request
 USE_GIST = ""
 GIST_URL = None
 GIST_HEADERS = None
-# 每5分钟检查一次 ip，请求的间隔时间（秒），2分钟 = 120秒
+# Check IP every 2 minutes, request interval in seconds (120 seconds = 2 minutes)
 REQUEST_INTERVAL = 120
 LOCAL_IP = None
 LOCAL_COMPUTER_NAME = platform.node()
 
 try:
     with open("gist_info.json", "r") as f:
-        # 读取 JSON 数据
+        # Read JSON data
         data = json.load(f)
         USE_GIST = data.get("use_gist")
         if USE_GIST.lower() == "true":
-            # 从 JSON 数据中提取 GIST_URL 和 token
+            # Extract GIST_URL and token from JSON data
             GIST_URL = data.get("gist_url")
             auth_token = data.get("token")
 
-            # 验证读取内容是否有效
+            # Validate the content read
             if not GIST_URL:
-                raise ValueError("gist_info.json中未找到有效的GIST URL（gist_url）")
+                raise ValueError(
+                    "No valid GIST URL (gist_url) found in gist_info.json")
             if not auth_token:
-                raise ValueError("gist_info.json中未找到有效的Authorization信息（token）")
+                raise ValueError(
+                    "No valid Authorization information (token) found in gist_info.json")
 
-            # 构建请求头
+            # Build request headers
             GIST_HEADERS = {
-                "Authorization": auth_token,  # 使用文件中读取的认证信息
+                "Authorization": auth_token,  # Use authentication info read from file
                 "Content-Type": "application/json",
             }
 except FileNotFoundError:
-    print("错误：未找到 gist_info.json 文件。")
+    print("Error: gist_info.json file not found.")
 except json.JSONDecodeError:
-    print("错误：gist_info.json 文件格式无效。")
+    print("Error: Invalid gist_info.json file format.")
 except Exception as e:
-    print(f"发生错误：{e}")
+    print(f"An error occurred: {e}")
 
 
 def fetch_gist_sync():
     try:
-        # 创建一个 socket 对象
+        # Create a socket object
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # 连接到一个公共 DNS 服务器（例如 Google 的 8.8.8.8）
+        # Connect to a public DNS server (e.g. Google's 8.8.8.8)
         s.connect(("8.8.8.8", 80))
-        # 获取本地 IP 地址
+        # Get local IP address
         LOCAL_IP = s.getsockname()[0]
-        print("本地 IP 地址:", LOCAL_IP)
+        print("Local IP address:", LOCAL_IP)
     finally:
         s.close()
 
-    """同步请求 GitHub Gist 接口（使用 requests）"""
+    """Synchronously request GitHub Gist API (using requests)"""
     try:
-        # 发送GET请求，设置15秒超时
+        # Send GET request with 15 second timeout
         response = requests.get(GIST_URL, headers=GIST_HEADERS, timeout=15)
         if response.status_code != 200:
-            print(f"获取 Gist 失败，状态码：{response.status_code}")
+            print(f"Failed to get Gist, status code: {response.status_code}")
             return
-        # 解析JSON响应（仅做演示，可根据需要处理内容）
+        # Parse JSON response (for demonstration, handle content as needed)
         content = response.json()
-        print(f"成功获取 Gist 内容，状态码：{response.status_code}")
+        print(
+            f"Successfully got Gist content, status code: {response.status_code}")
 
         devices_content = content.get("files", {}).get(
             "devices.json", {}).get("content", "{}")
         json_content = json.loads(devices_content)
 
-        # 更新电脑名、本地 IP 地址、时间戳到 gist 上-->类似心跳
+        # Update computer name, local IP address, timestamp to gist -> like heartbeat
         json_content[LOCAL_COMPUTER_NAME] = {
             "ip": LOCAL_IP,
             "timestamp": get_baidu_timestamp(),
@@ -109,72 +116,73 @@ def fetch_gist_sync():
                 }
             }
         }
-        print(f"更新 Gist 内容：{payload}")
+        print(f"Updating Gist content: {payload}")
         patch_response = requests.patch(
             url=GIST_URL, headers=GIST_HEADERS, json=payload
         )
         patch_response.raise_for_status()
-        print(f"成功更新 Gist 内容：{json_content}")
+        print(f"Successfully updated Gist content: {json_content}")
     except Exception as e:
-        print(f"请求发生错误：{str(e)}")
+        print(f"Request error occurred: {str(e)}")
         return False
 
 
 async def periodic_fetch():
-    """周期性执行同步请求的异步任务（通过线程转换避免阻塞）"""
+    """Asynchronous task for periodic synchronization request (using thread conversion to avoid blocking)"""
     while True:
-        # 将同步函数放入线程池执行，避免阻塞事件循环
+        # Execute synchronous function in thread pool to avoid blocking event loop
         await asyncio.to_thread(fetch_gist_sync)
-        # 等待指定的时间间隔
+        # Wait for specified time interval
         await asyncio.sleep(REQUEST_INTERVAL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """FastAPI的生命周期管理器，用于启动和停止后台任务"""
-    # 启动时创建并运行后台任务
+    """FastAPI lifecycle manager for starting and stopping background tasks"""
+    # Create and run background task on startup
     task = asyncio.create_task(periodic_fetch())
     yield
-    # 关闭时取消后台任务
+    # Cancel background task on shutdown
     task.cancel()
     await task
-    
+
+
 def get_baidu_timestamp():
-    """通过百度获取网络时间戳（秒级）"""
+    """Get network timestamp (seconds) from Baidu"""
     try:
-        # 发送HEAD请求（仅获取响应头，不下载内容）
+        # Send HEAD request (get response headers only, no content download)
         response = requests.head("https://www.baidu.com", timeout=10)
-        # 从响应头获取GMT时间字符串
+        # Get GMT time string from response header
         gmt_time_str = response.headers.get("Date")
         if not gmt_time_str:
             return None
 
-        # 解析GMT时间为时间戳（转换为Unix时间戳，强制为UTC）
+        # Parse GMT time to timestamp (convert to Unix timestamp, force UTC)
         gmt_time = datetime.strptime(gmt_time_str, "%a, %d %b %Y %H:%M:%S GMT")
-        gmt_time = gmt_time.replace(tzinfo=timezone.utc)  # 关键：指定为UTC
+        gmt_time = gmt_time.replace(tzinfo=timezone.utc)  # Key: specify as UTC
         return int(gmt_time.timestamp())
     except Exception as e:
-        print(f"获取失败: {e}")
+        print(f"Failed to get timestamp: {e}")
         return -1
 
 
-# 兼容使用 GIST 与否两种情况
+# Handle both cases: with and without GIST
 if USE_GIST.lower() != "true":
-    print("配置为不使用 Gist，同步任务跳过")
+    print("Configured to not use Gist, skipping sync task")
     app = FastAPI(title="Remote Viewer Server", version=APP_VERSION)
 else:
     if GIST_URL is None or GIST_HEADERS is None:
-        print("未配置 Gist URL 或 Authorization，无法启动周期性任务")
+        print("Gist URL or Authorization not configured, cannot start periodic task")
         app = FastAPI(title="Remote Viewer Server", version=APP_VERSION)
     else:
-        print("已配置 Gist URL 和 Authorization，启动周期性任务")
+        print("Gist URL and Authorization configured, starting periodic task")
         app = FastAPI(lifespan=lifespan,
                       title="Remote Viewer Server", version=APP_VERSION)
 
-# 配置静态文件服务
+# Configure static file service
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 添加CORS中间件
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -183,19 +191,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global exception handler
 
-# 全局异常处理器
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """全局异常处理器，确保所有异常都返回JSON格式"""
+    """Global exception handler, ensures all exceptions return JSON format"""
     import traceback
 
-    # 记录错误详情
-    error_msg = f"服务器内部错误: {str(exc)}"
-    print(f"全局异常处理器捕获到错误: {error_msg}")
+    # Log error details
+    error_msg = f"Internal server error: {str(exc)}"
+    print(f"Global exception handler caught error: {error_msg}")
     traceback.print_exc()
 
-    # 返回JSON格式的错误响应
+    # Return JSON error response
     return JSONResponse(
         status_code=500,
         content={
@@ -215,9 +224,9 @@ class NetworkMonitor:
         self.ping_latency = 0
 
     def check_network_status(self):
-        """检查网络连接状态，每2秒钟检查一次"""
+        """Check network connection status every 2 seconds"""
         try:
-            # 测试连接到Google DNS (8.8.8.8)
+            # Test connect to Google DNS (8.8.8.8)
             start_time = time.time()
             socket.create_connection(("8.8.8.8", 53), timeout=3)
             latency = (time.time() - start_time) * 2000  # 转换为毫秒
@@ -240,8 +249,8 @@ class NetworkMonitor:
             self.last_check_time = time.time()
 
     def get_network_info(self):
-        """获取网络状态信息"""
-        # 每30秒检查一次网络状态
+        """Get network status information"""
+        # Check network status every 30 seconds
         if self.last_check_time is None or time.time() - self.last_check_time > 30:
             self.check_network_status()
 
@@ -252,97 +261,97 @@ class NetworkMonitor:
         }
 
 
-# 键鼠控制器
+# Mouse and Keyboard Controller
 class RemoteController:
     def __init__(self):
-        # 禁用pyautogui的安全机制，允许远程控制
+        # Disable pyautogui's fail-safe mechanism to allow remote control
         pyautogui.FAILSAFE = False
-        pyautogui.PAUSE = 0.1  # 操作间隔
+        pyautogui.PAUSE = 0.1  # Operation interval
 
     def click(self, x: int, y: int, button: str = "left", clicks: int = 1):
-        """执行鼠标点击"""
+        """Execute mouse click"""
         try:
             pyautogui.click(x, y, clicks=clicks, button=button)
-            return {"success": True, "message": f"点击成功: ({x}, {y})"}
+            return {"success": True, "message": f"Click successful: ({x}, {y})"}
         except Exception as e:
-            return {"success": False, "message": f"点击失败: {str(e)}"}
+            return {"success": False, "message": f"Click failed: {str(e)}"}
 
     def double_click(self, x: int, y: int, button: str = "left"):
-        """执行鼠标双击"""
+        """Execute mouse double click"""
         try:
             pyautogui.doubleClick(x, y, button=button)
-            return {"success": True, "message": f"双击成功: ({x}, {y})"}
+            return {"success": True, "message": f"Double click successful: ({x}, {y})"}
         except Exception as e:
-            return {"success": False, "message": f"双击失败: {str(e)}"}
+            return {"success": False, "message": f"Double click failed: {str(e)}"}
 
     def right_click(self, x: int, y: int):
-        """执行鼠标右键点击"""
+        """Execute mouse right click"""
         try:
             pyautogui.rightClick(x, y)
-            return {"success": True, "message": f"右键点击成功: ({x}, {y})"}
+            return {"success": True, "message": f"Right click successful: ({x}, {y})"}
         except Exception as e:
-            return {"success": False, "message": f"右键点击失败: {str(e)}"}
+            return {"success": False, "message": f"Right click failed: {str(e)}"}
 
     def drag(
         self, start_x: int, start_y: int, end_x: int, end_y: int, duration: float = 0.5
     ):
-        """执行鼠标拖拽"""
+        """Execute mouse drag"""
         try:
-            # 移动到起始位置并按下鼠标
+            # Move to start position and press mouse button
             pyautogui.moveTo(start_x, start_y)
             pyautogui.mouseDown(button="left")
-            # 拖拽到结束位置
+            # Drag to end position
             pyautogui.moveTo(end_x, end_y, duration=duration)
             pyautogui.mouseUp(button="left")
             return {
                 "success": True,
-                "message": f"拖拽成功: ({start_x}, {start_y}) -> ({end_x}, {end_y})",
+                "message": f"Drag successful: ({start_x}, {start_y}) -> ({end_x}, {end_y})",
             }
         except Exception as e:
-            return {"success": False, "message": f"拖拽失败: {str(e)}"}
+            return {"success": False, "message": f"Drag failed: {str(e)}"}
 
     def type_text(self, text: str):
-        """输入文本"""
+        """Input text"""
         try:
             pyautogui.typewrite(text)
-            return {"success": True, "message": f"文本输入成功: {text}"}
+            return {"success": True, "message": f"Text input successful: {text}"}
         except Exception as e:
-            return {"success": False, "message": f"文本输入失败: {str(e)}"}
+            return {"success": False, "message": f"Text input failed: {str(e)}"}
 
     def press_key(self, key: str):
-        """按下单个按键"""
+        """Press single key"""
         try:
             pyautogui.press(key)
-            return {"success": True, "message": f"按键成功: {key}"}
+            return {"success": True, "message": f"Key press successful: {key}"}
         except Exception as e:
-            return {"success": False, "message": f"按键失败: {str(e)}"}
+            return {"success": False, "message": f"Key press failed: {str(e)}"}
 
     def hotkey(self, *keys):
-        """执行组合键"""
+        """Execute key combination"""
         try:
             pyautogui.hotkey(*keys)
-            return {"success": True, "message": f"组合键成功: {'+'.join(keys)}"}
+            return {"success": True, "message": f"Hotkey successful: {'+'.join(keys)}"}
         except Exception as e:
-            return {"success": False, "message": f"组合键失败: {str(e)}"}
+            return {"success": False, "message": f"Hotkey failed: {str(e)}"}
 
     def scroll(self, x: int, y: int, clicks: int):
-        """执行鼠标滚轮"""
+        """Execute mouse scroll"""
         try:
             pyautogui.scroll(clicks, x=x, y=y)
-            return {"success": True, "message": f"滚轮成功: ({x}, {y}) 滚动 {clicks}"}
+            return {"success": True, "message": f"Scroll successful: ({x}, {y}) scroll {clicks}"}
         except Exception as e:
-            return {"success": False, "message": f"滚轮失败: {str(e)}"}
+            return {"success": False, "message": f"Scroll failed: {str(e)}"}
 
     def get_mouse_position(self):
-        """获取当前鼠标位置"""
+        """Get current mouse position"""
         try:
             x, y = pyautogui.position()
             return {"success": True, "x": x, "y": y}
         except Exception as e:
-            return {"success": False, "message": f"获取鼠标位置失败: {str(e)}"}
+            return {"success": False, "message": f"Failed to get mouse position: {str(e)}"}
 
 
-# 系统资源监控器
+# System Resource Monitor
 class SystemMonitor:
     def __init__(self):
         self.last_check_time = None
@@ -351,31 +360,31 @@ class SystemMonitor:
         self.disk_usage = 0
 
     def check_system_resources(self):
-        """检查系统资源使用情况"""
+        """Check system resource usage"""
         try:
-            # 获取内存使用率
+            # Get memory usage percentage
             memory = psutil.virtual_memory()
             self.memory_usage = round(memory.percent, 1)
 
-            # 获取CPU使用率
+            # Get CPU usage percentage
             self.cpu_usage = round(psutil.cpu_percent(interval=1), 1)
 
-            # 获取磁盘使用率
+            # Get disk usage percentage
             disk = psutil.disk_usage("/")
             self.disk_usage = round((disk.used / disk.total) * 100, 1)
 
             self.last_check_time = time.time()
 
         except Exception as e:
-            print(f"获取系统资源信息失败: {e}")
+            print(f"Failed to get system resource info: {e}")
             self.memory_usage = 0
             self.cpu_usage = 0
             self.disk_usage = 0
             self.last_check_time = time.time()
 
     def get_system_info(self):
-        """获取系统资源信息"""
-        # 每5秒检查一次系统资源
+        """Get system resource information"""
+        # Check system resources every 5 seconds
         if self.last_check_time is None or time.time() - self.last_check_time > 5:
             self.check_system_resources()
 
@@ -387,7 +396,7 @@ class SystemMonitor:
         }
 
 
-# WebSocket连接管理器
+# WebSocket Connection Manager
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -402,26 +411,26 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         try:
-            if websocket.client_state.value <= 2:  # 连接仍然活跃
+            if websocket.client_state.value <= 2:  # Connection still active
                 await websocket.send_text(message)
         except Exception as e:
-            print(f"发送个人消息失败: {e}")
-            # 如果发送失败，从连接列表中移除
+            print(f"Failed to send personal message: {e}")
+            # Remove from connection list if sending fails
             self.disconnect(websocket)
 
     async def broadcast(self, message: str):
         disconnected = []
         for connection in self.active_connections:
             try:
-                if connection.client_state.value <= 2:  # 连接仍然活跃
+                if connection.client_state.value <= 2:  # Connection still active
                     await connection.send_text(message)
                 else:
                     disconnected.append(connection)
             except Exception as e:
-                print(f"广播消息失败: {e}")
+                print(f"Failed to broadcast message: {e}")
                 disconnected.append(connection)
 
-        # 移除断开的连接
+        # Remove disconnected connections
         for connection in disconnected:
             self.disconnect(connection)
 
@@ -432,53 +441,57 @@ system_monitor = SystemMonitor()
 remote_controller = RemoteController()
 
 
-# Windows桌面截图生成器
+# Windows Desktop Screenshot Generator
 class DesktopScreenshotGenerator:
     def __init__(self):
         self.counter = 0
         self.last_screenshot = None
         self.last_screenshot_time = None
         self.monitors = []
-        # 截图质量配置 - 优化后的设置
+        # Screenshot quality settings - optimized configuration
         self.quality_settings = {
-            "single_monitor": {"max_width": 1200, "max_height": 900},  # 降低默认尺寸
-            "desktop": {"max_width": 1600, "max_height": 1000},  # 降低默认尺寸
-            "png_quality": 60,  # 降低PNG质量以减小文件大小
-            "jpeg_quality": 60,  # 新增JPEG质量设置
-            "optimize": True,  # 启用PNG优化
-            "use_jpeg": True,  # 是否使用JPEG格式（更小但质量稍低）
-            "compression_level": 6,  # PNG压缩级别 (0-9, 9为最高压缩)
+            # Reduced default size
+            "single_monitor": {"max_width": 1200, "max_height": 900},
+            # Reduced default size
+            "desktop": {"max_width": 1600, "max_height": 1000},
+            "png_quality": 60,  # Reduced PNG quality to decrease file size
+            "jpeg_quality": 60,  # Added JPEG quality setting
+            "optimize": True,  # Enable PNG optimization
+            # Whether to use JPEG format (smaller but slightly lower quality)
+            "use_jpeg": True,
+            # PNG compression level (0-9, 9 is highest)
+            "compression_level": 6,
         }
-        # 内存缓存
+        # Memory cache
         self.image_cache = {}
-        self.cache_max_size = 3  # 最大缓存数量
-        self.cache_ttl = 1.5  # 缓存生存时间（秒）
+        self.cache_max_size = 3  # Maximum cache size
+        self.cache_ttl = 1.5  # Cache time to live (seconds)
         self.update_monitor_info()
 
     def _should_resize_image(self, img, max_width, max_height):
-        """检查是否需要调整图像大小"""
+        """Check if image needs to be resized"""
         return img.width > max_width or img.height > max_height
 
     def _resize_image_high_quality(self, img, max_width, max_height):
-        """高质量调整图像大小"""
-        # 如果图像已经小于等于目标尺寸，不进行缩放
+        """High quality image resizing"""
+        # Don't resize if image is already smaller than target size
         if not self._should_resize_image(img, max_width, max_height):
             return img
 
-        # 计算缩放比例
+        # Calculate scaling ratio
         ratio = min(max_width / img.width, max_height / img.height)
         new_width = int(img.width * ratio)
         new_height = int(img.height * ratio)
 
-        # 使用LANCZOS重采样进行高质量缩放
+        # Use LANCZOS resampling for high quality scaling
         return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
     def _get_cache_key(self, monitor_index, quality_settings):
-        """生成缓存键"""
+        """Generate cache key"""
         return f"monitor_{monitor_index}_{hash(str(quality_settings))}"
 
     def _clean_cache(self):
-        """清理过期缓存"""
+        """Clean expired cache entries"""
         current_time = time.time()
         expired_keys = []
 
@@ -490,53 +503,53 @@ class DesktopScreenshotGenerator:
             del self.image_cache[key]
 
     def _add_to_cache(self, key, image_data):
-        """添加到缓存"""
-        # 清理过期缓存
+        """Add to cache"""
+        # Clean expired cache
         self._clean_cache()
 
-        # 如果缓存已满，删除最旧的条目
+        # Remove oldest entry if cache is full
         if len(self.image_cache) >= self.cache_max_size:
             oldest_key = min(
                 self.image_cache.keys(), key=lambda k: self.image_cache[k][1]
             )
             del self.image_cache[oldest_key]
 
-        # 添加新条目
+        # Add new entry
         self.image_cache[key] = (image_data, time.time())
 
     def _get_from_cache(self, key):
-        """从缓存获取数据"""
+        """Get data from cache"""
         if key in self.image_cache:
             image_data, timestamp = self.image_cache[key]
             if time.time() - timestamp <= self.cache_ttl:
                 return image_data
             else:
-                # 删除过期缓存
+                # Delete expired cache
                 del self.image_cache[key]
         return None
 
     def _optimize_image_for_transmission(self, img, monitor_index):
-        """优化图像以减小传输大小"""
-        # 生成缓存键
+        """Optimize image to reduce transmission size"""
+        # Generate cache key
         cache_key = self._get_cache_key(monitor_index, self.quality_settings)
 
-        # 检查缓存
+        # Check cache
         cached_data = self._get_from_cache(cache_key)
         if cached_data:
             return cached_data
 
-        # 获取质量设置
+        # Get quality settings
         max_width = self.quality_settings["single_monitor"]["max_width"]
         max_height = self.quality_settings["single_monitor"]["max_height"]
 
-        # 调整图像大小
+        # Resize image
         img = self._resize_image_high_quality(img, max_width, max_height)
 
-        # 转换为base64
+        # Convert to base64
         buffer = io.BytesIO()
 
         if self.quality_settings["use_jpeg"]:
-            # 使用JPEG格式（更小）
+            # Use JPEG format (smaller)
             img.save(
                 buffer,
                 format="JPEG",
@@ -544,7 +557,7 @@ class DesktopScreenshotGenerator:
                 optimize=True,
             )
         else:
-            # 使用PNG格式
+            # Use PNG format
             img.save(
                 buffer,
                 format="PNG",
@@ -555,17 +568,13 @@ class DesktopScreenshotGenerator:
 
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
 
-        # 添加到缓存
+        # Add to cache
         self._add_to_cache(cache_key, img_base64)
 
         return img_base64
 
     def update_monitor_info(self):
-        """更新显示器信息"""
         try:
-            import win32api
-            import win32con
-
             self.monitors = []
 
             # 获取虚拟桌面信息
@@ -602,7 +611,7 @@ class DesktopScreenshotGenerator:
                             break
 
                         # print(
-                        #     f"设备 {i}: {device.DeviceName} - 状态: {device.StateFlags}"
+                        #     f"Device {i}: {device.DeviceName} - Status: {device.StateFlags}"
                         # )
 
                         # 检查设备是否激活
@@ -641,7 +650,7 @@ class DesktopScreenshotGenerator:
 
                 # 如果没有找到激活的显示器，使用系统指标
                 if not display_devices:
-                    print("未找到激活的显示器设备，使用系统指标")
+                    print("No active display device found, using system metrics.")
                     # 使用虚拟桌面信息
                     if virtual_width > 0 and virtual_height > 0:
                         self.monitors = [
@@ -695,7 +704,8 @@ class DesktopScreenshotGenerator:
                         self.monitors.append(monitor_info)
 
             except Exception as e:
-                print(f"使用EnumDisplaySettings失败，使用备用方法: {e}")
+                print(
+                    f"Fail to use EnumDisplaySettings, use back up way instead: {e}")
                 # 备用方法：基于虚拟桌面尺寸推断
                 if virtual_width > 0 and virtual_height > 0:
                     self.monitors = [
@@ -728,11 +738,11 @@ class DesktopScreenshotGenerator:
             # print("\n=== 最终显示器配置 ===")
             # for i, monitor in enumerate(self.monitors):
             #     print(
-            #         f"显示器 {i + 1}: {monitor['width']}x{monitor['height']} 位置({monitor['left']},{monitor['top']}) 区域({monitor['left']},{monitor['top']},{monitor['right']},{monitor['bottom']}) {'(主显示器)' if monitor['primary'] else ''}"
+            #         f"Monitor {i + 1}: {monitor['width']}x{monitor['height']} position({monitor['left']},{monitor['top']}) locate({monitor['left']},{monitor['top']},{monitor['right']},{monitor['bottom']}) {'(main monitor)' if monitor['primary'] else ''}"
             #     )
 
         except Exception as e:
-            print(f"获取显示器信息失败: {e}")
+            print(f"Fail to get monitor info: {e}")
             # 默认单显示器
             self.monitors = [
                 {
@@ -750,11 +760,6 @@ class DesktopScreenshotGenerator:
     def capture_single_monitor(self, monitor_index=0):
         """捕获单个显示器截图"""
         try:
-            import win32gui
-            import win32ui
-            import win32con
-            import win32api
-
             # 获取显示器句柄
             hwin = win32gui.GetDesktopWindow()
 
@@ -768,7 +773,7 @@ class DesktopScreenshotGenerator:
                 right = monitor["right"]
                 bottom = monitor["bottom"]
             else:
-                # 默认使用主显示器
+                # default to primary monitor if index out of range
                 width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
                 height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
                 left = 0
@@ -780,53 +785,55 @@ class DesktopScreenshotGenerator:
             #     f"捕获显示器 {monitor_index + 1}: {width}x{height} 位置({left},{top}) 区域({left},{top},{right},{bottom})"
             # )
 
-            # 验证截图区域是否合理
+            # validate monitor dimensions and position
             if width <= 0 or height <= 0:
-                print(f"错误: 显示器 {monitor_index + 1} 尺寸无效: {width}x{height}")
-                return self._create_error_image(f"显示器 {monitor_index + 1} 尺寸无效")
+                print(
+                    f"Error: Monitor {monitor_index + 1} has invalid dimensions: {width}x{height}")
+                return self._create_error_image(f"Monitor {monitor_index + 1} has invalid dimensions")
 
             if left < 0 or top < 0:
-                print(f"错误: 显示器 {monitor_index + 1} 位置无效: ({left},{top})")
-                return self._create_error_image(f"显示器 {monitor_index + 1} 位置无效")
+                print(
+                    f"Error: Monitor {monitor_index + 1} has invalid position: ({left},{top})")
+                return self._create_error_image(f"Monitor {monitor_index + 1} has invalid position")
 
-            # 创建设备上下文
+            # create device context
             hwindc = win32gui.GetWindowDC(hwin)
             srcdc = win32ui.CreateDCFromHandle(hwindc)
             memdc = srcdc.CreateCompatibleDC()
 
-            # 创建位图
+            # create bitmap
             bmp = win32ui.CreateBitmap()
             bmp.CreateCompatibleBitmap(srcdc, width, height)
             memdc.SelectObject(bmp)
 
-            # 复制指定区域的屏幕内容到位图
-            # 注意：BitBlt的源坐标是相对于虚拟桌面的，目标坐标是相对于位图的
+            # copy screen content to bitmap
+            # Heads up: BitBlt source coordinates are relative to the virtual desktop, while target coordinates are relative to the bitmap
             result = memdc.BitBlt(
                 (0, 0), (width, height), srcdc, (left, top), win32con.SRCCOPY
             )
 
             if result == 0:
                 error_code = win32api.GetLastError()
-                print(f"警告: BitBlt操作失败，错误代码: {error_code}")
-                # 尝试使用备用方法
-                print(f"尝试备用截图方法...")
+                print(
+                    f"warning: BitBlt operation failed, error code: {error_code}")
+                print(f"try to use fallback screenshot method...")
 
-                # 清理资源
+                # Clear sources before fallback
                 win32gui.DeleteObject(bmp.GetHandle())
                 memdc.DeleteDC()
                 srcdc.DeleteDC()
                 win32gui.ReleaseDC(hwin, hwindc)
 
-                # 使用PIL的ImageGrab作为备用方法
+                # use PIL's ImageGrab as fallback method
                 return self._capture_monitor_fallback(
                     monitor_index, left, top, width, height
                 )
 
-            # 获取位图信息
+            # get bitmap info
             bmpinfo = bmp.GetInfo()
             bmpstr = bmp.GetBitmapBits(True)
 
-            # 转换为PIL图像
+            # convert bitmap to PIL image
             img = Image.frombuffer(
                 "RGB",
                 (bmpinfo["bmWidth"], bmpinfo["bmHeight"]),
@@ -837,7 +844,7 @@ class DesktopScreenshotGenerator:
                 1,
             )
 
-            # 清理资源
+            # clear sources
             win32gui.DeleteObject(bmp.GetHandle())
             memdc.DeleteDC()
             srcdc.DeleteDC()
@@ -848,16 +855,17 @@ class DesktopScreenshotGenerator:
             return img
 
         except Exception as e:
-            print(f"捕获显示器 {monitor_index + 1} 截图失败: {e}")
+            print(
+                f"Fail to capture monitor {monitor_index + 1} screenshot: {e}")
             import traceback
 
             traceback.print_exc()
             return self._create_error_image(
-                f"显示器 {monitor_index + 1} 截图失败: {str(e)}"
+                f"Fail to capture monitor {monitor_index + 1}: {str(e)}"
             )
 
     def _capture_monitor_fallback(self, monitor_index, left, top, width, height):
-        """备用截图方法，使用PIL的ImageGrab"""
+        """Backup screenshot method using PIL's ImageGrab"""
         try:
             from PIL import ImageGrab
 
@@ -865,7 +873,7 @@ class DesktopScreenshotGenerator:
             #     f"使用备用方法捕获显示器 {monitor_index + 1}: 区域({left},{top},{left+width},{top+height})"
             # )
 
-            # 使用ImageGrab捕获指定区域
+            # Use ImageGrab to capture the specified area
             bbox = (left, top, left + width, top + height)
             img = ImageGrab.grab(bbox=bbox)
 
@@ -876,22 +884,15 @@ class DesktopScreenshotGenerator:
             return img
 
         except Exception as e:
-            print(f"备用截图方法失败: {e}")
-            return self._create_error_image(f"备用截图失败: {str(e)}")
+            print(f"Fallback screenshot method failed: {e}")
+            return self._create_error_image(f"Fallback screenshot failed: {str(e)}")
 
     def capture_desktop_screenshot(self):
-        """捕获Windows桌面截图"""
         try:
-            import win32gui
-            import win32ui
-            import win32con
-            import win32api
-            from ctypes import windll
-
-            # 获取主显示器的句柄
+            # Get the handle of the desktop window
             hwin = win32gui.GetDesktopWindow()
 
-            # 获取虚拟桌面的尺寸（支持多显示器）
+            # Get the virtual desktop size (supports multiple monitors)
             virtual_width = win32api.GetSystemMetrics(
                 win32con.SM_CXVIRTUALSCREEN)
             virtual_height = win32api.GetSystemMetrics(
@@ -900,7 +901,7 @@ class DesktopScreenshotGenerator:
                 win32con.SM_XVIRTUALSCREEN)
             virtual_top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
 
-            # 如果虚拟桌面尺寸为0，则使用主显示器尺寸
+            # If virtual desktop size is 0, use primary monitor size
             if virtual_width == 0 or virtual_height == 0:
                 width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
                 height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
@@ -912,25 +913,25 @@ class DesktopScreenshotGenerator:
                 left = virtual_left
                 top = virtual_top
 
-            # 创建设备上下文
+            # Create device context
             hwindc = win32gui.GetWindowDC(hwin)
             srcdc = win32ui.CreateDCFromHandle(hwindc)
             memdc = srcdc.CreateCompatibleDC()
 
-            # 创建位图
+            # Create a bitmap compatible with the source device context
             bmp = win32ui.CreateBitmap()
             bmp.CreateCompatibleBitmap(srcdc, width, height)
             memdc.SelectObject(bmp)
 
-            # 复制屏幕内容到位图（指定源区域）
+            # Copy screen content to bitmap (source coordinates are relative to the virtual desktop)
             memdc.BitBlt((0, 0), (width, height), srcdc,
                          (left, top), win32con.SRCCOPY)
 
-            # 获取位图信息
+            # Get bitmap info
             bmpinfo = bmp.GetInfo()
             bmpstr = bmp.GetBitmapBits(True)
 
-            # 转换为PIL图像
+            # Convert bitmap to PIL image
             img = Image.frombuffer(
                 "RGB",
                 (bmpinfo["bmWidth"], bmpinfo["bmHeight"]),
@@ -941,13 +942,13 @@ class DesktopScreenshotGenerator:
                 1,
             )
 
-            # 清理资源
+            # Clear the device context and bitmap
             win32gui.DeleteObject(bmp.GetHandle())
             memdc.DeleteDC()
             srcdc.DeleteDC()
             win32gui.ReleaseDC(hwin, hwindc)
 
-            # 高质量调整图像大小
+            # Adjust image size to fit desktop resolution
             max_width = self.quality_settings["desktop"]["max_width"]
             max_height = self.quality_settings["desktop"]["max_height"]
             img = self._resize_image_high_quality(img, max_width, max_height)
@@ -959,22 +960,23 @@ class DesktopScreenshotGenerator:
             return img
 
         except ImportError:
-            # 如果没有win32gui，使用备用方案
+            # If win32gui is not available, use fallback method
             return self._fallback_screenshot()
         except Exception as e:
-            print(f"截图错误: {e}")
+            print(f"screenshot error: {e}")
             return self._fallback_screenshot()
 
     def _fallback_screenshot(self):
-        """备用截图方案"""
+        """Backup screenshot method"""
         try:
-            # 使用PIL的ImageGrab（仅适用于Windows）
+            # Use PIL's ImageGrab (only available on Windows)
             from PIL import ImageGrab
 
-            # 捕获整个屏幕（包括所有显示器）
-            screenshot = ImageGrab.grab(bbox=None)  # bbox=None 表示捕获整个虚拟桌面
+            # Capture the entire virtual desktop
+            # bbox=None means capture the entire virtual desktop
+            screenshot = ImageGrab.grab(bbox=None)
 
-            # 高质量调整图像大小
+            # Adjust image size to fit desktop resolution
             max_width = self.quality_settings["desktop"]["max_width"]
             max_height = self.quality_settings["desktop"]["max_height"]
             screenshot = self._resize_image_high_quality(
@@ -988,44 +990,44 @@ class DesktopScreenshotGenerator:
             return screenshot
 
         except Exception as e:
-            print(f"备用截图错误: {e}")
+            print(f"Backup screenshot error: {e}")
             return self._create_error_image()
 
-    def _create_error_image(self, error_message: str = "无法捕获桌面截图"):
-        """创建错误提示图像"""
+    def _create_error_image(self, error_message: str = "Cannot capture screenshot"):
+        """Create a blank image with error message"""
         img = Image.new("RGB", (800, 600), color="lightgray")
         draw = ImageDraw.Draw(img)
 
-        # 添加错误信息
+        # Add error message
         draw.text((400, 250), error_message, fill="red", anchor="mm")
 
-        # 添加时间戳
-        timestamp = f"时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        # Add timestamp
+        timestamp = f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         draw.text((400, 300), timestamp, fill="black", anchor="mm")
 
         self.counter += 1
         return img
 
 
-# 使用桌面截图生成器
+# Use the DesktopScreenshotGenerator
 ui_generator = DesktopScreenshotGenerator()
 
-# 启动时初始化显示器信息
+# Initialize monitor information at startup
 try:
-    print("正在初始化显示器信息...")
+    print("Initializing monitor information...")
     ui_generator.update_monitor_info()
-    print(f"显示器信息初始化完成，检测到 {len(ui_generator.monitors)} 个显示器")
+    print(
+        f"Monitor information initialized, detected {len(ui_generator.monitors)} monitors")
     for i, monitor in enumerate(ui_generator.monitors):
         print(
-            f"  显示器 {i}: {monitor['width']}x{monitor['height']} 位置({monitor['left']},{monitor['top']})"
-        )
+            f"Monitor {i}: {monitor['width']}x{monitor['height']} position({monitor['left']},{monitor['top']})")
 except Exception as e:
-    print(f"显示器信息初始化失败: {e}")
+    print(f"Failed to initialize monitor information: {e}")
     import traceback
 
     traceback.print_exc()
 
-# 跟踪被收起的显示器（后端状态）
+# Following monitors that have been collapsed (backend state)
 collapsed_monitors = set()
 
 
@@ -1037,19 +1039,19 @@ async def ping():
 
 @app.get("/")
 async def get_index():
-    """返回主页HTML"""
+    # Get back to index.html
     with open("index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
 
 @app.get("/screenshot")
 async def get_screenshot():
-    """获取当前桌面截图"""
+    """Get current desktop screenshot"""
     try:
-        # 捕获桌面截图
+        # get the latest screenshot
         img = ui_generator.capture_desktop_screenshot()
 
-        # 转换为base64，使用高质量PNG
+        # convert to base64 using high quality PNG
         buffer = io.BytesIO()
         img.save(
             buffer,
@@ -1066,30 +1068,30 @@ async def get_screenshot():
 
 @app.get("/screenshot/monitor/{monitor_index}")
 async def get_single_monitor_screenshot(monitor_index: int):
-    """获取指定显示器的截图"""
+    """Get the screenshot of a specific monitor"""
     try:
-        # 更新显示器信息
+        # Update monitor info
         ui_generator.update_monitor_info()
 
-        # 检查显示器索引是否有效
+        # Validate monitor index
         if monitor_index >= len(ui_generator.monitors):
             return {
-                "error": f"显示器索引 {monitor_index} 超出范围，共有 {len(ui_generator.monitors)} 个显示器"
+                "error": f"Monitor index {monitor_index} is out of scope, total monitor quantity: {len(ui_generator.monitors)}"
             }
 
-        # 检查显示器是否被收起
+        # Validate against collapsed monitors
         if monitor_index in collapsed_monitors:
             return {
-                "error": f"显示器 {monitor_index} 已被收起，无法获取截图",
+                "error": f"Monitor {monitor_index} was collapsed, can't get screenshot for you",
                 "monitor_index": monitor_index,
                 "collapsed": True,
                 "timestamp": datetime.now().isoformat(),
             }
 
-        # 捕获指定显示器的截图
+        # Get screenshot of the specified monitor
         img = ui_generator.capture_single_monitor(monitor_index)
 
-        # 使用优化的图像传输函数
+        # Use optimized image transmission function
         img_base64 = ui_generator._optimize_image_for_transmission(
             img, monitor_index)
 
@@ -1110,28 +1112,26 @@ async def get_single_monitor_screenshot(monitor_index: int):
 @app.get("/screenshots/all")
 async def get_all_monitor_screenshots():
     """获取所有未收起显示器的截图"""
+    # Get screenshots of all monitors that are not collapsed
     try:
         screenshots = []
 
-        # 更新显示器信息
+        # Update monitor info
         ui_generator.update_monitor_info()
 
-        # 获取总显示器数量
-        import win32api
-        import win32con
-
+        # Get total monitor count from system metrics
         total_monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
 
-        # 只处理未收起的显示器
+        # Only process monitors that are not collapsed
         for i, monitor in enumerate(ui_generator.monitors):
-            # 跳过被收起的显示器
+            # Skip collapsed monitors
             if i in collapsed_monitors:
                 continue
 
-            # 只处理活跃的显示器：捕获截图
+            # Only process active monitors: capture screenshot
             img = ui_generator.capture_single_monitor(i)
 
-            # 使用优化的图像传输函数
+            # Use optimized image transmission function
             img_base64 = ui_generator._optimize_image_for_transmission(img, i)
 
             screenshots.append(
@@ -1157,19 +1157,19 @@ async def get_all_monitor_screenshots():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket连接处理"""
+    """WebSocket endpoint for real-time updates"""
     await manager.connect(websocket)
     try:
         while True:
-            # 检查连接是否仍然活跃
-            if websocket.client_state.value > 2:  # 连接已关闭
+            # Validate if connection is still active
+            if websocket.client_state.value > 2:  # Connection is closed
                 break
 
-            # 获取网络状态和系统资源信息
+            # Get real-time info
             network_info = network_monitor.get_network_info()
             system_info = system_monitor.get_system_info()
 
-            # 发送实时数据
+            # Send real-time data
             data = {
                 "type": "status",
                 "counter": ui_generator.counter,
@@ -1183,27 +1183,26 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 await websocket.send_text(json.dumps(data))
             except Exception as e:
-                # 如果发送失败，说明连接可能已断开
-                print(f"WebSocket发送失败: {e}")
+                # If sending fails, the connection might be broken
+                print(f"Failed to send WebSocket: {e}")
                 break
 
-            # 0.8秒间隔，与前端一致
-            await asyncio.sleep(0.8)
+            # 0.8 second interval, consistent with frontend
+            await asyncio.sleep(0.5)
     except WebSocketDisconnect:
-        print("WebSocket连接断开")
+        print("WebSocket connection is closed")
     except Exception as e:
-        print(f"WebSocket异常: {e}")
+        print(f"WebSocket error: {e}")
     finally:
         manager.disconnect(websocket)
 
 
 @app.get("/status")
 async def get_status():
-    """获取服务器状态"""
     network_info = network_monitor.get_network_info()
     system_info = system_monitor.get_system_info()
     return {
-        "counter": ui_generator.counter,  # 保留用于内部逻辑
+        "counter": ui_generator.counter,
         "timestamp": datetime.now().isoformat(),
         "connections": len(manager.active_connections),
         "network": network_info,
@@ -1215,11 +1214,10 @@ async def get_status():
 
 @app.get("/test-network")
 async def test_network():
-    """手动测试网络连接"""
     network_monitor.check_network_status()
     network_info = network_monitor.get_network_info()
     return {
-        "message": "网络测试完成",
+        "message": "Success to test network status",
         "network": network_info,
         "timestamp": datetime.now().isoformat(),
     }
@@ -1227,7 +1225,6 @@ async def test_network():
 
 @app.get("/system-info")
 async def get_system_info():
-    """获取系统资源信息"""
     try:
         system_info = system_monitor.get_system_info()
 
@@ -1262,15 +1259,11 @@ async def get_system_info():
 
 @app.get("/monitors/config")
 async def get_monitors_config():
-    """获取显示器配置信息"""
+    """Get detailed monitor configuration"""
     try:
-        import win32api
-        import win32con
-
-        # 更新显示器信息
         ui_generator.update_monitor_info()
 
-        # 获取系统信息
+        # Get system metrics
         virtual_width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
         virtual_height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
         virtual_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
@@ -1281,7 +1274,7 @@ async def get_monitors_config():
 
         monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
 
-        # 获取显示器详细信息
+        # Get detailed monitor info
         monitors_info = []
         for monitor in ui_generator.monitors:
             monitors_info.append(
@@ -1327,23 +1320,19 @@ async def get_monitors_config():
 
 @app.get("/debug/monitor/{monitor_index}")
 async def debug_monitor_screenshot(monitor_index: int):
-    """调试单个显示器截图"""
+    """Debug single monitor screenshot with detailed info"""
     try:
-        # 更新显示器信息
         ui_generator.update_monitor_info()
 
-        # 检查显示器索引是否有效
+        # Validate monitor index
         if monitor_index >= len(ui_generator.monitors):
             return {
-                "error": f"显示器索引 {monitor_index} 超出范围，共有 {len(ui_generator.monitors)} 个显示器"
+                "error": f"Monitor index {monitor_index} is out of scope, total monitor quantity {len(ui_generator.monitors)}"
             }
 
         monitor = ui_generator.monitors[monitor_index]
 
-        # 获取系统信息
-        import win32api
-        import win32con
-
+        # Get system metrics
         virtual_width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
         virtual_height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
         virtual_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
@@ -1352,10 +1341,9 @@ async def debug_monitor_screenshot(monitor_index: int):
         primary_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
         primary_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
 
-        # 捕获截图
         img = ui_generator.capture_single_monitor(monitor_index)
 
-        # 转换为base64
+        # Convert to base64
         buffer = io.BytesIO()
         img.save(buffer, format="PNG")
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
@@ -1385,7 +1373,7 @@ async def debug_monitor_screenshot(monitor_index: int):
 
 @app.post("/quality-settings")
 async def update_quality_settings(settings: dict):
-    """更新截图质量设置"""
+    """Update quality settings"""
     try:
         if "single_monitor" in settings:
             ui_generator.quality_settings["single_monitor"].update(
@@ -1407,11 +1395,11 @@ async def update_quality_settings(settings: dict):
                 "compression_level"
             ]
 
-        # 清除缓存以应用新设置
+        # Clear cache to apply new settings
         ui_generator.image_cache.clear()
 
         return {
-            "message": "质量设置更新成功",
+            "message": "Success to update image quality",
             "current_settings": ui_generator.quality_settings,
             "timestamp": datetime.now().isoformat(),
         }
@@ -1421,7 +1409,7 @@ async def update_quality_settings(settings: dict):
 
 @app.get("/quality-settings")
 async def get_quality_settings():
-    """获取当前截图质量设置"""
+    """Get current quality settings"""
     return {
         "settings": ui_generator.quality_settings,
         "timestamp": datetime.now().isoformat(),
@@ -1430,12 +1418,12 @@ async def get_quality_settings():
 
 @app.get("/cache-stats")
 async def get_cache_stats():
-    """获取缓存统计信息"""
+    """Get cache statistics"""
     try:
         cache_size = len(ui_generator.image_cache)
         cache_keys = list(ui_generator.image_cache.keys())
 
-        # 计算缓存命中率（这里简化处理，实际需要更复杂的统计）
+        # Calculate cache hit rate (simplified)
         total_requests = ui_generator.counter
         cache_hits = sum(
             1 for key in cache_keys if ui_generator._get_from_cache(key) is not None
@@ -1457,13 +1445,12 @@ async def get_cache_stats():
 
 @app.post("/clear-cache")
 async def clear_cache():
-    """清除图像缓存"""
     try:
         cache_size = len(ui_generator.image_cache)
         ui_generator.image_cache.clear()
 
         return {
-            "message": f"缓存已清除，共清除 {cache_size} 个缓存项",
+            "message": f"Cache is cleared, {cache_size} cache items were removed",
             "timestamp": datetime.now().isoformat(),
         }
     except Exception as e:
@@ -1472,14 +1459,14 @@ async def clear_cache():
 
 @app.post("/collapsed-monitors")
 async def update_collapsed_monitors(collapsed_data: dict):
-    """更新被收起的显示器状态"""
+    # Update the set of collapsed monitors based on provided indices
     global collapsed_monitors
     try:
         collapsed_indices = collapsed_data.get("collapsed_monitors", [])
         collapsed_monitors = set(collapsed_indices)
 
         return {
-            "message": "被收起的显示器状态更新成功",
+            "message": "Successfully updated collapsed monitors state",
             "collapsed_monitors": list(collapsed_monitors),
             "timestamp": datetime.now().isoformat(),
         }
@@ -1489,7 +1476,7 @@ async def update_collapsed_monitors(collapsed_data: dict):
 
 @app.get("/collapsed-monitors")
 async def get_collapsed_monitors():
-    """获取当前被收起的显示器状态"""
+    """Get the current set of collapsed monitors"""
     return {
         "collapsed_monitors": list(collapsed_monitors),
         "timestamp": datetime.now().isoformat(),
@@ -1498,15 +1485,12 @@ async def get_collapsed_monitors():
 
 @app.get("/force-redetect")
 async def force_redetect_monitors():
-    """强制重新检测显示器配置"""
+    """Force re-detect monitor configuration"""
     try:
-        # 强制重新检测显示器
+        # Force re-detect monitors
         ui_generator.update_monitor_info()
 
-        # 获取系统信息
-        import win32api
-        import win32con
-
+        # Get system metrics
         virtual_width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
         virtual_height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
         virtual_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
@@ -1517,7 +1501,7 @@ async def force_redetect_monitors():
 
         monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
 
-        # 获取显示器详细信息
+        # Get detailed monitor info
         monitors_info = []
         for monitor in ui_generator.monitors:
             monitors_info.append(
@@ -1535,7 +1519,7 @@ async def force_redetect_monitors():
             )
 
         return {
-            "message": "显示器重新检测完成",
+            "message": "Successfully re-detected monitors",
             "system_info": {
                 "monitor_count": monitor_count,
                 "virtual_screen": {
@@ -1560,15 +1544,9 @@ async def force_redetect_monitors():
 
 @app.get("/screenshot-info")
 async def get_screenshot_info():
-    """获取截图信息"""
     try:
-        import win32api
-        import win32con
-
-        # 更新显示器信息
         ui_generator.update_monitor_info()
 
-        # 获取屏幕信息
         virtual_width = win32api.GetSystemMetrics(win32con.SM_CXVIRTUALSCREEN)
         virtual_height = win32api.GetSystemMetrics(win32con.SM_CYVIRTUALSCREEN)
         virtual_left = win32api.GetSystemMetrics(win32con.SM_XVIRTUALSCREEN)
@@ -1577,7 +1555,7 @@ async def get_screenshot_info():
         primary_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
         primary_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
 
-        # 获取当前截图信息
+        # Get current screenshot info
         if ui_generator.last_screenshot:
             current_width = ui_generator.last_screenshot.width
             current_height = ui_generator.last_screenshot.height
@@ -1585,7 +1563,7 @@ async def get_screenshot_info():
             current_width = 0
             current_height = 0
 
-        # 获取显示器详细信息
+        # Get detailed monitor info
         monitors_info = []
         for monitor in ui_generator.monitors:
             monitors_info.append(
@@ -1616,8 +1594,8 @@ async def get_screenshot_info():
         return {"error": str(e)}
 
 
-# 文件上传相关功能
-# 使用系统Downloads文件夹作为默认上传目录
+# File upload related features
+# Use the system Downloads folder as the default upload directory
 DEFAULT_UPLOAD_DIR = str(Path.home() / "Downloads")
 ALLOWED_EXTENSIONS = {
     ".txt",
@@ -2026,13 +2004,11 @@ async def create_folder(folder_data: dict):
                         "/sbin",
                         "/boot",
                         "/dev",
-                        "/proc",
-                        "/sys",
                     ]
                     for forbidden in forbidden_paths:
                         if full_path.startswith(forbidden):
                             raise HTTPException(
-                                status_code=403, detail="不能在系统目录中创建文件夹"
+                                status_code=403, detail="Cannot create folders in system directories"
                             )
             else:
                 # Downloads路径
@@ -2042,27 +2018,31 @@ async def create_folder(folder_data: dict):
                 if not os.path.abspath(full_path).startswith(
                     os.path.abspath(DEFAULT_UPLOAD_DIR)
                 ):
-                    raise HTTPException(status_code=403, detail="访问被拒绝")
+                    raise HTTPException(
+                        status_code=403, detail="Access denied")
         else:
-            # 在Downloads根目录创建
+            # Create in the root of Downloads
             full_path = os.path.join(DEFAULT_UPLOAD_DIR, folder_name)
 
-        # 检查文件夹是否已存在
+        # Check if the folder already exists
         if os.path.exists(full_path):
-            raise HTTPException(status_code=409, detail="文件夹已存在")
+            raise HTTPException(
+                status_code=409, detail="Folder already exists")
 
-        # 创建文件夹
+        # Create the folder
         try:
             os.makedirs(full_path, exist_ok=False)
         except PermissionError:
-            raise HTTPException(status_code=403, detail="没有权限创建文件夹")
+            raise HTTPException(
+                status_code=403, detail="No permission to create folder")
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"创建文件夹失败: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"Failed to create folder: {str(e)}")
 
         return JSONResponse(
             {
                 "success": True,
-                "message": f"文件夹 '{folder_name}' 创建成功",
+                "message": f"Folder '{folder_name}' created successfully",
                 "folder_path": full_path,
             }
         )
@@ -2070,47 +2050,49 @@ async def create_folder(folder_data: dict):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"创建文件夹失败: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create folder: {str(e)}")
 
 
 @app.get("/directories")
 async def list_available_directories(path: str = ""):
-    """获取指定路径下的目录列表"""
+    """Get the list of directories under the specified path"""
     import time
 
     start_time = time.time()
     timeout_seconds = 10
 
     try:
-        # URL解码路径参数
+        # URL decode path parameter
         import urllib.parse
 
         if path:
             path = urllib.parse.unquote(path)
 
-        # 构建完整路径
+        # Build full path
         if path:
             full_path = os.path.join(DEFAULT_UPLOAD_DIR, path)
-            # 确保路径在Downloads目录内
+            # Ensure the path is within the Downloads directory
             if not os.path.abspath(full_path).startswith(
                 os.path.abspath(DEFAULT_UPLOAD_DIR)
             ):
-                raise HTTPException(status_code=403, detail="访问被拒绝")
+                raise HTTPException(status_code=403, detail="Access denied")
         else:
             full_path = DEFAULT_UPLOAD_DIR
 
-        # 确保路径存在
+        # Ensure the path exists
         if not os.path.exists(full_path):
-            raise HTTPException(status_code=404, detail="路径不存在")
+            raise HTTPException(status_code=404, detail="Path does not exist")
 
         if not os.path.isdir(full_path):
-            raise HTTPException(status_code=400, detail="指定路径不是目录")
+            raise HTTPException(
+                status_code=400, detail="Specified path is not a directory")
 
-        # 获取相对路径和父路径
+        # Get relative path and parent path
         relative_path = path
         parent_path = os.path.dirname(relative_path) if relative_path else ""
 
-        # 获取目录列表
+        # Get directory list
         try:
             items = []
             timeout_occurred = False
@@ -2118,13 +2100,13 @@ async def list_available_directories(path: str = ""):
             for item in os.listdir(full_path):
                 item_path = os.path.join(full_path, item)
 
-                # 检查超时
+                # Check for timeout
                 if time.time() - start_time > timeout_seconds:
-                    timeout_occurred = True
-                    break
+                    raise HTTPException(
+                        status_code=408, detail="Request timeout")
 
                 if os.path.isdir(item_path):
-                    # 计算文件夹数量，带超时处理
+                    # Count folders, with timeout handling
                     try:
                         folder_count = len(
                             [
@@ -2136,16 +2118,16 @@ async def list_available_directories(path: str = ""):
                     except PermissionError:
                         folder_count = 0
                     except Exception as e:
-                        # 如果计算文件夹数量时出错（可能是超时或其他问题），返回特殊值
-                        folder_count = -1  # 使用-1表示超时或错误
+                        # If an error occurs while counting folders (timeout or other), return special value
+                        folder_count = -1  # Use -1 to indicate timeout or error
 
-                    # 构建相对路径
+                    # Build relative path
                     if relative_path:
                         item_relative_path = os.path.join(relative_path, item)
                     else:
                         item_relative_path = item
 
-                    # 确保路径使用正斜杠（前端期望的格式）
+                    # Ensure path uses forward slashes (as expected by frontend)
                     item_relative_path = item_relative_path.replace("\\", "/")
 
                     items.append(
@@ -2158,9 +2140,10 @@ async def list_available_directories(path: str = ""):
                         }
                     )
         except PermissionError:
-            raise HTTPException(status_code=403, detail="没有权限访问此目录")
+            raise HTTPException(
+                status_code=403, detail="No permission to access this directory")
 
-        # 按名称排序
+        # Sort by name
         items.sort(key=lambda x: x["name"].lower())
 
         response_data = {
@@ -2172,11 +2155,11 @@ async def list_available_directories(path: str = ""):
             "can_go_up": relative_path != "",
         }
 
-        # 如果发生了超时，添加超时信息
+        # If timeout occurred, add timeout info
         if timeout_occurred:
             response_data["partial_results"] = True
             response_data["timeout_message"] = (
-                "部分目录因超时未能加载，已显示可访问的目录"
+                "Some directories could not be loaded due to timeout, only accessible directories are shown"
             )
 
         return JSONResponse(response_data)
@@ -2184,7 +2167,8 @@ async def list_available_directories(path: str = ""):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取目录列表失败: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get directory list: {str(e)}")
 
 
 @app.get("/system-directories")

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>千里眼 - 远程桌面</title>
+    <title>Second Sight - Remote Desktop</title>
     <link rel="stylesheet" href="/static/styles.css?v=20250808-02">
-    <!-- 模块化JavaScript文件 -->
+    <!-- Modular JavaScript files -->
     <script src="/static/js/core.js?v=20250808-02"></script>
     <script src="/static/js/ui-utils.js?v=20250808-02"></script>
     <script src="/static/js/trend-charts.js?v=20250808-02"></script>
@@ -22,81 +22,81 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>🖥️ 千里眼 - 远程桌面</h2>
+            <h2>🖥️ Second Sight - Remote Desktop</h2>
         </div>
 
         <div class="main-content">
             <div class="screenshot-section">
-                <!-- 单显示器容器 -->
+                <!-- Single monitor container -->
                 <div id="single-monitor-container" class="screenshot-container" style="display: none;">
                     <div id="screenshot-wrapper"
                         style="position: relative; display: flex; justify-content: center; align-items: center; width: 100%;">
                         <img id="screenshot" class="screenshot-image"
                             src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TG9hZGluZy4uLjwvdGV4dD48L3N2Zz4="
-                            alt="Windows桌面截图">
+                            alt="Windows Desktop Screenshot">
                         <div id="loading-indicator" class="loading" style="position: absolute; display: none;"></div>
                     </div>
                 </div>
 
-                <!-- 多显示器容器 -->
+                <!-- Multi monitor container -->
                 <div id="multi-monitor-container">
                     <div id="monitors-grid" class="monitors-grid">
-                        <!-- 显示器截图将在这里动态生成 -->
+                        <!-- Monitor screenshots will be generated here dynamically -->
                     </div>
                 </div>
 
                 <div class="controls">
-                    <button class="btn btn-primary" onclick="toggleAutoRefresh()" id="autoRefreshBtn">🔄 自动刷新</button>
-                    <button class="btn btn-success" onclick="refreshAllMonitors()">手动刷新</button>
-                    <button class="btn btn-primary" onclick="reconnectServer()">重新连接</button>                    
-                    <button class="btn btn-quality-settings" onclick="openQualitySettings()">⚙️ 质量设置</button>
-                    <button class="btn btn-secondary" onclick="openCacheManager()">💾 缓存管理</button>
-                    <button class="btn btn-warning" onclick="testSystemInfo()">系统信息</button>
-                    <button class="btn btn-info" onclick="toggleRemoteControl()" id="remoteControlBtn">🖱️ 远程控制</button>
+                    <button class="btn btn-primary" onclick="toggleAutoRefresh()" id="autoRefreshBtn">🔄 Auto Refresh</button>
+                    <button class="btn btn-success" onclick="refreshAllMonitors()">Manual Refresh</button>
+                    <button class="btn btn-primary" onclick="reconnectServer()">Reconnect</button>                    
+                    <button class="btn btn-quality-settings" onclick="openQualitySettings()">⚙️ Quality Settings</button>
+                    <button class="btn btn-secondary" onclick="openCacheManager()">💾 Cache Manager</button>
+                    <button class="btn btn-warning" onclick="testSystemInfo()">System Info</button>
+                    <button class="btn btn-info" onclick="toggleRemoteControl()" id="remoteControlBtn">🖱️ Remote Control</button>
                 </div>
             </div>
 
             <div class="sidebar">
                 <div class="status-card">
                     <h3 style="display: flex; align-items: center; justify-content: space-between;">
-                        🔌 设备情况
+                        🔌 Device Status
                         <button class="btn btn-info"
                             style="margin-left: 130px; padding: 2px 14px; font-size: 13px; height: 28px; line-height: 1.2; border-radius: 6px; transition: background 0.2s, color 0.2s, box-shadow 0.2s; cursor: pointer;"
                             onclick="testNetwork()"
                             onmouseover="this.style.background='#17a2b8'; this.style.color='#fff'; this.style.boxShadow='0 2px 8px rgba(23,162,184,0.15)';"
-                            onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';">刷新</button>
+                            onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';">Refresh</button>
                     </h3>
                     <div class="status-item">
-                        <span class="status-label">连接状态:</span>
+                        <span class="status-label">Connection Status:</span>
                         <span class="status-value" id="server-status">
                             <span class="connection-indicator disconnected"></span>
-                            未连接
+                            Disconnected
                         </span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">内存使用:</span>
+                        <span class="status-label">Memory Usage:</span>
                         <div class="trend-chart-container">
                             <canvas id="memory-trend-chart" class="trend-chart" width="110" height="30"></canvas>
                             <span class="status-value" id="status-memory-usage">-</span>
                         </div>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">CPU使用:</span>
+                        <span class="status-label">CPU Usage:</span>
                         <div class="trend-chart-container">
                             <canvas id="cpu-trend-chart" class="trend-chart" width="110" height="30"></canvas>
                             <span class="status-value" id="status-cpu-usage">-</span>
                         </div>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">磁盘使用:</span>
+                        <span class="status-label">Disk Usage:</span>
                         <span class="status-value" id="status-disk-usage">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">网络状态:</span>
+                        <span class="status-label">Network Status:</span>
                         <span class="status-value" id="status-network-status">-</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">网络延迟:</span>
+                        <span class="status-label">Network Latency:</span>
                         <div class="trend-chart-container">
                             <canvas id="network-latency-trend-chart" class="trend-chart" width="110"
                                 height="30"></canvas>
@@ -104,15 +104,15 @@
                         </div>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">最后更新:</span>
+                        <span class="status-label">Last Update:</span>
                         <span class="status-value" id="last-update">-</span>
                     </div>
                 </div>
 
-                <!-- 文件管理卡片 -->
+                <!-- File Manager Card -->
                 <div class="status-card">
                     <h3 style="display: flex; align-items: center; justify-content: space-between;">
-                        📁 文件管理
+                        📁 File Manager
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div class="file-input-wrapper" style="display: flex; gap: 4px;">
                                 <input type="file" id="fileInput" multiple
@@ -122,27 +122,27 @@
                                 <button class="btn btn-primary" id="pathBtn"
                                     style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;"
                                     onclick="openPathModal()">
-                                    设置路径
+                                    Set Path
                                 </button>
                                 <button class="btn btn-success" onclick="handleFileUpload()" id="uploadBtn"
                                     style="padding: 2px 8px; font-size: 12px; height: 28px; line-height: 1.2; border-radius: 6px;">
-                                    上传文件
+                                    Upload File
                                 </button>
                             </div>
                             <button class="btn btn-info"
                                 style="padding: 2px 14px; font-size: 13px; height: 28px; line-height: 1.2; border-radius: 6px; transition: background 0.2s, color 0.2s, box-shadow 0.2s; cursor: pointer;"
                                 onclick="loadFileList()"
                                 onmouseover="this.style.background='#17a2b8'; this.style.color='#fff'; this.style.boxShadow='0 2px 8px rgba(23,162,184,0.15)';"
-                                onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';">刷新</button>
+                                onmouseout="this.style.background=''; this.style.color=''; this.style.boxShadow='';">Refresh</button>
                         </div>
                     </h3>
                     <div class="path-info" id="pathInfo"
                         style="display: none; margin-bottom: 8px; padding: 6px 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px;">
-                        <span style="font-weight: bold;">目标路径:</span>
+                        <span style="font-weight: bold;">Target Path:</span>
                         <span id="currentPath" style="color: #007bff; word-break: break-all;"></span>
                     </div>
                     <div class="upload-info" id="uploadInfo" style="display: none; margin-bottom: 8px;">
-                        <span id="selectedFilesCount">0</span> 个文件已选择
+                        <span id="selectedFilesCount">0</span> files selected
                     </div>
                     <div class="upload-progress" id="uploadProgress" style="display: none; margin-bottom: 8px;">
                         <div class="progress-bar">
@@ -151,52 +151,25 @@
                         <div class="progress-text" id="progressText">0%</div>
                     </div>
                     <div id="fileList" class="file-list">
-                        <div class="file-list-placeholder">点击刷新按钮加载文件列表</div>
+                        <div class="file-list-placeholder">Click refresh to load file list</div>
                     </div>
                 </div>
 
                 <div class="status-card">
-                    <h3>📝 系统日志</h3>
+                    <h3>📝 System Log</h3>
                     <div class="log-container" id="log-container">
-                        <div class="log-entry info">[系统] 正在初始化...</div>
+                        <div class="log-entry info">[System] Initializing...</div>
                     </div>
                 </div>
-
-                <!-- <div class="status-card">
-                    <h3>💡 使用说明</h3>
-                    <div style="font-size: 12px; line-height: 1.4;">
-                        <p><strong>方式1：直接打开HTML文件</strong></p>
-                        <p>1. 启动服务器：<code>python server.py</code></p>
-                        <p>2. 双击打开 index.html</p>
-                        <p>3. 页面会自动连接到 localhost:8000</p>
-                        <br>
-                        <p><strong>方式2：通过HTTP访问</strong></p>
-                        <p>1. 启动服务器：<code>python server.py</code></p>
-                        <p>2. 浏览器访问：<code>http://localhost:8000</code></p>
-                        <br>
-                        <p><strong>多显示器功能</strong></p>
-                        <p>• 自动检测：自动识别系统中的所有显示器</p>
-                        <p>• 分别显示：每个显示器独立显示，不拼接</p>
-                        <p>• 主显示器：绿色边框标识主显示器</p>
-                        <p>• 独立刷新：每个显示器可单独刷新</p>
-                        <p>• 全屏查看：点击图片或全屏按钮查看</p>
-                        <br>
-                        <p><strong>系统监控功能</strong></p>
-                        <p>• 实时状态：显示连接状态和系统资源</p>
-                        <p>• 网络监控：实时检测网络连接质量</p>
-                        <p>• 自动刷新：每2秒更新所有显示器截图</p>
-                        <p>• 系统日志：记录所有操作和错误</p>
-                    </div>
-                </div> -->
             </div>
         </div>
     </div>
 
-    <!-- 路径选择模态框 -->
+    <!-- Path Selection Modal -->
     <div id="pathModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>📁 选择目标路径</h3>
+                <h3>📁 Select Target Path</h3>
                 <button class="modal-close" onclick="closePathModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -209,27 +182,27 @@
                 <div class="path-navigation">
                     <div class="path-actions">
                         <button class="btn btn-sm btn-outline-primary" onclick="navigateUp()" id="upButton">
-                            ⬆️ 上级目录
+                            ⬆️ Up
                         </button>
                         <button class="btn btn-sm btn-outline-success" onclick="setDefaultPath()" id="defaultButton">
-                            📁 默认目录
+                            📁 Default Path
                         </button>
                         <button class="btn btn-sm btn-outline-info" onclick="handleNavigateToRoot()" id="rootButton">
-                            🏠 我的电脑
+                            🏠 My Computer
                         </button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="refreshPathList()">
-                            🔄 刷新
+                            🔄 Refresh
                         </button>
                     </div>
                 </div>
                 <div class="path-list" id="modalPathList">
-                    <div class="loading-placeholder">正在加载目录列表...</div>
+                    <div class="loading-placeholder">Loading directory list...</div>
                 </div>
-                <!-- Loading遮罩 -->
+                <!-- Loading overlay -->
                 <div id="modalLoadingOverlay" class="modal-loading-overlay" style="display: none;">
                     <div class="modal-loading-content">
                         <div class="loading-spinner"></div>
-                        <div class="loading-text">正在加载...</div>
+                        <div class="loading-text">Loading...</div>
                     </div>
                 </div>
             </div>
@@ -237,181 +210,181 @@
                 <div style="display: flex; justify-content: flex-start;">
                     <button class="btn btn-sm btn-outline-success" onclick="showCreateFolderDialog()"
                         id="createFolderButton">
-                        📁 新建文件夹
+                        📁 New Folder
                     </button>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-primary" onclick="selectCurrentPath()">确定</button>
-                    <button class="btn btn-outline-secondary" onclick="closePathModal()">取消</button>
+                    <button class="btn btn-primary" onclick="selectCurrentPath()">OK</button>
+                    <button class="btn btn-outline-secondary" onclick="closePathModal()">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 创建文件夹对话框 -->
+    <!-- Create Folder Modal -->
     <div id="createFolderModal" class="modal" style="display: none; z-index: 1001;">
         <div class="modal-content" id="createFolderModalContent" style="max-width: 400px;">
             <div class="modal-header">
-                <h3>📁 创建新文件夹</h3>
+                <h3>📁 Create New Folder</h3>
                 <button class="modal-close" onclick="closeCreateFolderDialog()">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="margin-bottom: 15px;">
                     <label for="folderNameInput"
-                        style="display: block; margin-bottom: 5px; font-weight: bold;">文件夹名称:</label>
-                    <input type="text" id="folderNameInput" placeholder="请输入文件夹名称"
+                        style="display: block; margin-bottom: 5px; font-weight: bold;">Folder Name:</label>
+                    <input type="text" id="folderNameInput" placeholder="Enter folder name"
                         style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                 </div>
                 <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">创建位置:</label>
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Location:</label>
                     <div id="createFolderLocation"
                         style="padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; color: #666;">
-                        正在获取当前位置...
+                        Getting current location...
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="createFolder()">创建</button>
-                <button class="btn btn-outline-secondary" onclick="closeCreateFolderDialog()">取消</button>
+                <button class="btn btn-primary" onclick="createFolder()">Create</button>
+                <button class="btn btn-outline-secondary" onclick="closeCreateFolderDialog()">Cancel</button>
             </div>
         </div>
     </div>
 
-    <!-- 质量设置模态框 -->
+    <!-- Quality Settings Modal -->
     <div id="qualitySettingsModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h3>⚙️ 截图质量设置</h3>
+                <h3>⚙️ Screenshot Quality Settings</h3>
                 <button class="modal-close" onclick="closeQualitySettings()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="settings-section">
-                    <h4>📏 图像尺寸设置</h4>
+                    <h4>📏 Image Size Settings</h4>
                     <div class="setting-group">
-                        <label>单显示器最大宽度:</label>
+                        <label>Single Monitor Max Width:</label>
                         <input type="number" id="singleMonitorWidth" min="800" max="2000" step="50">
                     </div>
                     <div class="setting-group">
-                        <label>单显示器最大高度:</label>
+                        <label>Single Monitor Max Height:</label>
                         <input type="number" id="singleMonitorHeight" min="600" max="1500" step="50">
                     </div>
                     <div class="setting-group">
-                        <label>桌面截图最大宽度:</label>
+                        <label>Desktop Screenshot Max Width:</label>
                         <input type="number" id="desktopWidth" min="1200" max="2500" step="50">
                     </div>
                     <div class="setting-group">
-                        <label>桌面截图最大高度:</label>
+                        <label>Desktop Screenshot Max Height:</label>
                         <input type="number" id="desktopHeight" min="800" max="1800" step="50">
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <h4>🎨 图像质量设置</h4>
+                    <h4>🎨 Image Quality Settings</h4>
                     <div class="setting-group">
-                        <label>图像格式:</label>
+                        <label>Image Format:</label>
                         <select id="imageFormat">
-                            <option value="jpeg">JPEG (较小文件，质量稍低)</option>
-                            <option value="png">PNG (高质量，文件较大)</option>
+                            <option value="jpeg">JPEG (smaller file, lower quality)</option>
+                            <option value="png">PNG (high quality, larger file)</option>
                         </select>
                     </div>
                     <div class="setting-group">
-                        <label>PNG质量 (1-100):</label>
+                        <label>PNG Quality (1-100):</label>
                         <input type="range" id="pngQuality" min="1" max="100" step="1">
                         <span id="pngQualityValue">60</span>
                     </div>
                     <div class="setting-group">
-                        <label>JPEG质量 (1-100):</label>
+                        <label>JPEG Quality (1-100):</label>
                         <input type="range" id="jpegQuality" min="1" max="100" step="1">
                         <span id="jpegQualityValue">60</span>
                     </div>
                     <div class="setting-group">
-                        <label>PNG压缩级别 (0-9):</label>
+                        <label>PNG Compression Level (0-9):</label>
                         <input type="range" id="compressionLevel" min="0" max="9" step="1">
                         <span id="compressionLevelValue">6</span>
                     </div>
                     <div class="setting-group">
                         <label>
-                            <input type="checkbox" id="optimizePng"> 启用PNG优化
+                            <input type="checkbox" id="optimizePng"> Enable PNG Optimization
                         </label>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" onclick="saveQualitySettings()">保存设置</button>
-                <button class="btn btn-outline-secondary" onclick="closeQualitySettings()">取消</button>
+                <button class="btn btn-primary" onclick="saveQualitySettings()">Save Settings</button>
+                <button class="btn btn-outline-secondary" onclick="closeQualitySettings()">Cancel</button>
             </div>
         </div>
     </div>
 
-    <!-- 缓存管理模态框 -->
+    <!-- Cache Manager Modal -->
     <div id="cacheManagerModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h3>💾 缓存管理</h3>
+                <h3>💾 Cache Manager</h3>
                 <button class="modal-close" onclick="closeCacheManager()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="cache-stats">
-                    <h4>📊 缓存统计</h4>
+                    <h4>📊 Cache Stats</h4>
                     <div class="stat-item">
-                        <span class="stat-label">当前缓存数量:</span>
+                        <span class="stat-label">Current Cache Size:</span>
                         <span class="stat-value" id="currentCacheSize">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">最大缓存数量:</span>
+                        <span class="stat-label">Max Cache Size:</span>
                         <span class="stat-value" id="maxCacheSizeDisplay">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">缓存命中率:</span>
+                        <span class="stat-label">Cache Hit Rate:</span>
                         <span class="stat-value" id="cacheHitRate">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">总请求数:</span>
+                        <span class="stat-label">Total Requests:</span>
                         <span class="stat-value" id="totalRequests">-</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">缓存命中数:</span>
+                        <span class="stat-label">Cache Hits:</span>
                         <span class="stat-value" id="cacheHits">-</span>
                     </div>
                 </div>
 
                 <div class="cache-actions">
-                    <h4>🔧 缓存操作</h4>
-                    <button class="btn btn-warning" onclick="clearCache()">🗑️ 清除所有缓存</button>
-                    <button class="btn btn-info" onclick="refreshCacheStats()">🔄 刷新统计</button>
+                    <h4>🔧 Cache Actions</h4>
+                    <button class="btn btn-warning" onclick="clearCache()">🗑️ Clear All Cache</button>
+                    <button class="btn btn-info" onclick="refreshCacheStats()">🔄 Refresh Stats</button>
                 </div>
 
                 <div class="cache-info">
-                    <h4>ℹ️ 缓存说明</h4>
-                    <p>• 缓存可以显著提高截图传输速度</p>
-                    <p>• 相同设置的截图会被缓存，避免重复处理</p>
-                    <p>• 缓存会自动清理过期和超量的项目</p>
-                    <p>• 修改质量设置会自动清除缓存</p>
+                    <h4>ℹ️ Cache Info</h4>
+                    <p>• Cache can significantly improve screenshot transfer speed</p>
+                    <p>• Screenshots with the same settings will be cached to avoid repeated processing</p>
+                    <p>• Cache will automatically clean up expired and excessive items</p>
+                    <p>• Changing quality settings will automatically clear the cache</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline-secondary" onclick="closeCacheManager()">关闭</button>
+                <button class="btn btn-outline-secondary" onclick="closeCacheManager()">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- 远程控制面板 -->
+    <!-- Remote Control Panel -->
     <div id="remoteControlPanel" class="remote-control-panel" style="display: none;">
         <div class="remote-control-header">
-            <h3>🖱️ 远程控制</h3>
+            <h3>🖱️ Remote Control</h3>
             <button class="remote-control-close" onclick="toggleRemoteControl()">&times;</button>
         </div>
         <div class="remote-control-body">
             <div class="control-section">
-                <h4>📝 文本输入</h4>
+                <h4>📝 Text Input</h4>
                 <div class="input-group">
-                    <input type="text" id="remoteTextInput" placeholder="输入要发送的文本..." style="width: 200px;">
-                    <button class="btn btn-primary" onclick="sendRemoteText()">发送</button>
+                    <input type="text" id="remoteTextInput" placeholder="Enter text to send..." style="width: 200px;">
+                    <button class="btn btn-primary" onclick="sendRemoteText()">Send</button>
                 </div>
             </div>
             
             <div class="control-section">
-                <h4>⌨️ 常用按键</h4>
+                <h4>⌨️ Common Keys</h4>
                 <div class="key-buttons">
                     <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('enter')">Enter</button>
                     <button class="btn btn-sm btn-secondary" onclick="sendRemoteKey('tab')">Tab</button>
@@ -429,7 +402,7 @@
             </div>
             
             <div class="control-section">
-                <h4>🔧 组合键</h4>
+                <h4>🔧 Hotkeys</h4>
                 <div class="hotkey-buttons">
                     <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['ctrl', 'c'])">Ctrl+C</button>
                     <button class="btn btn-sm btn-warning" onclick="sendRemoteHotkey(['ctrl', 'v'])">Ctrl+V</button>
@@ -441,14 +414,14 @@
             </div>
             
             <div class="control-section">
-                <h4>ℹ️ 操作说明</h4>
+                <h4>ℹ️ Instructions</h4>
                 <div class="control-info">
-                    <p>• 点击截图上的任意位置进行鼠标点击</p>
-                    <p>• 双击截图进行双击操作</p>
-                    <p>• 右键点击截图进行右键操作</p>
-                    <p>• 拖拽截图进行选择操作</p>
-                    <p>• 使用滚轮在截图上滚动</p>
-                    <p>• 在文本框中输入内容后点击发送</p>
+                    <p>• Click anywhere on the screenshot to perform a mouse click</p>
+                    <p>• Double-click the screenshot for double-click operation</p>
+                    <p>• Right-click the screenshot for right-click operation</p>
+                    <p>• Drag the screenshot to select</p>
+                    <p>• Use the mouse wheel to scroll on the screenshot</p>
+                    <p>• Enter text in the input box and click send</p>
                 </div>
             </div>
         </div>
@@ -461,17 +434,17 @@ function toggleRemoteControl() {
         .then(data => {
             if(data.status === 'ok') {
                 console.log('Remote control toggled');
-                // 更新UI状态
+                // Update UI state
             }
         })
         .catch(error => console.error('Error:', error));
 }
 
-// 添加 WebSocket 连接
+// Add WebSocket connection
 const ws = new WebSocket('ws://localhost:8000/ws');
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
-    // 处理服务器消息
+    // Handle server messages
 };
 </script>
 </body>
