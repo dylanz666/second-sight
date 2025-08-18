@@ -1750,8 +1750,6 @@ async def upload_multiple_files(
 @app.get("/files")
 async def list_uploaded_files(folder: str = None):
     """获取已上传文件列表"""
-    import time
-
     start_time = time.time()
     timeout_seconds = 15
 
@@ -2046,8 +2044,6 @@ async def create_folder(folder_data: dict):
 @app.get("/directories")
 async def list_available_directories(path: str = ""):
     """Get the list of directories under the specified path"""
-    import time
-
     start_time = time.time()
     timeout_seconds = 10
 
@@ -2163,8 +2159,6 @@ async def list_available_directories(path: str = ""):
 @app.get("/system-directories")
 async def list_system_directories(path: str = ""):
     """浏览系统根目录下的文件系统"""
-    import time
-
     start_time = time.time()
     timeout_seconds = 10
 
