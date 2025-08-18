@@ -98,7 +98,7 @@ body {
     background: black;
 }
 
-/* 多显示器样式 */
+/* Multi-monitor styles */
 .monitor-item {
     background: white;
     border-radius: 12px;
@@ -112,7 +112,7 @@ body {
     overflow: hidden;
 }
 
-/* 移除显示器悬停效果 */
+/* Remove monitor hover effect */
 /* .monitor-item:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 35px rgba(0,0,0,0.15);
@@ -249,12 +249,12 @@ body {
     height: 100px;
 }
 
-/* 按钮点击时的缩放效果 */
+/* Button click scaling effect */
 .monitor-btn-toggle:active {
     transform: scale(0.95);
 }
 
-/* 收起状态下的脉冲动画 */
+/* Pulse animation for collapsed state */
 @keyframes pulse {
     0% {
         transform: scale(1);
@@ -267,7 +267,7 @@ body {
     }
 }
 
-/* 按钮状态切换动画 */
+/* Button state toggle animation */
 .monitor-btn-toggle {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -284,7 +284,7 @@ body {
     transform: translateY(-2px);
 }
 
-/* 按钮图标动画 */
+/* Button icon animation */
 .monitor-btn-toggle::after {
     content: '';
     display: inline-block;
@@ -296,7 +296,7 @@ body {
     transform: rotate(180deg);
 }
 
-/* 收起状态的显示器容器样式 */
+/* Collapsed state monitor container style */
 .monitor-item.collapsed .monitor-image {
     display: none;
 }
@@ -316,7 +316,7 @@ body {
 }
 
 .monitor-item.collapsed::after {
-    content: '📷 显示器已收起';
+    content: '📷 Monitor collapsed';
     position: relative;
     top: auto;
     left: auto;
@@ -332,24 +332,24 @@ body {
     margin-bottom: 15px;
 }
 
-/* 收起状态下的标题样式 */
+/* Title style in collapsed state */
 .monitor-item.collapsed .monitor-title {
     margin-bottom: 5px;
     opacity: 0.8;
 }
 
-/* 收起状态下的信息样式 */
+/* Info style in collapsed state */
 .monitor-item.collapsed .monitor-info {
     opacity: 0.6;
 }
 
-/* 收起状态下的控制按钮样式 */
+/* Control button style in collapsed state */
 .monitor-item.collapsed .monitor-controls {
     margin-top: 0;
     order: 2;
 }
 
-/* 所有显示器收起时的占位符样式 */
+/* Placeholder style when all monitors are collapsed */
 .monitor-item.collapsed-placeholder {
     min-height: 400px;
     display: flex;
@@ -394,7 +394,7 @@ body {
     opacity: 0.8;
 }
 
-/* 展开所有显示器按钮样式 */
+/* Expand all monitors button style */
 .expand-all-btn {
     background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     color: white;
@@ -421,7 +421,7 @@ body {
     box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3);
 }
 
-/* 展开动画 */
+/* Expand animation */
 .monitor-image {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
@@ -708,7 +708,7 @@ body {
     margin: 10px 0;
 }
 
-/* 趋势图样式 */
+/* Trend chart styles */
 .trend-chart-container {
     display: flex;
     align-items: center;
@@ -744,7 +744,7 @@ body {
         flex-direction: column;
     }
     
-    /* 移动端收起/展开按钮样式 */
+    /* Mobile expand/collapse button styles */
     .monitor-controls {
         flex-direction: column;
         gap: 5px;
@@ -759,7 +759,7 @@ body {
         order: 1;
     }
     
-    /* 移动端收起状态样式 */
+    /* Mobile collapsed state styles */
     .monitor-item.collapsed {
         padding: 15px;
     }
@@ -803,9 +803,9 @@ body {
     }
 }
 
-/* 文件上传样式 */
+/* File upload styles */
 
-/* 文件管理卡片中的上传按钮样式 */
+/* Upload button style in file management card */
 .status-card h3 .file-input-wrapper {
     display: flex;
     gap: 4px;
@@ -826,7 +826,7 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-/* 文件夹选择按钮样式 */
+/* Folder selection button style */
 .btn-secondary {
     background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
     color: white;
@@ -841,7 +841,7 @@ body {
     box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
 }
 
-/* 按钮尺寸变体 */
+/* Button size variants */
 .btn-sm {
     padding: 4px 12px;
     font-size: 12px;
@@ -858,7 +858,7 @@ body {
     border-radius: 8px;
 }
 
-/* 轮廓按钮样式 */
+/* Outline button styles */
 .btn-outline-primary {
     background: transparent;
     color: #007bff;
@@ -937,13 +937,13 @@ body {
     box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
-/* 路径信息显示样式 */
+/* Path information display style */
 .path-info {
     border-left: 3px solid #007bff;
     background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
-/* 路径选择模态框样式 */
+/* Path selection modal styles */
 .modal {
     position: fixed;
     top: 0;
@@ -958,7 +958,7 @@ body {
     animation: modalFadeIn 0.3s ease-out;
 }
 
-/* 确保质量设置模态框水平和垂直居中 */
+/* Ensure quality settings modal is centered horizontally and vertically */
 #qualitySettingsModal {
     display: flex;
     justify-content: center;
@@ -983,7 +983,7 @@ body {
     max-height: calc(100vh - 200px);
 }
 
-/* 确保缓存管理模态框水平和垂直居中 */
+/* Ensure cache management modal is centered horizontally and vertically */
 #cacheManagerModal {
     display: flex;
     justify-content: center;
@@ -1008,12 +1008,12 @@ body {
     max-height: calc(100vh - 200px);
 }
 
-/* 嵌套模态框样式 - 确保在父模态框之上 */
+/* Nested modal styles - ensure it's above parent modal */
 #createFolderModal {
     z-index: 1001;
 }
 
-/* 模态框Loading遮罩样式 */
+/* Modal loading overlay style */
 .modal-loading-overlay {
     position: absolute;
     top: 0;
@@ -1084,7 +1084,7 @@ body {
     background: #555;
 }
 
-/* 为模态框内容区域添加滚动条样式 */
+/* Scrollbar style for modal body area */
 .modal-body::-webkit-scrollbar {
     width: 10px;
 }
@@ -1170,7 +1170,7 @@ body {
     word-break: break-all;
 }
 
-/* 可复制的路径输入框样式 */
+/* Copyable path input style */
 .path-input-wrapper {
     position: relative;
     width: 100%;
@@ -1245,7 +1245,7 @@ body {
     font-size: 13px;
     position: relative;
     border-left: 4px solid transparent;
-    /* 确保与图片中的布局一致 */
+    /* Ensure consistent layout with images */
     min-height: 48px;
     box-sizing: border-box;
 }
@@ -1262,7 +1262,7 @@ body {
     position: relative;
     font-weight: 500 !important;
     z-index: 1;
-    /* 确保选中效果与图片一致 */
+    /* Ensure selected effect matches images */
     border-radius: 4px;
     margin: 2px 0;
 }
@@ -1274,7 +1274,7 @@ body {
     font-weight: 500 !important;
 }
 
-/* 确保选中状态在所有情况下都保持 */
+/* Ensure selected state remains in all cases */
 .path-item.selected:focus {
     background-color: #e3f2fd !important;
     border-left: 4px solid #2196f3 !important;
@@ -1289,18 +1289,6 @@ body {
     font-weight: 500 !important;
 }
 
-/* 移除选中状态的勾选图标，与图片保持一致 */
-/* .path-item.selected::after {
-    content: '✓';
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #2196f3;
-    font-weight: bold;
-    font-size: 14px;
-} */
-
 .path-item:last-child {
     border-bottom: none;
 }
@@ -1310,7 +1298,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    /* 确保与图片中的显示一致 */
+    /* Ensure consistent display with images */
     font-weight: normal;
     color: #333;
 }
@@ -1318,7 +1306,7 @@ body {
 .path-item .path-name::before {
     content: "📁";
     font-size: 14px;
-    /* 确保文件夹图标与图片一致 */
+    /* Ensure folder icon matches images */
     margin-right: 4px;
 }
 
@@ -1336,7 +1324,7 @@ body {
     font-size: 11px;
     min-width: 24px;
     text-align: center;
-    /* 显示文件夹数量，确保与图片中的灰色椭圆显示一致 */
+    /* Display folder count, ensure matches gray ellipse in images */
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1356,7 +1344,7 @@ body {
     font-style: italic;
 }
 
-/* 错误提示样式 */
+/* Error message style */
 .error-placeholder {
     padding: 20px;
     text-align: center;
@@ -1426,7 +1414,7 @@ body {
     border: 1px solid #e9ecef;
 }
 
-/* 已选择文件项样式 */
+/* Selected file item style */
 .selected-file-item {
     display: flex;
     align-items: center;
@@ -1487,7 +1475,7 @@ body {
     transform: scale(0.95);
 }
 
-/* 文件名悬停提示样式 */
+/* File name hover tooltip style */
 .selected-file-item .file-name {
     position: relative;
     cursor: help;
@@ -1556,7 +1544,7 @@ body {
     font-weight: 600;
 }
 
-/* 文件列表样式 */
+/* File list styles */
 .file-list {
     max-height: 300px;
     overflow-y: auto;
@@ -1641,7 +1629,7 @@ body {
     transform: scale(1.05);
 }
 
-/* 响应式文件上传样式 */
+/* Responsive file upload styles */
 @media (max-width: 768px) {
     .status-card h3 {
         flex-direction: column;
@@ -1694,7 +1682,7 @@ body {
     }
 } 
 
-/* ==================== 通知提示样式 ==================== */
+/* ==================== Notification styles ==================== */
 
 .notification-popup {
     position: fixed;
@@ -1786,7 +1774,7 @@ body {
     transform: scale(0.9);
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (max-width: 768px) {
     .notification-popup {
         top: 10px;
@@ -1838,7 +1826,7 @@ body {
     }
 }
 
-/* 质量设置和缓存管理模态框样式 */
+/* Quality settings and cache management modal styles */
 .settings-section {
     margin-bottom: 25px;
     padding: 15px;
@@ -1916,7 +1904,7 @@ body {
     color: #007bff;
 }
 
-/* 缓存管理样式 */
+/* Cache management styles */
 .cache-stats {
     margin-bottom: 25px;
     padding: 15px;
@@ -2006,7 +1994,7 @@ body {
     margin-bottom: 0;
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (max-width: 768px) {
     .setting-group {
         flex-direction: column;
@@ -2030,7 +2018,7 @@ body {
     }
 }
 
-/* 远程控制面板样式 */
+/* Remote control panel styles */
 .remote-control-panel {
     position: fixed;
     top: 50%;
@@ -2043,7 +2031,7 @@ body {
     z-index: 1000;
     border: 1px solid #e0e0e0;
     max-height: 83vh;
-    /* 纵向滚动条 */
+    /* Vertical scrollbar */
     /* overflow-y: auto; */
 }
 
@@ -2149,7 +2137,7 @@ body {
     margin-bottom: 0;
 }
 
-/* 远程控制状态指示器 */
+/* Remote control status indicator */
 .remote-control-active {
     position: relative;
 }
@@ -2167,7 +2155,7 @@ body {
     animation: pulse 2s infinite;
 }
 
-/* 截图远程控制样式 */
+/* Screenshot remote control style */
 .screenshot-image.remote-control-enabled {
     cursor: default;
 }
@@ -2184,7 +2172,7 @@ body {
     box-shadow: 0 0 0 2px rgba(102,126,234,0.5);
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (max-width: 768px) {
     .remote-control-panel {
         width: 280px;
