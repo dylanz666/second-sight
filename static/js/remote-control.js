@@ -1,19 +1,19 @@
-// ==================== 远程控制功能 ====================
+// ==================== Remote Control Functionality ====================
 
-// 远程控制相关变量
+// Remote control related variables
 let isRemoteControlEnabled = false;
 let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 
-// 初始化远程控制
+// Initialize remote control
 function initRemoteControl() {
     setupScreenshotClickEvents();
     setupDragEvents();
-    window.addLog && window.addLog('远程控制', '远程控制功能已初始化', 'info');
+    window.addLog && window.addLog('Remote Control', 'Remote control functionality initialized', 'info');
 }
 
-// 切换远程控制状态
+// Toggle remote control state
 function toggleRemoteControl() {
     isRemoteControlEnabled = !isRemoteControlEnabled;
     const panel = document.getElementById('remoteControlPanel');
@@ -21,17 +21,17 @@ function toggleRemoteControl() {
     if (isRemoteControlEnabled) {
         panel.style.display = 'block';
         btn.classList.add('remote-control-active');
-        btn.textContent = '🖱️ 关闭控制';
+        btn.textContent = '🖱️ Disable Control';
         enableScreenshotControl();
-        window.addLog && window.addLog('远程控制', '远程控制已启用', 'success');
-        window.showNotification && window.showNotification('远程控制已启用，点击截图进行操作', 'success');
+        window.addLog && window.addLog('Remote Control', 'Remote control enabled', 'success');
+        window.showNotification && window.showNotification('Remote control enabled, click screenshot to operate', 'success');
     } else {
         panel.style.display = 'none';
         btn.classList.remove('remote-control-active');
-        btn.textContent = '🖱️ 远程控制';
+        btn.textContent = '🖱️ Remote Control';
         disableScreenshotControl();
-        window.addLog && window.addLog('远程控制', '远程控制已禁用', 'info');
-        window.showNotification && window.showNotification('远程控制已禁用', 'info');
+        window.addLog && window.addLog('Remote Control', 'Remote control disabled', 'info');
+        window.showNotification && window.showNotification('Remote control disabled', 'info');
     }
 }
 
@@ -84,108 +84,100 @@ function setupImageEvents(img) {
 }
 
 function handleScreenshotClick(event) {
-    if (!isRemoteControlEnabled) {
-        console.log('远程控制未启用，忽略点击');
-        return;
-    }
     event.preventDefault();
     event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
-    // 计算百分比位置
+
+    // Calculate percentage position
     const percentX = (x / rect.width) * 100;
     const percentY = (y / rect.height) * 100;
-    
+
     const monitorIndex = getMonitorIndexFromImage(event.target);
-    console.log(`准备发送远程点击: 像素(${x.toFixed(1)}, ${y.toFixed(1)}), 百分比(${percentX.toFixed(2)}%, ${percentY.toFixed(2)}%), 监视器索引: ${monitorIndex}`);
-    sendRemoteClick(percentX, percentY, monitorIndex, true); // 添加百分比标志
+    console.log(`Preparing to send remote click: Pixels(${x.toFixed(1)}, ${y.toFixed(1)}), Percentage(${percentX.toFixed(2)}%, ${percentY.toFixed(2)}%), Monitor index: ${monitorIndex}`);
+    sendRemoteClick(percentX, percentY, monitorIndex, true); // Add percentage flag
 }
 
 function handleScreenshotDoubleClick(event) {
-    if (!isRemoteControlEnabled) return;
     event.preventDefault();
     event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
-    // 计算百分比位置
+
+    // Calculate percentage position
     const percentX = (x / rect.width) * 100;
     const percentY = (y / rect.height) * 100;
-    
+
     const monitorIndex = getMonitorIndexFromImage(event.target);
     sendRemoteDoubleClick(percentX, percentY, monitorIndex, true);
 }
 
 function handleScreenshotRightClick(event) {
-    if (!isRemoteControlEnabled) return;
     event.preventDefault();
     event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
-    // 计算百分比位置
+
+    // Calculate percentage position
     const percentX = (x / rect.width) * 100;
     const percentY = (y / rect.height) * 100;
-    
+
     const monitorIndex = getMonitorIndexFromImage(event.target);
     sendRemoteRightClick(percentX, percentY, monitorIndex, true);
 }
 
 function handleScreenshotMouseDown(event) {
-    if (!isRemoteControlEnabled) return;
     if (event.button === 0) {
         isDragging = true;
         const rect = event.target.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        
-        // 保存百分比位置
+
+        // Save percentage position
         dragStartX = (x / rect.width) * 100;
         dragStartY = (y / rect.height) * 100;
     }
 }
 
 function handleScreenshotMouseMove(event) {
-    if (!isRemoteControlEnabled || !isDragging) return;
-    // 可选：拖拽时的视觉反馈
+    event.preventDefault();
+    event.stopPropagation();
+    // Optional: Visual feedback during dragging
 }
 
 function handleScreenshotMouseUp(event) {
-    if (!isRemoteControlEnabled || !isDragging) return;
     isDragging = false;
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
-    // 计算结束位置的百分比
+
+    // Calculate percentage of end position
     const endX = (x / rect.width) * 100;
     const endY = (y / rect.height) * 100;
-    
+
     const monitorIndex = getMonitorIndexFromImage(event.target);
-    
-    // 使用百分比计算距离
+
+    // Calculate distance using percentages
     const distance = Math.sqrt((endX - dragStartX) ** 2 + (endY - dragStartY) ** 2);
-    if (distance > 2) { // 百分比阈值调小
+    if (distance > 2) { // Smaller percentage threshold
         sendRemoteDrag(dragStartX, dragStartY, endX, endY, monitorIndex, true);
     }
 }
 
 function handleScreenshotWheel(event) {
-    if (!isRemoteControlEnabled) return;
     event.preventDefault();
     event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
-    // 计算百分比位置
+
+    // Calculate percentage position
     const percentX = (x / rect.width) * 100;
     const percentY = (y / rect.height) * 100;
-    
+
     const monitorIndex = getMonitorIndexFromImage(event.target);
     const clicks = event.deltaY > 0 ? -3 : 3;
     sendRemoteScroll(percentX, percentY, clicks, monitorIndex, true);
@@ -210,32 +202,32 @@ function getMonitorIndexFromImage(img) {
 
 async function sendRemoteClick(x, y, monitorIndex = 0, usePercentage = false) {
     try {
-        const coordType = usePercentage ? '百分比' : '像素';
+        const coordType = usePercentage ? 'percentage' : 'pixel';
         const serverUrl = window.getServerBaseUrl() + '/remote/click';
-        
+
         const response = await fetch(serverUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                x, 
-                y, 
+            body: JSON.stringify({
+                x,
+                y,
                 monitor_index: monitorIndex,
                 use_percentage: usePercentage
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `点击成功: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
-            console.log('远程点击成功');
+            window.addLog && window.addLog('Remote Control', `Click successful: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
+            console.log('Remote click successful');
         } else {
-            window.addLog && window.addLog('远程控制', `点击失败: ${result.message}`, 'error');
-            console.error('远程点击失败:', result.message);
+            window.addLog && window.addLog('Remote Control', `Click failed: ${result.message}`, 'error');
+            console.error('Remote click failed:', result.message);
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `点击操作失败: ${error.message}`, 'error');
-        console.error('发送远程点击请求失败:', error);
+        window.addLog && window.addLog('Remote Control', `Click operation failed: ${error.message}`, 'error');
+        console.error('Failed to send remote click request:', error);
     }
 }
 
@@ -244,22 +236,22 @@ async function sendRemoteDoubleClick(x, y, monitorIndex = 0, usePercentage = fal
         const response = await fetch(window.getServerBaseUrl() + '/remote/double-click', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                x, 
-                y, 
+            body: JSON.stringify({
+                x,
+                y,
                 monitor_index: monitorIndex,
-                use_percentage: usePercentage 
+                use_percentage: usePercentage
             })
         });
         const result = await response.json();
-        const coordType = usePercentage ? '百分比' : '像素';
+        const coordType = usePercentage ? 'percentage' : 'pixel';
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `双击成功: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
+            window.addLog && window.addLog('Remote Control', `Double click successful: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
         } else {
-            window.addLog && window.addLog('远程控制', `双击失败: ${result.message}`, 'error');
+            window.addLog && window.addLog('Remote Control', `Double click failed: ${result.message}`, 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `双击操作失败: ${error.message}`, 'error');
+        window.addLog && window.addLog('Remote Control', `Double click operation failed: ${error.message}`, 'error');
     }
 }
 
@@ -268,22 +260,22 @@ async function sendRemoteRightClick(x, y, monitorIndex = 0, usePercentage = fals
         const response = await fetch(window.getServerBaseUrl() + '/remote/right-click', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                x, 
-                y, 
+            body: JSON.stringify({
+                x,
+                y,
                 monitor_index: monitorIndex,
-                use_percentage: usePercentage 
+                use_percentage: usePercentage
             })
         });
         const result = await response.json();
-        const coordType = usePercentage ? '百分比' : '像素';
+        const coordType = usePercentage ? 'percentage' : 'pixel';
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `右键点击成功: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
+            window.addLog && window.addLog('Remote Control', `Right click successful: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
         } else {
-            window.addLog && window.addLog('远程控制', `右键点击失败: ${result.message}`, 'error');
+            window.addLog && window.addLog('Remote Control', `Right click failed: ${result.message}`, 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `右键点击操作失败: ${error.message}`, 'error');
+        window.addLog && window.addLog('Remote Control', `Right click operation failed: ${error.message}`, 'error');
     }
 }
 
@@ -292,24 +284,24 @@ async function sendRemoteDrag(startX, startY, endX, endY, monitorIndex = 0, useP
         const response = await fetch(window.getServerBaseUrl() + '/remote/drag', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                start_x: startX, 
-                start_y: startY, 
-                end_x: endX, 
-                end_y: endY, 
+            body: JSON.stringify({
+                start_x: startX,
+                start_y: startY,
+                end_x: endX,
+                end_y: endY,
                 monitor_index: monitorIndex,
-                use_percentage: usePercentage 
+                use_percentage: usePercentage
             })
         });
         const result = await response.json();
-        const coordType = usePercentage ? '百分比' : '像素';
+        const coordType = usePercentage ? 'percentage' : 'pixel';
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `拖拽成功: ${coordType}(${startX.toFixed(2)}, ${startY.toFixed(2)}) -> (${endX.toFixed(2)}, ${endY.toFixed(2)})`, 'success');
+            window.addLog && window.addLog('Remote Control', `Drag successful: ${coordType}(${startX.toFixed(2)}, ${startY.toFixed(2)}) -> (${endX.toFixed(2)}, ${endY.toFixed(2)})`, 'success');
         } else {
-            window.addLog && window.addLog('远程控制', `拖拽失败: ${result.message}`, 'error');
+            window.addLog && window.addLog('Remote Control', `Drag failed: ${result.message}`, 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `拖拽操作失败: ${error.message}`, 'error');
+        window.addLog && window.addLog('Remote Control', `Drag operation failed: ${error.message}`, 'error');
     }
 }
 
@@ -318,23 +310,23 @@ async function sendRemoteScroll(x, y, clicks, monitorIndex = 0, usePercentage = 
         const response = await fetch(window.getServerBaseUrl() + '/remote/scroll', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                x, 
-                y, 
-                clicks, 
+            body: JSON.stringify({
+                x,
+                y,
+                clicks,
                 monitor_index: monitorIndex,
-                use_percentage: usePercentage 
+                use_percentage: usePercentage
             })
         });
         const result = await response.json();
-        const coordType = usePercentage ? '百分比' : '像素';
+        const coordType = usePercentage ? 'percentage' : 'pixel';
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `滚轮操作成功: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)}) 滚动 ${clicks}`, 'success');
+            window.addLog && window.addLog('Remote Control', `Scroll operation successful: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)}) scroll ${clicks}`, 'success');
         } else {
-            window.addLog && window.addLog('远程控制', `滚轮操作失败: ${result.message}`, 'error');
+            window.addLog && window.addLog('Remote Control', `Scroll operation failed: ${result.message}`, 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `滚轮操作失败: ${error.message}`, 'error');
+        window.addLog && window.addLog('Remote Control', `Scroll operation failed: ${error.message}`, 'error');
     }
 }
 
@@ -342,7 +334,7 @@ async function sendRemoteText() {
     const textInput = document.getElementById('remoteTextInput');
     const text = textInput.value.trim();
     if (!text) {
-        window.showNotification && window.showNotification('请输入要发送的文本', 'warning');
+        window.showNotification && window.showNotification('Please enter text to send', 'warning');
         return;
     }
     try {
@@ -353,22 +345,22 @@ async function sendRemoteText() {
         });
         const result = await response.json();
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `文本发送成功: ${text}`, 'success');
-            window.showNotification && window.showNotification('文本发送成功', 'success');
+            window.addLog && window.addLog('Remote Control', `Text sent successfully: ${text}`, 'success');
+            window.showNotification && window.showNotification('Text sent successfully', 'success');
             textInput.value = '';
         } else {
-            window.addLog && window.addLog('远程控制', `文本发送失败: ${result.message}`, 'error');
-            window.showNotification && window.showNotification('文本发送失败', 'error');
+            window.addLog && window.addLog('Remote Control', `Text sending failed: ${result.message}`, 'error');
+            window.showNotification && window.showNotification('Text sending failed', 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `文本发送失败: ${error.message}`, 'error');
-        window.showNotification && window.showNotification('文本发送失败', 'error');
+        window.addLog && window.addLog('Remote Control', `Text sending failed: ${error.message}`, 'error');
+        window.showNotification && window.showNotification('Text sending failed', 'error');
     }
 }
 
-// 调试远程 keyboard 动作用
+// For debugging remote keyboard actions
 function waitFiveSeconds() {
-    console.log('等待5秒钟以确保前面的操作完成...');
+    console.log('Waiting 5 seconds to ensure previous operations are completed...');
     return new Promise(resolve => setTimeout(resolve, 5000));
 }
 
@@ -381,12 +373,12 @@ async function sendRemoteKey(key) {
         });
         const result = await response.json();
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `按键成功: ${key}`, 'success');
+            window.addLog && window.addLog('Remote Control', `Key pressed successfully: ${key}`, 'success');
         } else {
-            window.addLog && window.addLog('远程控制', `按键失败: ${result.message}`, 'error');
+            window.addLog && window.addLog('Remote Control', `Key press failed: ${result.message}`, 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `按键操作失败: ${error.message}`, 'error');
+        window.addLog && window.addLog('Remote Control', `Key press operation failed: ${error.message}`, 'error');
     }
 }
 
@@ -399,16 +391,16 @@ async function sendRemoteHotkey(keys) {
         });
         const result = await response.json();
         if (result.success) {
-            window.addLog && window.addLog('远程控制', `组合键成功: ${keys.join('+')}`, 'success');
+            window.addLog && window.addLog('Remote Control', `Hotkey pressed successfully: ${keys.join('+')}`, 'success');
         } else {
-            window.addLog && window.addLog('远程控制', `组合键失败: ${result.message}`, 'error');
+            window.addLog && window.addLog('Remote Control', `Hotkey press failed: ${result.message}`, 'error');
         }
     } catch (error) {
-        window.addLog && window.addLog('远程控制', `组合键操作失败: ${error.message}`, 'error');
+        window.addLog && window.addLog('Remote Control', `Hotkey operation failed: ${error.message}`, 'error');
     }
 }
 
-// 挂载到 window 以便外部调用
+// Mount to window for external calls
 window.initRemoteControl = initRemoteControl;
 window.toggleRemoteControl = toggleRemoteControl;
 window.sendRemoteText = sendRemoteText;
