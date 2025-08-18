@@ -1,24 +1,24 @@
-// 文件管理模块 - 文件上传和路径选择功能
+// File management module - File upload and path selection functions
 
-// 处理合并后的上传文件按钮
+// Handle merged upload file button
 function handleFileUpload() {
-    // 如果没有选择文件，先触发文件选择
+    // If no files are selected, trigger file selection first
     if (selectedFiles.length === 0) {
         document.getElementById('fileInput').click();
         return;
     }
 
-    // 如果已经有文件选择，直接上传
+    // If files are already selected, upload directly
     uploadFiles();
 }
 
-// 处理文件选择
+// Handle file selection
 function handleFileSelection(event) {
     const files = Array.from(event.target.files);
     const oversizedFiles = [];
 
     selectedFiles = files.filter(file => {
-        // 检查文件大小 (100MB限制)
+        // Check file size (100MB limit)
         if (file.size > 100 * 1024 * 1024) {
             oversizedFiles.push(file.name);
             return false;
@@ -26,18 +26,18 @@ function handleFileSelection(event) {
         return true;
     });
 
-    // 显示超大文件的警告
+    // Display warning for oversized files
     if (oversizedFiles.length > 0) {
-        const warningMsg = `文件 ${oversizedFiles.join(', ')} 超过100MB限制，已跳过`;
-        addLog('上传文件', warningMsg, 'warning');
+        const warningMsg = `Files ${oversizedFiles.join(', ')} exceed the 100MB limit and have been skipped`;
+        addLog('File upload', warningMsg, 'warning');
         showNotification(warningMsg, 'warning', 4000);
     }
 
     updateFileSelectionUI();
 }
 
-// 处理路径选择按钮点击 - 现在显示下拉框
-// 打开路径选择模态框
+// Handle path selection button click - now show dropdown
+// Open path selection modal
 function openPathModal() {
     const modal = document.getElementById('pathModal');
 
@@ -48,101 +48,101 @@ function openPathModal() {
 
     modal.style.display = 'flex';
 
-    // 重新显示目标路径元素
+    // Redisplay target path element
     const pathInfo = document.getElementById('pathInfo');
     if (pathInfo) {
         pathInfo.style.display = 'block';
     }
 
-    // 重置路径导航历史
+    // Reset path navigation history
     pathHistory = [];
 
-    // 保存打开模态框时的原始状态
+    // Save original state when opening modal
     modalOriginalPath = selectedPath;
     modalOriginalPathName = selectedPathName;
     modalOriginalCurrentPath = currentModalPath;
 
-    // 设置当前模态框路径为已选择的路径
+    // Set current modal path to selected path
     currentModalPath = selectedPath || '';
 
-    // 立即更新路径显示，确保显示正确的路径
+    // Update path display immediately to ensure correct path is shown
     updateModalPathDisplay(selectedPath);
 
-    // 重新设置路径输入框的事件监听器
-    // 使用setTimeout确保DOM完全准备好
+    // Reset event listeners for path input
+    // Use setTimeout to ensure DOM is fully ready
     setTimeout(() => {
         setupPathInputEventListeners();
     }, 100);
 
-    // 检查是否是系统路径（包括所有盘符）
-    // 注意：只有明确的系统路径才被视为系统路径，空字符串默认是Downloads
+    // Check if it's a system path (including all drives)
+    // Note: Only explicit system paths are considered system paths, empty string defaults to Downloads
     const isSystemPath = selectedPath && selectedPath !== '' && (
         selectedPath.startsWith('/') ||
-        /^[A-Z]:\\/.test(selectedPath) // 使用正则表达式匹配任意盘符
+        /^[A-Z]:\\/.test(selectedPath) // Use regex to match any drive letter
     );
 
     if (isSystemPath) {
-        // 如果是系统路径，调用系统目录加载函数
+        // If it's a system path, call system directory loading function
         loadSystemDirectories(selectedPath);
     } else {
-        // 如果是Downloads路径或空路径，调用Downloads目录加载函数
+        // If it's Downloads path or empty path, call Downloads directory loading function
         loadModalPathList(selectedPath || '');
     }
 }
 
-// 关闭路径选择模态框
+// Close path selection modal
 function closePathModal() {
     const modal = document.getElementById('pathModal');
     modal.style.display = 'none';
 
-    // 恢复打开模态框时的原始状态
-    // 注意：即使原始状态是null，也要恢复
+    // Restore original state when modal was opened
+    // Note: Restore even if original state was null
     selectedPath = modalOriginalPath;
     selectedPathName = modalOriginalPathName;
     currentModalPath = modalOriginalCurrentPath;
 
-    // 恢复模态框中的当前路径显示
+    // Restore current path display in modal
     if (modalOriginalCurrentPath !== null) {
         updateModalPathDisplay(modalOriginalCurrentPath);
     }
 
-    // 更新文件管理卡片上的路径显示
+    // Update path display on file management card
     updatePathSelectionUI();
 
-    // 刷新文件列表到原始路径
+    // Refresh file list to original path
     loadFileList();
 
-    // 清除保存的状态
+    // Clear saved state
     modalOriginalPath = null;
     modalOriginalPathName = null;
     modalOriginalCurrentPath = null;
 }
 
-// 加载系统目录列表
+// Load system directory list
 async function loadSystemDirectories(path = '', restoreSelection = true) {
 
     const pathList = document.getElementById('modalPathList');
     const upButton = document.getElementById('upButton');
 
-    // 保存当前选中的路径信息，用于在加载后恢复选中状态
+    // Save currently selected path info to restore selection after loading
     const currentSelectedPath = restoreSelection ? selectedPath : null;
 
-    // 显示加载状态
-    pathList.innerHTML = '<div class="loading-placeholder">正在加载系统目录列表...</div>';
+    // Show loading state
+    pathList.innerHTML = '<div class="loading-placeholder">Loading system directory list...</div>';
 
-    // 构建请求URL
+    // Construct request URL
     const url = path ? `${getServerBaseUrl()}/system-directories?path=${encodeURIComponent(path)}` : `${getServerBaseUrl()}/system-directories`;
 
-    // 创建AbortController用于超时控制
+    // Create AbortController for timeout control
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
     try {
         const response = await fetch(url, {
             signal: controller.signal
         });
 
-        // 清除超时定时器
+        // Clear timeout timer
         clearTimeout(timeoutId);
 
         if (!response.ok) {
@@ -151,96 +151,96 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
 
         const data = await response.json();
 
-        // 更新当前路径显示 - 优先使用服务器返回的路径，如果为空则使用传入的路径
+        // Update current path display - prefer server-returned path, use incoming path if empty
         currentModalPath = data.current_path || path;
 
-        // 如果服务器返回的路径为空，但我们有已选择的路径，则使用已选择的路径
-        // 但是当导航到根目录时（path为空），始终显示系统根目录
+        // If server-returned path is empty but we have a selected path, use the selected path
+        // But when navigating to root directory (empty path), always show system root
         const displayPath = data.current_path ? data.current_path :
-            (path === '' ? '我的电脑' :
-                (selectedPath ? selectedPath : '我的电脑'));
+            (path === '' ? 'My Computer' :
+                (selectedPath ? selectedPath : 'My Computer'));
 
-        // 更新路径显示 - 使用当前模态框路径
+        // Update path display - use current modal path
         updateModalPathDisplay(displayPath);
 
-        // 更新上级目录按钮
+        // Update parent directory button
 
-        // 始终显示上级目录按钮
+        // Always show parent directory button
         upButton.style.display = 'inline-block';
 
         if (data.can_go_up) {
-            upButton.title = '返回上级目录';
-            upButton.innerText = '⬆️ 上级目录';
+            upButton.title = 'Return to parent directory';
+            upButton.innerText = '⬆️ Parent Directory';
             upButton.onclick = function () {
-                // 使用服务器返回的父路径，如果为空则使用当前路径的父路径
+                // Use server-returned parent path, use current path's parent if empty
                 const parentPath = data.parent_path || '';
 
-                // 立即更新当前路径显示
+                // Update current path display immediately
                 updateModalPathDisplay(parentPath);
 
-                // 更新当前模态框路径
+                // Update current modal path
                 currentModalPath = parentPath;
 
-                // 清除选中的路径，避免默认选中文件夹
+                // Clear selected path to avoid default folder selection
                 selectedPath = null;
                 selectedPathName = null;
 
-                // 更新创建文件夹位置显示
+                // Update create folder location display
                 updateCreateFolderLocation();
 
                 loadSystemDirectories(parentPath, false);
             };
         } else {
-            // 在根目录时显示禁用状态的上级目录按钮
-            upButton.title = '已在根目录';
-            upButton.innerText = '⬆️ 上级目录';
+            // Show disabled parent directory button when in root directory
+            upButton.title = 'Already in root directory';
+            upButton.innerText = '⬆️ Parent Directory';
             upButton.onclick = function () {
-                showNotification('已在根目录，无法继续向上导航' + data.can_go_up + "-" + data.detail?.can_go_up, 'warning', 3000);
-                addLog('路径选择', '已在根目录，无法继续向上导航', 'warning');
+                showNotification('Already in root directory, cannot navigate further up' + data.can_go_up + "-" + data.detail?.can_go_up, 'warning', 3000);
+                addLog('Path selection', 'Already in root directory, cannot navigate further up', 'warning');
             };
         }
 
-        // 填充路径列表
+        // Populate path list
         populateSystemPathList(data.items, currentSelectedPath);
 
-        // 隐藏loading
+        // Hide loading
         hideModalLoading();
 
     } catch (error) {
-        // 清除超时定时器
+        // Clear timeout timer
         clearTimeout(timeoutId);
 
-        console.error('加载系统目录列表失败:', error);
+        console.error('Failed to load system directory list:', error);
 
         let userFriendlyMessage = '';
 
-        // 根据错误类型提供用户友好的提示
+        // Provide user-friendly message based on error type
         if (error.name === 'AbortError') {
-            userFriendlyMessage = '请求超时，请检查网络连接或稍后重试';
+            userFriendlyMessage = 'Request timed out, please check network connection or try again later';
         } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            userFriendlyMessage = '无法连接到服务器，请确保服务器正在运行';
+            userFriendlyMessage = 'Cannot connect to server, please ensure server is running';
         } else if (error.message.includes('status: 403')) {
-            userFriendlyMessage = '没有权限访问此目录';
+            userFriendlyMessage = 'No permission to access this directory';
 
-            // 对于403错误，更新当前路径为尝试访问的路径，以便正确导航
+            // For 403 errors, update current path to attempted path for proper navigation
             currentModalPath = path;
 
-            // 更新路径显示
+            // Update path display
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 404')) {
-            userFriendlyMessage = '目录不存在或已被删除';
+            userFriendlyMessage = 'Directory does not exist or has been deleted';
 
-            // 对于404错误，更新当前路径为尝试访问的路径，以便正确导航
+            // For 404 errors, update current path to attempted path for proper navigation
             currentModalPath = path;
 
-            // 更新路径显示
+            // Update path display
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 408')) {
-            userFriendlyMessage = '请求超时，请稍后重试';
+            userFriendlyMessage = 'Request timed out, please try again later';
         } else if (error.message.includes('status: 500')) {
-            userFriendlyMessage = '服务器内部错误，请稍后重试';
+            userFriendlyMessage = 'Server internal error, please try again later';
         } else {
-            userFriendlyMessage = '加载目录列表失败，请重试';
+            userFriendlyMessage = 'Failed to load directory list, please try again';
         }
 
         pathList.innerHTML = `
@@ -249,52 +249,52 @@ async function loadSystemDirectories(path = '', restoreSelection = true) {
             </div>
         `;
 
-        // 配置上级目录按钮 - 在错误情况下也要确保按钮可用
+        // Configure parent directory button - ensure button is usable even in error cases
         const upButton = document.getElementById('upButton');
         upButton.style.display = 'inline-block';
-        upButton.title = '返回上级目录';
-        upButton.innerText = '⬆️ 上级目录';
+        upButton.title = 'Return to parent directory';
+        upButton.innerText = '⬆️ Parent Directory';
         upButton.onclick = navigateUp;
 
         showNotification(userFriendlyMessage, 'error', 3000);
-        addLog('路径选择', userFriendlyMessage, 'error');
+        addLog('Path selection', userFriendlyMessage, 'error');
 
-        // 隐藏loading
+        // Hide loading
         hideModalLoading();
     }
 }
 
-// 填充系统路径列表
+// Populate system path list
 function populateSystemPathList(items, currentSelectedPath) {
     const pathList = document.getElementById('modalPathList');
 
     if (!items || items.length === 0) {
-        pathList.innerHTML = '<div class="empty-placeholder">当前目录下无文件夹</div>';
+        pathList.innerHTML = '<div class="empty-placeholder">No folders in current directory</div>';
         return;
     }
 
     let html = '';
 
     items.forEach(item => {
-        // 根据类型选择不同的图标
-        let icon = '📁'; // 默认文件夹图标
+        // Select different icons based on type
+        let icon = '📁'; // Default folder icon
         if (item.type === 'drive') {
-            icon = '💾'; // 盘符图标
+            icon = '💾'; // Drive icon
         }
 
         const itemPath = item.path;
 
-        // 转义路径中的特殊字符，防止JavaScript语法错误
+        // Escape special characters in path to prevent JavaScript syntax errors
         const escapedPath = itemPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const escapedName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-        // 处理文件夹数量显示：-1表示超时或错误，显示为"-"
+        // Handle folder count display: -1 indicates timeout or error, display as "-"
         const folderCountDisplay = item.file_count === -1 ? '-' : (item.file_count || 0);
 
         html += `
             <div class="path-item" 
                  onclick="event.stopPropagation(); selectSystemPathItem(this, '${escapedPath}', '${escapedName}')" 
-                 title="单击选择: ${escapedName}">
+                 title="Click to select: ${escapedName}">
                 <div class="path-name">
                     ${item.name}
                 </div>
@@ -303,8 +303,8 @@ function populateSystemPathList(items, currentSelectedPath) {
                     <button class="btn btn-primary" 
                             style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px; margin-right: 4px;"
                             onclick="event.stopPropagation(); navigateToSystemPath('${escapedPath}')" 
-                            title="进入文件夹: ${escapedName}">
-                        进入
+                            title="Enter folder: ${escapedName}">
+                        Enter
                     </button>
                 </div>
             </div>
@@ -313,13 +313,13 @@ function populateSystemPathList(items, currentSelectedPath) {
 
     pathList.innerHTML = html;
 
-    // 恢复选中状态，确保与图片中的选中效果一致
+    // Restore selection state to match selected effect in image
     if (currentSelectedPath && currentSelectedPath.trim() !== '') {
         const pathItems = pathList.querySelectorAll('.path-item');
         pathItems.forEach(item => {
             try {
                 const itemPath = item.getAttribute('onclick').match(/'([^']+)'/)[1];
-                // 解码转义的路径进行比较
+                // Decode escaped path for comparison
                 const decodedPath = itemPath.replace(/\\\\/g, '\\').replace(/\\'/g, "'");
                 if (decodedPath === currentSelectedPath) {
                     item.classList.add('selected');
@@ -331,90 +331,88 @@ function populateSystemPathList(items, currentSelectedPath) {
     }
 }
 
-// 选中系统路径项
+// Select system path item
 function selectSystemPathItem(element, path, name) {
-
-    // 检查当前项是否已经被选中
+    // Check if current item is already selected
     const isCurrentlySelected = element.classList.contains('selected');
 
-    // 移除所有其他项的选中状态
+    // Remove selection state from all other items
     const allItems = document.querySelectorAll('.path-item');
     allItems.forEach(item => {
         item.classList.remove('selected');
     });
 
     if (!isCurrentlySelected) {
-        // 如果当前项未被选中，则选中它
+        // If current item is not selected, select it
         element.classList.add('selected');
 
-        // 存储选中的路径信息
+        // Store selected path information
         selectedPath = path || '';
         selectedPathName = name || '';
 
-        // 更新模态框中的当前路径显示
+        // Update current path display in modal
         updateModalPathDisplay(path || '');
 
-        // 显示选择成功通知
-        const selectMsg = `已选文件夹: ${name || path}`;
-        addLog('路径选择', selectMsg, 'info');
+        // Show selection success notification
+        const selectMsg = `Selected folder: ${name || path}`;
+        addLog('Path selection', selectMsg, 'info');
         showNotification(selectMsg, 'success', 2000);
     } else {
-        // 如果当前项已经被选中，则取消选择
+        // If current item is already selected, deselect it
         selectedPath = null;
         selectedPathName = null;
 
-        // 更新模态框中的当前路径显示
+        // Update current path display in modal
         updateModalPathDisplay('/');
 
-        // 更新创建文件夹位置显示
+        // Update create folder location display
         updateCreateFolderLocation();
 
-        // 显示取消选择通知
-        const cancelMsg = '取消选择文件夹';
-        addLog('路径选择', cancelMsg, 'info');
+        // Show deselection notification
+        const cancelMsg = 'Folder selection canceled';
+        addLog('Path selection', cancelMsg, 'info');
         showNotification(cancelMsg, 'info', 2000);
 
-        // 自动刷新文件列表
+        // Automatically refresh file list
         loadFileList();
     }
 
-    // 更新路径选择UI
+    // Update path selection UI
     updatePathSelectionUI();
 }
 
-// 导航到系统路径
+// Navigate to system path
 function navigateToSystemPath(path) {
-
-    // 立即更新当前路径显示
+    // Update current path display immediately
     updateModalPathDisplay(path);
 
-    // 更新当前模态框路径
+    // Update current modal path
     currentModalPath = path;
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 显示加载状态
+    // Show loading state
     showModalLoading();
 
-    // 然后加载目录内容
+    // Then load directory contents
     loadSystemDirectories(path);
 }
 
-// 删除系统路径
+// Delete system path
 async function deleteSystemPath(path) {
     const decodedPath = decodeURIComponent(path);
 
-    // 检查是否为关键系统路径
-    const criticalPaths = ['C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root', '我的电脑'];
+    // Check if it's a critical system path
+    const criticalPaths = ['C:\\', 'D:\\', 'E:\\', 'F:\\', '/', '/home', '/root', 'My Computer'];
     if (criticalPaths.some(criticalPath => decodedPath === criticalPath || decodedPath.startsWith(criticalPath + '/'))) {
-        showNotification('不能删除系统关键目录', 'error', 3000);
-        addLog('文件管理', `尝试删除关键目录被阻止: ${decodedPath}`, 'warning');
+        showNotification('Cannot delete critical system directories', 'error', 3000);
+        addLog('File management', `Attempted to delete critical directory was blocked: ${decodedPath}`, 'warning');
         return;
     }
 
-    // 确认删除
-    if (!confirm(`确定要删除文件夹 "${decodedPath}" 吗？\n\n此操作不可撤销！`)) {
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete the folder "${decodedPath}"?\n\nThis action cannot be undone!`)) {
         return;
     }
 
@@ -431,56 +429,56 @@ async function deleteSystemPath(path) {
 
         if (response.ok) {
             const result = await response.json();
-            showNotification(`文件夹 "${decodedPath}" 删除成功`, 'success', 3000);
-            addLog('文件管理', `删除文件夹成功: ${decodedPath}`, 'info');
+            showNotification(`Folder "${decodedPath}" deleted successfully`, 'success', 3000);
+            addLog('File management', `Successfully deleted folder: ${decodedPath}`, 'info');
 
-            // 如果删除的是当前选中的路径，清除选择
+            // Clear selection if deleted path is currently selected
             if (selectedPath === decodedPath) {
                 selectedPath = null;
                 selectedPathName = null;
                 updateCreateFolderLocation();
             }
 
-            // 刷新路径列表
+            // Refresh path list
             refreshPathList();
         } else {
             const errorData = await response.json();
-            showNotification(`删除失败: ${errorData.detail || '未知错误'}`, 'error', 3000);
-            addLog('文件管理', `删除文件夹失败: ${decodedPath} - ${errorData.detail}`, 'error');
+            showNotification(`Deletion failed: ${errorData.detail || 'Unknown error'}`, 'error', 3000);
+            addLog('File management', `Failed to delete folder: ${decodedPath} - ${errorData.detail}`, 'error');
         }
     } catch (error) {
-        console.error('删除文件夹时发生错误:', error);
-        showNotification('删除文件夹时发生网络错误', 'error', 3000);
-        addLog('文件管理', `删除文件夹网络错误: ${decodedPath} - ${error.message}`, 'error');
+        console.error('Error occurred while deleting folder:', error);
+        showNotification('Network error occurred while deleting folder', 'error', 3000);
+        addLog('File management', `Network error deleting folder: ${decodedPath} - ${error.message}`, 'error');
     }
 }
 
-// 加载Downloads目录列表
+// Load Downloads directory list
 async function loadModalPathList(path = '', restoreSelection = true) {
     const pathList = document.getElementById('modalPathList');
     const currentPathElement = document.getElementById('modalCurrentPath');
     const upButton = document.getElementById('upButton');
 
-    // 保存当前选中的路径信息，用于在加载后恢复选中状态
+    // Save currently selected path info to restore selection after loading
     const currentSelectedPath = restoreSelection ? selectedPath : null;
     const currentSelectedPathName = restoreSelection ? selectedPathName : null;
 
-    // 显示加载状态
-    pathList.innerHTML = '<div class="loading-placeholder">正在加载目录列表...</div>';
+    // Show loading state
+    pathList.innerHTML = '<div class="loading-placeholder">Loading directory list...</div>';
 
-    // 构建请求URL
+    // Construct request URL
     const url = path ? `${getServerBaseUrl()}/directories?path=${encodeURIComponent(path)}` : `${getServerBaseUrl()}/directories`;
 
-    // 创建AbortController用于超时控制
+    // Create AbortController for timeout control
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
 
     try {
         const response = await fetch(url, {
             signal: controller.signal
         });
 
-        // 清除超时定时器
+        // Clear timeout timer
         clearTimeout(timeoutId);
 
         if (!response.ok) {
@@ -489,82 +487,82 @@ async function loadModalPathList(path = '', restoreSelection = true) {
 
         const data = await response.json();
 
-        // 更新当前路径显示 - 始终使用服务器返回的当前路径来确保一致性
+        // Update current path display - always use server-returned current path for consistency
         currentModalPath = data.current_path || '';
 
-        // 显示当前浏览的路径
+        // Show currently browsed path
         let displayPath;
         if (data.current_path && data.current_path !== '') {
-            // 显示服务器返回的当前路径
+            // Show server-returned current path
             displayPath = `📂 Downloads/${data.current_path}`;
         } else {
-            // 默认显示Downloads根目录
+            // Default to show Downloads root directory
             displayPath = '📂 Downloads';
         }
 
-        // 更新路径显示
+        // Update path display
         updateModalPathDisplay(data.current_path || '');
 
-        // 更新上级目录按钮 - 显示逻辑改进
+        // Update parent directory button - improved display logic
 
-        // 始终显示上级目录按钮
+        // Always show parent directory button
         upButton.style.display = 'inline-block';
 
-        // 根据当前路径状态设置上级目录按钮的功能
+        // Set parent directory button functionality based on current path state
         if (data.current_path && data.current_path !== '') {
-            upButton.title = '返回上级目录';
-            upButton.innerText = '⬆️ 上级目录';
+            upButton.title = 'Return to parent directory';
+            upButton.innerText = '⬆️ Parent Directory';
             upButton.onclick = navigateUp;
         } else {
-            upButton.title = '已在根目录';
-            upButton.innerText = '⬆️ 上级目录';
+            upButton.title = 'Already in root directory';
+            upButton.innerText = '⬆️ Parent Directory';
             upButton.onclick = function () {
-                showNotification('已在根目录，无法继续向上导航', 'warning', 3000);
-                addLog('路径选择', '已在根目录，无法继续向上导航', 'warning');
+                showNotification('Already in root directory, cannot navigate further up', 'warning', 3000);
+                addLog('Path selection', 'Already in root directory, cannot navigate further up', 'warning');
             };
         }
 
-        // 填充路径列表
+        // Populate path list
         populateModalPathList(data.items, currentSelectedPath);
 
-        // 隐藏loading
+        // Hide loading
         hideModalLoading();
 
     } catch (error) {
-        // 清除超时定时器
+        // Clear timeout timer
         clearTimeout(timeoutId);
 
-        console.error('加载路径列表失败:', error);
+        console.error('Failed to load path list:', error);
 
         let userFriendlyMessage = '';
 
-        // 根据错误类型提供用户友好的提示
+        // Provide user-friendly message based on error type
         if (error.name === 'AbortError') {
-            userFriendlyMessage = '请求超时，请检查网络连接或稍后重试';
+            userFriendlyMessage = 'Request timed out, please check network connection or try again later';
         } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-            userFriendlyMessage = '无法连接到服务器，请确保服务器正在运行';
+            userFriendlyMessage = 'Cannot connect to server, please ensure server is running';
         } else if (error.message.includes('status: 403')) {
-            userFriendlyMessage = '没有权限访问此目录';
+            userFriendlyMessage = 'No permission to access this directory';
 
-            // 对于403错误，更新当前路径为尝试访问的路径，以便正确导航
+            // For 403 errors, update current path to attempted path for proper navigation
             currentModalPath = path;
 
-            // 更新路径显示
+            // Update path display
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 404')) {
-            userFriendlyMessage = '目录不存在或已被删除';
+            userFriendlyMessage = 'Directory does not exist or has been deleted';
 
-            // 对于404错误，更新当前路径为尝试访问的路径，以便正确导航
+            // For 404 errors, update current path to attempted path for proper navigation
             currentModalPath = path;
 
-            // 更新路径显示
+            // Update path display
             updateModalPathDisplay(currentModalPath);
         } else if (error.message.includes('status: 408')) {
-            userFriendlyMessage = '请求超时，请稍后重试';
+            userFriendlyMessage = 'Request timed out, please try again later';
         } else if (error.message.includes('status: 500')) {
-            userFriendlyMessage = '服务器内部错误，请稍后重试';
+            userFriendlyMessage = 'Server internal error, please try again later';
         } else {
-            userFriendlyMessage = '加载目录列表失败，请重试';
+            userFriendlyMessage = 'Failed to load directory list, please try again';
         }
 
         pathList.innerHTML = `
@@ -573,61 +571,61 @@ async function loadModalPathList(path = '', restoreSelection = true) {
             </div>
         `;
 
-        // 配置上级目录按钮 - 在错误情况下也要确保按钮可用
+        // Configure parent directory button - ensure button is usable even in error cases
         const upButton = document.getElementById('upButton');
         upButton.style.display = 'inline-block';
-        upButton.title = '返回上级目录';
-        upButton.innerText = '⬆️ 上级目录';
+        upButton.title = 'Return to parent directory';
+        upButton.innerText = '⬆️ Parent Directory';
         upButton.onclick = navigateUp;
 
         showNotification(userFriendlyMessage, 'error', 3000);
-        addLog('路径选择', userFriendlyMessage, 'error');
+        addLog('Path selection', userFriendlyMessage, 'error');
 
-        // 隐藏loading
+        // Hide loading
         hideModalLoading();
     }
 }
 
-// 填充模态框路径列表
+// Populate modal path list
 function populateModalPathList(items, currentSelectedPath) {
     const pathList = document.getElementById('modalPathList');
 
     if (!items || items.length === 0) {
-        pathList.innerHTML = '<div class="empty-placeholder">当前目录下无文件夹</div>';
+        pathList.innerHTML = '<div class="empty-placeholder">No folders in current directory</div>';
         return;
     }
 
     let html = '';
 
     items.forEach(item => {
-        // 计算正确的路径
+        // Calculate correct path
         let itemPath;
         if (item.path && item.path !== '') {
-            // 如果服务器返回了路径，使用服务器返回的路径
+            // Use server-returned path if available
             itemPath = item.path;
         } else if (currentModalPath && currentModalPath !== '') {
-            // 如果当前在某个目录中，路径是当前目录 + 文件夹名
+            // If in a directory, path is current directory + folder name
             itemPath = `${currentModalPath}/${item.name}`;
         } else {
-            // 如果在根目录，路径就是文件夹名
+            // If in root directory, path is just folder name
             itemPath = item.name;
         }
-        // 确保 itemPath 不会是 null 或 undefined
+        // Ensure itemPath is not null or undefined
         if (!itemPath) {
             itemPath = item.name || '';
         }
 
-        // 转义路径中的特殊字符，防止JavaScript语法错误
+        // Escape special characters in path to prevent JavaScript syntax errors
         const escapedPath = itemPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const escapedName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
-        // 处理文件夹数量显示：-1表示超时或错误，显示为"-"
+        // Handle folder count display: -1 indicates timeout or error, display as "-"
         const folderCountDisplay = item.file_count === -1 ? '-' : (item.file_count || 0);
 
         html += `
             <div class="path-item" 
                  onclick="event.stopPropagation(); selectModalPathItem(this, '${escapedPath}', '${escapedName}')" 
-                 title="单击选择: ${escapedName}">
+                 title="Click to select: ${escapedName}">
                 <div class="path-name">
                     ${item.name}
                 </div>
@@ -636,14 +634,14 @@ function populateModalPathList(items, currentSelectedPath) {
                     <button class="btn btn-primary" 
                             style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px; margin-right: 4px;"
                             onclick="event.stopPropagation(); navigateToPath('${escapedPath}')" 
-                            title="进入文件夹: ${escapedName}">
-                        进入
+                            title="Enter folder: ${escapedName}">
+                        Enter
                     </button>
                     <button class="btn btn-danger" 
                             style="padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1.2; border-radius: 3px;"
                             onclick="event.stopPropagation(); deleteFolder('${encodeURIComponent(itemPath)}')" 
-                            title="删除文件夹: ${escapedName}">
-                        删除
+                            title="Delete folder: ${escapedName}">
+                        Delete
                     </button>
                 </div>
             </div>
@@ -652,13 +650,13 @@ function populateModalPathList(items, currentSelectedPath) {
 
     pathList.innerHTML = html;
 
-    // 恢复选中状态，确保与图片中的选中效果一致
+    // Restore selection state to match selected effect in image
     if (currentSelectedPath && currentSelectedPath.trim() !== '') {
         const pathItems = pathList.querySelectorAll('.path-item');
         pathItems.forEach(item => {
             try {
                 const itemPath = item.getAttribute('onclick').match(/'([^']+)'/)[1];
-                // 解码转义的路径进行比较
+                // Decode escaped path for comparison
                 const decodedPath = itemPath.replace(/\\\\/g, '\\').replace(/\\'/g, "'");
                 if (decodedPath === currentSelectedPath) {
                     item.classList.add('selected');
@@ -670,175 +668,175 @@ function populateModalPathList(items, currentSelectedPath) {
     }
 }
 
-// 选中模态框路径项
+// Select modal path item
 function selectModalPathItem(element, path, name) {
-    // 检查当前项是否已经被选中
+    // Check if current item is already selected
     const isCurrentlySelected = element.classList.contains('selected');
 
-    // 移除所有其他项的选中状态
+    // Remove selection state from all other items
     const allItems = document.querySelectorAll('.path-item');
     allItems.forEach(item => {
         item.classList.remove('selected');
     });
 
     if (!isCurrentlySelected) {
-        // 如果当前项未被选中，则选中它
+        // If current item is not selected, select it
         element.classList.add('selected');
 
-        // 存储选中的路径信息
+        // Store selected path information
         selectedPath = path || '';
         selectedPathName = name || '';
-        lastSelectedPath = path || ''; // 备份选择的路径
+        lastSelectedPath = path || ''; // Backup selected path
 
-        // 更新模态框中的当前路径显示
+        // Update current path display in modal
         updateModalPathDisplay(path);
 
-        // 更新创建文件夹位置显示
+        // Update create folder location display
         updateCreateFolderLocation();
 
-        // 显示选择成功通知
-        const selectMsg = `已选文件夹: ${name || path}`;
-        addLog('路径选择', selectMsg, 'info');
+        // Show selection success notification
+        const selectMsg = `Selected folder: ${name || path}`;
+        addLog('Path selection', selectMsg, 'info');
         showNotification(selectMsg, 'success', 2000);
     } else {
-        // 如果当前项已经被选中，则取消选择
+        // If current item is already selected, deselect it
         selectedPath = null;
         selectedPathName = null;
 
-        // 更新模态框中的当前路径显示
+        // Update current path display in modal
         updateModalPathDisplay(currentModalPath);
 
-        // 更新创建文件夹位置显示
+        // Update create folder location display
         updateCreateFolderLocation();
 
-        // 显示取消选择通知
-        const cancelMsg = '取消选择文件夹';
-        addLog('路径选择', cancelMsg, 'info');
+        // Show deselection notification
+        const cancelMsg = 'Folder selection canceled';
+        addLog('Path selection', cancelMsg, 'info');
         showNotification(cancelMsg, 'info', 2000);
 
-        // 自动刷新文件列表
+        // Automatically refresh file list
         loadFileList();
     }
 
-    // 更新路径选择UI
+    // Update path selection UI
     updatePathSelectionUI();
 }
 
-// 导航到指定路径
+// Navigate to specified path
 function navigateToPath(path) {
-    // 保存当前路径到历史记录（保留用于可能的回退功能）
+    // Save current path to history (reserved for possible back functionality)
     if (currentModalPath !== '') {
         pathHistory.push(currentModalPath);
     }
 
-    // 立即更新当前路径显示
+    // Update current path display immediately
     updateModalPathDisplay(path);
 
-    // 更新当前模态框路径
+    // Update current modal path
     currentModalPath = path;
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 显示加载状态
+    // Show loading state
     showModalLoading();
 
-    // 然后加载目录内容
+    // Then load directory contents
     loadModalPathList(path);
 }
 
-// 导航到上级目录
+// Navigate to parent directory
 function navigateUp() {
-    // 如果当前在根目录，无法继续向上
+    // Cannot go up if in root directory
     if (!currentModalPath || currentModalPath === '') {
-        showNotification('已在根目录，无法继续向上导航', 'warning', 3000);
-        addLog('路径选择', '已在根目录，无法继续向上导航', 'warning');
+        showNotification('Already in root directory, cannot navigate further up', 'warning', 3000);
+        addLog('Path selection', 'Already in root directory, cannot navigate further up', 'warning');
         return;
     }
 
-    // 计算上级目录路径
+    // Calculate parent directory path
     const pathParts = currentModalPath.split('/');
-    pathParts.pop(); // 移除最后一个部分
+    pathParts.pop(); // Remove last part
     const parentPath = pathParts.join('/');
 
-    // 立即更新当前路径显示
+    // Update current path display immediately
     updateModalPathDisplay(parentPath);
 
-    // 更新当前模态框路径
+    // Update current modal path
     currentModalPath = parentPath;
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 显示加载状态
+    // Show loading state
     showModalLoading();
 
-    // 然后加载目录内容
+    // Then load directory contents
     loadModalPathList(parentPath);
 }
 
-// 设置默认路径（Downloads）
+// Set default path (Downloads)
 function setDefaultPath() {
-    // 立即更新当前路径显示
+    // Update current path display immediately
     updateModalPathDisplay('');
 
-    // 设置当前模态框路径为空字符串（表示Downloads根目录）
+    // Set current modal path to empty string (indicates Downloads root directory)
     currentModalPath = '';
-    // 设置选中的路径为空字符串，表示默认Downloads目录
+    // Set selected path to empty string, indicating default Downloads directory
     selectedPath = '';
     selectedPathName = 'Downloads';
 
-    // 更新文件管理卡片下的路径显示
+    // Update path display under file management card
     updatePathSelectionUI();
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 显示用户反馈
-    addLog('路径选择', '已切换到默认Downloads目录', 'info');
-    showNotification('已切换到默认Downloads目录', 'success', 2000);
+    // Show user feedback
+    addLog('Path selection', 'Switched to default Downloads directory', 'info');
+    showNotification('Switched to default Downloads directory', 'success', 2000);
 
     showModalLoading();
     loadModalPathList('');
 }
 
-// 导航到根目录（我的电脑）
+// Navigate to root directory (My Computer)
 async function navigateToRoot() {
-    // 立即更新当前路径显示
+    // Update current path display immediately
     updateModalPathDisplay('/');
 
-    // 清除当前模态框路径，确保显示系统根目录
+    // Clear current modal path to ensure system root is displayed
     currentModalPath = '';
-    // 设置选中的路径为"我的电脑"
-    selectedPath = '我的电脑';
-    selectedPathName = '我的电脑';
+    // Set selected path to "My Computer"
+    selectedPath = 'My Computer';
+    selectedPathName = 'My Computer';
 
-    // 更新文件管理卡片下的路径显示
+    // Update path display under file management card
     updatePathSelectionUI();
 
-    // 更新创建文件夹位置显示
+    // Update create folder location display
     updateCreateFolderLocation();
 
-    // 显示用户反馈
-    addLog('路径选择', '已选择"我的电脑"作为目标路径', 'info');
-    showNotification('已选择"我的电脑"作为目标路径', 'success', 2000);
+    // Show user feedback
+    addLog('Path selection', 'Selected "My Computer" as target path', 'info');
+    showNotification('Selected "My Computer" as target path', 'success', 2000);
 
     showModalLoading();
-    
-    // 等待系统目录加载完成
+
+    // Wait for system directory loading to complete
     await loadSystemDirectories('');
-    
-    // 在异步操作完成后设置 currentModalPath
-    currentModalPath = "我的电脑";
+
+    // Set currentModalPath after async operation completes
+    currentModalPath = "My Computer";
 }
 
-// 处理导航到根目录的异步调用
+// Handle async call to navigate to root directory
 async function handleNavigateToRoot() {
     try {
         await navigateToRoot();
     } catch (error) {
-        console.error('导航到根目录失败:', error);
-        showNotification('导航到根目录失败，请重试', 'error', 3000);
-        addLog('路径选择', '导航到根目录失败: ' + error.message, 'error');
+        console.error('Failed to navigate to root directory:', error);
+        showNotification('Failed to navigate to root directory, please try again', 'error', 3000);
+        addLog('Path selection', 'Failed to navigate to root directory: ' + error.message, 'error');
     }
-} 
+}
