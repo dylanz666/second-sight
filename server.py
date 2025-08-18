@@ -192,8 +192,6 @@ app.add_middleware(
 )
 
 # Global exception handler
-
-
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Global exception handler, ensures all exceptions return JSON format"""
@@ -216,7 +214,6 @@ async def global_exception_handler(request, exc):
     )
 
 
-# 网络状态监控器
 class NetworkMonitor:
     def __init__(self):
         self.last_check_time = None
@@ -577,7 +574,7 @@ class DesktopScreenshotGenerator:
         try:
             self.monitors = []
 
-            # 获取虚拟桌面信息
+            # Get system metrics for virtual desktop
             virtual_width = win32api.GetSystemMetrics(
                 win32con.SM_CXVIRTUALSCREEN)
             virtual_height = win32api.GetSystemMetrics(
@@ -586,22 +583,21 @@ class DesktopScreenshotGenerator:
                 win32con.SM_XVIRTUALSCREEN)
             virtual_top = win32api.GetSystemMetrics(win32con.SM_YVIRTUALSCREEN)
 
-            # 获取主显示器信息
+            # Get primary monitor metrics
             primary_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
             primary_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
 
-            # 获取显示器数量
-            monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
+            # Get quantity of monitors
+            # monitor_count = win32api.GetSystemMetrics(win32con.SM_CMONITORS)
 
-            # print(f"检测到 {monitor_count} 个显示器")
+            # print(f"{monitor_count} monitors were detected")
             # print(
-            #     f"虚拟桌面: {virtual_width}x{virtual_height} 位置({virtual_left},{virtual_top})"
+            #     f"Virtual desktop: {virtual_width}x{virtual_height} position({virtual_left},{virtual_top})"
             # )
-            # print(f"主显示器: {primary_width}x{primary_height}")
 
-            # 使用EnumDisplaySettings获取更准确的显示器信息
+            # Use EnumDisplayDevices to get all display devices
             try:
-                # 获取所有显示器设备
+                # Get all display devices
                 display_devices = []
                 i = 0
                 while True:
@@ -614,7 +610,7 @@ class DesktopScreenshotGenerator:
                         #     f"Device {i}: {device.DeviceName} - Status: {device.StateFlags}"
                         # )
 
-                        # 检查设备是否激活
+                        # Validate if the device is active
                         if device.StateFlags & 0x1:  # DISPLAY_DEVICE_ACTIVE = 0x1
                             try:
                                 settings = win32api.EnumDisplaySettings(
@@ -632,26 +628,22 @@ class DesktopScreenshotGenerator:
                                         "bits_per_pel": settings.BitsPerPel,
                                     }
                                 )
-                                # print(
-                                #     f"  激活显示器: {device.DeviceName} - {settings.PelsWidth}x{settings.PelsHeight} 位置({settings.Position_x},{settings.Position_y})"
-                                # )
+                                # print(f"Active monitor: {device.DeviceName} - {settings.PelsWidth}x{settings.PelsHeight} position({settings.Position_x},{settings.Position_y})")
                             except Exception as e:
                                 pass
-                                # print(
-                                # f"  无法获取显示器 {device.DeviceName} 的设置: {e}"
-                                # )
+                                # print(f"Failed to get settings for monitor {device.DeviceName}: {e}")
                         else:
                             pass
-                            # print(f"  未激活显示器: {device.DeviceName}")
+                            # print(f"Inactive monitor: {device.DeviceName}")
 
                         i += 1
                     except:
                         break
 
-                # 如果没有找到激活的显示器，使用系统指标
+                # If no active display devices found, use system metrics
                 if not display_devices:
                     print("No active display device found, using system metrics.")
-                    # 使用虚拟桌面信息
+                    # Use virtual desktop size if available
                     if virtual_width > 0 and virtual_height > 0:
                         self.monitors = [
                             {
@@ -666,7 +658,7 @@ class DesktopScreenshotGenerator:
                             }
                         ]
                     else:
-                        # 使用主显示器信息
+                        # Use primary monitor information
                         self.monitors = [
                             {
                                 "index": 0,
@@ -680,7 +672,7 @@ class DesktopScreenshotGenerator:
                             }
                         ]
                 else:
-                    # 根据位置信息排序显示器（先按Y坐标，再按X坐标）
+                    # This ensures monitors are ordered from top to bottom, left to right
                     display_devices.sort(
                         key=lambda x: (x["position_y"], x["position_x"])
                     )
@@ -706,7 +698,7 @@ class DesktopScreenshotGenerator:
             except Exception as e:
                 print(
                     f"Fail to use EnumDisplaySettings, use back up way instead: {e}")
-                # 备用方法：基于虚拟桌面尺寸推断
+                # backup method: use virtual desktop size if available
                 if virtual_width > 0 and virtual_height > 0:
                     self.monitors = [
                         {
@@ -734,8 +726,8 @@ class DesktopScreenshotGenerator:
                         }
                     ]
 
-            # 验证显示器信息
-            # print("\n=== 最终显示器配置 ===")
+            # Validate monitor information
+            # print("\n=== Final monitor info ===")
             # for i, monitor in enumerate(self.monitors):
             #     print(
             #         f"Monitor {i + 1}: {monitor['width']}x{monitor['height']} position({monitor['left']},{monitor['top']}) locate({monitor['left']},{monitor['top']},{monitor['right']},{monitor['bottom']}) {'(main monitor)' if monitor['primary'] else ''}"
@@ -743,7 +735,7 @@ class DesktopScreenshotGenerator:
 
         except Exception as e:
             print(f"Fail to get monitor info: {e}")
-            # 默认单显示器
+            # Default to single monitor if failed to get monitor info
             self.monitors = [
                 {
                     "index": 0,
@@ -758,7 +750,6 @@ class DesktopScreenshotGenerator:
             ]
 
     def capture_single_monitor(self, monitor_index=0):
-        """捕获单个显示器截图"""
         try:
             # 获取显示器句柄
             hwin = win32gui.GetDesktopWindow()
@@ -782,7 +773,7 @@ class DesktopScreenshotGenerator:
                 bottom = height
 
             # print(
-            #     f"捕获显示器 {monitor_index + 1}: {width}x{height} 位置({left},{top}) 区域({left},{top},{right},{bottom})"
+            #     f"Capture monitor {monitor_index + 1}: {width}x{height} position({left},{top}) area({left},{top},{right},{bottom})"
             # )
 
             # validate monitor dimensions and position
@@ -850,8 +841,7 @@ class DesktopScreenshotGenerator:
             srcdc.DeleteDC()
             win32gui.ReleaseDC(hwin, hwindc)
 
-            # print(f"成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}")
-
+            # print(f"Successfully captured monitor {monitor_index + 1} screenshot: {img.width}x{img.height}")
             return img
 
         except Exception as e:
@@ -870,7 +860,7 @@ class DesktopScreenshotGenerator:
             from PIL import ImageGrab
 
             # print(
-            #     f"使用备用方法捕获显示器 {monitor_index + 1}: 区域({left},{top},{left+width},{top+height})"
+            #     f"Use backup method to capture monitor {monitor_index + 1}: area({left},{top},{left+width},{top+height})"
             # )
 
             # Use ImageGrab to capture the specified area
@@ -878,7 +868,7 @@ class DesktopScreenshotGenerator:
             img = ImageGrab.grab(bbox=bbox)
 
             # print(
-            #     f"备用方法成功捕获显示器 {monitor_index + 1} 截图: {img.width}x{img.height}"
+            #     f"Successfully captured monitor {monitor_index + 1} screenshot: {img.width}x{img.height}"
             # )
 
             return img
