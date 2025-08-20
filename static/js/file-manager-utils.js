@@ -96,6 +96,86 @@ async function uploadFiles() {
     }
 }
 
+async function dropToUploadFiles(droppedFiles) {
+    if (droppedFiles.length === 0) {
+        const warningMsg = 'No files selected';
+        addLog('Upload File', warningMsg, 'warning');
+        showNotification(warningMsg, 'warning', 3000);
+        return;
+    }
+    if (!confirm(droppedFiles.length + ` files will be uploaded to the remote server.\n\nTarget folder:${selectedPath}.\n\nDo you want to continue?`)) {
+        return;
+    }
+
+    // Upload files
+    try {
+        const formData = new FormData();
+        for (let i = 0; i < droppedFiles.length; i++) {
+            formData.append('files', droppedFiles[i]);
+        }
+        // If a folder is selected, add it to the request
+        if (selectedPath !== null && selectedPath !== undefined) {
+            formData.append('folder_path', selectedPath);
+        }
+
+        const xhr = new XMLHttpRequest();
+        // Listen for upload completion
+        xhr.addEventListener('load', async function () {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    addLog('Upload File', response.message, 'success');
+                    showNotification(response.message, 'success', 5000);
+
+                    // Refresh file list
+                    loadFileList();
+
+                    // Open folder in remote server
+                    const openFolderResponse = await fetch(`${getServerBaseUrl()}/folder/open`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            folder_path: selectedPath
+                        })
+                    })
+                    if (openFolderResponse.ok) {
+                        addLog('Upload File', 'Open folder in remote server', 'success');
+                        showNotification('Open folder in remote server successfully', 'success', 3000);
+                    } else {
+                        const errorData = await openFolderResponse.json();
+                        addLog('Upload File', 'Failed to open folder in remote server: ' + (errorData.detail || 'Unknown error'), 'error');
+                        showNotification('Failed to open folder in remote server', 'error', 3000);
+                    }
+                } catch (error) {
+                    const errorMsg = 'Failed to parse response: ' + error.message;
+                    addLog('Upload File', errorMsg, 'error');
+                    showNotification(errorMsg, 'error', 5000);
+                }
+            } else {
+                const errorMsg = 'Upload failed: HTTP ' + xhr.status;
+                addLog('Upload File', errorMsg, 'error');
+                showNotification(errorMsg, 'error', 5000);
+            }
+        });
+        // Listen for upload errors
+        xhr.addEventListener('error', function () {
+            const errorMsg = 'Network error, upload failed';
+            addLog('Upload File', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+        });
+        // Send request
+        xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
+        xhr.send(formData);        
+    } catch (error) {
+        const errorMsg = 'Upload failed: ' + error.message;
+        addLog('Upload File', errorMsg, 'error');
+        showNotification(errorMsg, 'error', 5000);
+    }
+}
+
+
 // Load file list
 async function loadFileList() {
     const fileList = document.getElementById('fileList');
