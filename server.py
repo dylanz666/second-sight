@@ -35,6 +35,7 @@ import win32con
 import win32gui
 import win32ui
 import re
+import subprocess
 
 APP_VERSION = "1.0.0"
 # GitHub Gist API URL to request
@@ -193,6 +194,8 @@ app.add_middleware(
 )
 
 # Global exception handler
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
     """Global exception handler, ensures all exceptions return JSON format"""
@@ -1681,7 +1684,8 @@ async def upload_file(file: UploadFile = File(...), folder_path: str = Form(None
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 
 @app.post("/upload/multiple")
@@ -1690,10 +1694,12 @@ async def upload_multiple_files(
 ):
     try:
         if not files:
-            raise HTTPException(status_code=400, detail="There is no file selected")
+            raise HTTPException(
+                status_code=400, detail="There is no file selected")
 
         if len(files) > 10:
-            raise HTTPException(status_code=400, detail="It's limited to upload up to 10 files at a time")
+            raise HTTPException(
+                status_code=400, detail="It's limited to upload up to 10 files at a time")
 
         upload_dir = get_upload_dir(folder_path)
 
@@ -1735,7 +1741,8 @@ async def upload_multiple_files(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to upload file: {str(e)}")
 
 
 @app.get("/files")
@@ -1760,7 +1767,8 @@ async def list_uploaded_files(folder: str = None):
         if os.path.exists(list_dir):
             for filename in os.listdir(list_dir):
                 if time.time() - start_time > timeout_seconds:
-                    raise HTTPException(status_code=408, detail="Timeout while listing files")
+                    raise HTTPException(
+                        status_code=408, detail="Timeout while listing files")
 
                 file_path = os.path.join(list_dir, filename)
                 if os.path.isfile(file_path):
@@ -1789,7 +1797,8 @@ async def list_uploaded_files(folder: str = None):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list files: {str(e)}")
 
 
 @app.get("/files/{filename}")
@@ -1802,7 +1811,8 @@ async def download_uploaded_file(filename: str, folder: str = None):
         file_path = os.path.join(file_dir, filename)
 
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="The file is not found")
+            raise HTTPException(
+                status_code=404, detail="The file is not found")
 
         # Security check: ensure the file path is valid
         try:
@@ -1812,7 +1822,8 @@ async def download_uploaded_file(filename: str, folder: str = None):
 
             # Ensure the file path is within the directory path (prevent path traversal attacks)
             if not abs_file_path.startswith(abs_dir_path):
-                raise HTTPException(status_code=400, detail="Invalid file path")
+                raise HTTPException(
+                    status_code=400, detail="Invalid file path")
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid file path")
 
@@ -1826,7 +1837,8 @@ async def download_uploaded_file(filename: str, folder: str = None):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to download file: {str(e)}")
 
 
 @app.delete("/files/{filename}")
@@ -1839,7 +1851,8 @@ async def delete_uploaded_file(filename: str, folder: str = None):
 
         # Validate if the file exists
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="The file is not found")
+            raise HTTPException(
+                status_code=404, detail="The file is not found")
 
         # Security check: ensure the file path is valid
         try:
@@ -1849,7 +1862,8 @@ async def delete_uploaded_file(filename: str, folder: str = None):
 
             # Ensure the file path is within the directory path (prevent path traversal attacks)
             if not abs_file_path.startswith(abs_dir_path):
-                raise HTTPException(status_code=400, detail="Invalid file path")
+                raise HTTPException(
+                    status_code=400, detail="Invalid file path")
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid file path")
 
@@ -1861,7 +1875,8 @@ async def delete_uploaded_file(filename: str, folder: str = None):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete file: {str(e)}")
 
 
 @app.delete("/delete_folder")
@@ -1871,17 +1886,20 @@ async def delete_folder(folder_data: dict):
 
         folder_path = folder_data.get("folder_path")
         if not folder_path:
-            raise HTTPException(status_code=400, detail="Insufficient folder path provided")
+            raise HTTPException(
+                status_code=400, detail="Insufficient folder path provided")
 
         # Use the unified path handling logic
         target_dir = get_upload_dir(folder_path)
 
         # Validate if the target directory exists
         if not os.path.exists(target_dir):
-            raise HTTPException(status_code=404, detail="The folder does not exist")
+            raise HTTPException(
+                status_code=404, detail="The folder does not exist")
 
         if not os.path.isdir(target_dir):
-            raise HTTPException(status_code=400, detail="The specified path is not a folder")
+            raise HTTPException(
+                status_code=400, detail="The specified path is not a folder")
 
         # Security check: ensure the folder path is valid
         try:
@@ -1930,7 +1948,8 @@ async def delete_folder(folder_data: dict):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete folder: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete folder: {str(e)}")
 
 
 @app.post("/create_folder")
@@ -1939,12 +1958,14 @@ async def create_folder(folder_data: dict):
         folder_name = folder_data.get("folder_name", "").strip()
         parent_path = folder_data.get("parent_path", "")
         if not folder_name:
-            raise HTTPException(status_code=400, detail="Folder name is required")
+            raise HTTPException(
+                status_code=400, detail="Folder name is required")
 
         # 检查文件夹名称是否包含非法字符
         invalid_chars = r'[<>:"/\\|?*]'
         if re.search(invalid_chars, folder_name):
-            raise HTTPException(status_code=400, detail="Folder name contains invalid characters")
+            raise HTTPException(
+                status_code=400, detail="Folder name contains invalid characters")
 
         # 构建完整路径
         if parent_path:
@@ -2205,7 +2226,6 @@ async def list_system_directories(path: str = ""):
 
                         try:
                             # Get the volume label of the drive (if available)
-                            import subprocess
 
                             try:
                                 result = subprocess.run(
@@ -2287,13 +2307,15 @@ async def list_system_directories(path: str = ""):
 
             for forbidden in forbidden_paths:
                 if target_path.startswith(forbidden):
-                    raise HTTPException(status_code=403, detail="Access denied")
+                    raise HTTPException(
+                        status_code=403, detail="Access denied")
 
         if not os.path.exists(target_path):
             raise HTTPException(status_code=404, detail="Path does not exist")
 
         if not os.path.isdir(target_path):
-            raise HTTPException(status_code=400, detail="Specified path is not a directory")
+            raise HTTPException(
+                status_code=400, detail="Specified path is not a directory")
 
         # Get current path
         current_path = target_path
@@ -2351,7 +2373,8 @@ async def list_system_directories(path: str = ""):
                         }
                     )
         except PermissionError:
-            raise HTTPException(status_code=403, detail="No permission to access this directory")
+            raise HTTPException(
+                status_code=403, detail="No permission to access this directory")
 
         # Sort by name
         items.sort(key=lambda x: x["name"].lower())
@@ -2377,7 +2400,8 @@ async def list_system_directories(path: str = ""):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get system directory list: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get system directory list: {str(e)}")
 
 
 # ==================== Remote Mouse and Keyboard Control API ====================
@@ -2429,11 +2453,13 @@ async def remote_click(data: dict):
             actual_x, actual_y = convert_screenshot_coords_to_screen(
                 x, y, monitor_index, use_percentage
             )
-            print(f"Coordinate conversion: ({x}, {y}) -> ({actual_x}, {actual_y})")
+            print(
+                f"Coordinate conversion: ({x}, {y}) -> ({actual_x}, {actual_y})")
         except Exception as e:
             print(f"Coordinate conversion failed: {e}")
             return JSONResponse(
-                {"success": False, "message": f"Coordinate conversion failed: {str(e)}"}
+                {"success": False,
+                    "message": f"Coordinate conversion failed: {str(e)}"}
             )
 
         # Execute click operation
@@ -2445,7 +2471,8 @@ async def remote_click(data: dict):
         except Exception as e:
             print(f"pyautogui click operation failed: {e}")
             return JSONResponse(
-                {"success": False, "message": f"Click operation execution failed: {str(e)}"}
+                {"success": False,
+                    "message": f"Click operation execution failed: {str(e)}"}
             )
 
     except Exception as e:
@@ -2484,7 +2511,8 @@ async def remote_double_click(data: dict):
             )
         except Exception as e:
             return JSONResponse(
-                {"success": False, "message": f"Coordinate conversion failed: {str(e)}"}
+                {"success": False,
+                    "message": f"Coordinate conversion failed: {str(e)}"}
             )
 
         result = remote_controller.double_click(actual_x, actual_y, button)
@@ -2523,14 +2551,16 @@ async def remote_right_click(data: dict):
             )
         except Exception as e:
             return JSONResponse(
-                {"success": False, "message": f"Coordinate conversion failed: {str(e)}"}
+                {"success": False,
+                    "message": f"Coordinate conversion failed: {str(e)}"}
             )
 
         result = remote_controller.right_click(actual_x, actual_y)
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse(
-            {"success": False, "message": f"Right-click operation failed: {str(e)}"}
+            {"success": False,
+                "message": f"Right-click operation failed: {str(e)}"}
         )
 
 
@@ -2547,7 +2577,8 @@ async def remote_drag(data: dict):
         use_percentage = data.get("use_percentage", False)
 
         if start_x is None or start_y is None or end_x is None or end_y is None:
-            raise HTTPException(status_code=400, detail="Missing coordinate parameters")
+            raise HTTPException(
+                status_code=400, detail="Missing coordinate parameters")
 
         # Coordinate conversion
         actual_start_x, actual_start_y = convert_screenshot_coords_to_screen(
@@ -2573,7 +2604,8 @@ async def remote_type(data: dict):
     try:
         text = data.get("text", "")
         if not text:
-            raise HTTPException(status_code=400, detail="Missing text parameter")
+            raise HTTPException(
+                status_code=400, detail="Missing text parameter")
 
         result = remote_controller.type_text(text)
         return JSONResponse(result)
@@ -2589,7 +2621,8 @@ async def remote_press_key(data: dict):
     try:
         key = data.get("key")
         if not key:
-            raise HTTPException(status_code=400, detail="Missing key parameter")
+            raise HTTPException(
+                status_code=400, detail="Missing key parameter")
 
         # Support aliases for arrow keys
         key_aliases = {
@@ -2619,7 +2652,8 @@ async def remote_hotkey(data: dict):
     try:
         keys = data.get("keys", [])
         if not keys:
-            raise HTTPException(status_code=400, detail="Missing hotkey parameter")
+            raise HTTPException(
+                status_code=400, detail="Missing hotkey parameter")
 
         result = remote_controller.hotkey(*keys)
         return JSONResponse(result)
@@ -2640,7 +2674,8 @@ async def remote_scroll(data: dict):
         use_percentage = data.get("use_percentage", False)
 
         if x is None or y is None:
-            raise HTTPException(status_code=400, detail="Missing coordinate parameters")
+            raise HTTPException(
+                status_code=400, detail="Missing coordinate parameters")
 
         # Coordinate conversion
         actual_x, actual_y = convert_screenshot_coords_to_screen(
@@ -2675,7 +2710,38 @@ async def get_mouse_position():
         return JSONResponse(result)
     except Exception as e:
         return JSONResponse(
-            {"success": False, "message": f"Failed to get mouse position: {str(e)}"}
+            {"success": False,
+                "message": f"Failed to get mouse position: {str(e)}"}
+        )
+
+
+@app.post("/folder/open")
+async def open_folder(data: dict):
+    """Open folder in server"""
+    folder_path = data.get("folder_path")
+    print(f"Request to open folder: {folder_path}")
+    if folder_path:
+        # Validate if it's an absolute path
+        if (
+            os.path.isabs(folder_path)
+            or folder_path.startswith("/")
+            or ":" in folder_path
+        ):
+            upload_dir = folder_path
+        else:
+            # Downloads subdirectory, create subfolder under Downloads
+            upload_dir = os.path.join(DEFAULT_UPLOAD_DIR, folder_path)
+    else:
+        upload_dir = DEFAULT_UPLOAD_DIR
+    if not upload_dir:
+        return JSONResponse({"success": False, "message": "Folder path is required"})
+    try:
+        subprocess.Popen(f'explorer {upload_dir}')
+        return JSONResponse({"success": True, "message": f"Opened folder: {upload_dir}"})
+    except Exception as e:
+        return JSONResponse(
+            {"success": False,
+                "message": f"Failed to open folder {upload_dir}: {str(e)}"}
         )
 
 
@@ -2691,35 +2757,43 @@ def convert_screenshot_coords_to_screen(
             )
 
         if not isinstance(monitor_index, int) or monitor_index < 0:
-            raise ValueError(f"Monitor index must be a positive integer, received: {monitor_index}")
+            raise ValueError(
+                f"Monitor index must be a positive integer, received: {monitor_index}")
 
         # Get monitor information
         if not hasattr(ui_generator, "monitors"):
-            raise RuntimeError("ui_generator.monitors attribute does not exist")
+            raise RuntimeError(
+                "ui_generator.monitors attribute does not exist")
 
         monitors = ui_generator.monitors
         if not monitors:
-            print("Warning: Monitor list is empty, attempting to update monitor information...")
+            print(
+                "Warning: Monitor list is empty, attempting to update monitor information...")
             try:
                 ui_generator.update_monitor_info()
                 monitors = ui_generator.monitors
                 if not monitors:
-                    raise RuntimeError("Unable to retrieve monitor information")
+                    raise RuntimeError(
+                        "Unable to retrieve monitor information")
             except Exception as e:
-                raise RuntimeError(f"Failed to update monitor information: {e}")
+                raise RuntimeError(
+                    f"Failed to update monitor information: {e}")
 
         if monitor_index >= len(monitors):
-            raise ValueError(f"Monitor index out of range: {monitor_index} >= {len(monitors)}")
+            raise ValueError(
+                f"Monitor index out of range: {monitor_index} >= {len(monitors)}")
 
         monitor = monitors[monitor_index]
         if not isinstance(monitor, dict):
-            raise ValueError(f"Monitor information format error: {type(monitor)}")
+            raise ValueError(
+                f"Monitor information format error: {type(monitor)}")
 
         # Validate monitor information completeness
         required_keys = ["left", "top", "width", "height"]
         for key in required_keys:
             if key not in monitor or not isinstance(monitor[key], (int, float)):
-                raise ValueError(f"Monitor information missing or invalid {key}: {monitor.get(key)}")
+                raise ValueError(
+                    f"Monitor information missing or invalid {key}: {monitor.get(key)}")
 
         monitor_left = int(monitor["left"])
         monitor_top = int(monitor["top"])
@@ -2728,12 +2802,14 @@ def convert_screenshot_coords_to_screen(
 
         # Validate monitor dimensions
         if monitor_width <= 0 or monitor_height <= 0:
-            raise ValueError(f"Invalid monitor dimensions: {monitor_width}x{monitor_height}")
+            raise ValueError(
+                f"Invalid monitor dimensions: {monitor_width}x{monitor_height}")
 
         if use_percentage:
             # Percentage coordinate conversion: directly calculate actual screen position using percentage
             if not (0 <= x <= 100 and 0 <= y <= 100):
-                raise ValueError(f"Percentage coordinates out of range: x={x}%, y={y}%")
+                raise ValueError(
+                    f"Percentage coordinates out of range: x={x}%, y={y}%")
 
             actual_x = int(monitor_left + (x / 100.0) * monitor_width)
             actual_y = int(monitor_top + (y / 100.0) * monitor_height)
@@ -2764,7 +2840,8 @@ def convert_screenshot_coords_to_screen(
 
         # Validate that converted coordinates are within reasonable bounds
         if actual_x < 0 or actual_y < 0:
-            print(f"Warning: Converted coordinates are negative: ({actual_x}, {actual_y})")
+            print(
+                f"Warning: Converted coordinates are negative: ({actual_x}, {actual_y})")
 
         return actual_x, actual_y
 
