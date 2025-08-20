@@ -67,6 +67,11 @@ function setupScreenshotClickEvents() {
 
 function setupImageEvents(img) {
     if (!img) return;
+    console.log('Setting up events for image:', img);
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        img.addEventListener(eventName, preventDefaults, false);
+    });
+
     img.removeEventListener('click', handleScreenshotClick);
     img.removeEventListener('dblclick', handleScreenshotDoubleClick);
     img.removeEventListener('contextmenu', handleScreenshotRightClick);
@@ -74,6 +79,7 @@ function setupImageEvents(img) {
     img.removeEventListener('mousemove', handleScreenshotMouseMove);
     img.removeEventListener('mouseup', handleScreenshotMouseUp);
     img.removeEventListener('wheel', handleScreenshotWheel);
+    img.removeEventListener('drop', handleScreenshotDrop);
     img.addEventListener('click', handleScreenshotClick);
     img.addEventListener('dblclick', handleScreenshotDoubleClick);
     img.addEventListener('contextmenu', handleScreenshotRightClick);
@@ -81,11 +87,10 @@ function setupImageEvents(img) {
     img.addEventListener('mousemove', handleScreenshotMouseMove);
     img.addEventListener('mouseup', handleScreenshotMouseUp);
     img.addEventListener('wheel', handleScreenshotWheel);
+    img.addEventListener('drop', handleScreenshotDrop);
 }
 
 function handleScreenshotClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -100,8 +105,6 @@ function handleScreenshotClick(event) {
 }
 
 function handleScreenshotDoubleClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -115,8 +118,6 @@ function handleScreenshotDoubleClick(event) {
 }
 
 function handleScreenshotRightClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -143,8 +144,6 @@ function handleScreenshotMouseDown(event) {
 }
 
 function handleScreenshotMouseMove(event) {
-    event.preventDefault();
-    event.stopPropagation();
     // Optional: Visual feedback during dragging
 }
 
@@ -168,8 +167,6 @@ function handleScreenshotMouseUp(event) {
 }
 
 function handleScreenshotWheel(event) {
-    event.preventDefault();
-    event.stopPropagation();
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -181,6 +178,18 @@ function handleScreenshotWheel(event) {
     const monitorIndex = getMonitorIndexFromImage(event.target);
     const clicks = event.deltaY > 0 ? -3 : 3;
     sendRemoteScroll(percentX, percentY, clicks, monitorIndex, true);
+}
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+function handleScreenshotDrop(event) {
+    const dt = event.dataTransfer;
+    const files = dt.files;
+
+    dropToUploadFiles(files);
 }
 
 function setupDragEvents() {
