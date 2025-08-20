@@ -76,7 +76,7 @@ function updateModalPathDisplay(path) {
             displayText = `📂 ${path}`;
         } else {
             // Downloads path
-            displayText = `📂 Downloads/${path}`;
+            displayText = `📂 Downloads\\${path}`;
         }
     } else {
         // When no path is selected, default to showing Downloads directory

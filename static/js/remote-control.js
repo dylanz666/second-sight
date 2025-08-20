@@ -67,7 +67,6 @@ function setupScreenshotClickEvents() {
 
 function setupImageEvents(img) {
     if (!img) return;
-    console.log('Setting up events for image:', img);
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         img.addEventListener(eventName, preventDefaults, false);
     });
@@ -80,14 +79,14 @@ function setupImageEvents(img) {
     img.removeEventListener('mouseup', handleScreenshotMouseUp);
     img.removeEventListener('wheel', handleScreenshotWheel);
     img.removeEventListener('drop', handleScreenshotDrop);
-    img.addEventListener('click', handleScreenshotClick);
-    img.addEventListener('dblclick', handleScreenshotDoubleClick);
-    img.addEventListener('contextmenu', handleScreenshotRightClick);
-    img.addEventListener('mousedown', handleScreenshotMouseDown);
-    img.addEventListener('mousemove', handleScreenshotMouseMove);
-    img.addEventListener('mouseup', handleScreenshotMouseUp);
-    img.addEventListener('wheel', handleScreenshotWheel);
-    img.addEventListener('drop', handleScreenshotDrop);
+    img.addEventListener('click', handleScreenshotClick, { passive: true });
+    img.addEventListener('dblclick', handleScreenshotDoubleClick, { passive: true });
+    img.addEventListener('contextmenu', handleScreenshotRightClick, { passive: true });
+    img.addEventListener('mousedown', handleScreenshotMouseDown, { passive: true });
+    img.addEventListener('mousemove', handleScreenshotMouseMove, { passive: true });
+    img.addEventListener('mouseup', handleScreenshotMouseUp, { passive: true });
+    img.addEventListener('wheel', handleScreenshotWheel, { passive: true });
+    img.addEventListener('drop', handleScreenshotDrop, { passive: true });
 }
 
 function handleScreenshotClick(event) {

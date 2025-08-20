@@ -5,18 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Second Sight - Remote Desktop</title>
-    <link rel="stylesheet" href="/static/styles.css?v=20250820-02">
+    <link rel="stylesheet" href="/static/styles.css?v=20250820-06">
     <!-- Modular JavaScript files -->
-    <script src="/static/js/core.js?v=20250820-02"></script>
-    <script src="/static/js/ui-utils.js?v=20250820-02"></script>
-    <script src="/static/js/trend-charts.js?v=20250820-02"></script>
-    <script src="/static/js/websocket.js?v=20250820-02"></script>
-    <script src="/static/js/monitor.js?v=20250820-02"></script>
-    <script src="/static/js/file-manager.js?v=20250820-02"></script>
-    <script src="/static/js/file-manager-utils.js?v=20250820-02"></script>
-    <script src="/static/js/settings.js?v=20250820-02"></script>
-    <script src="/static/js/remote-control.js?v=20250820-02"></script>
-    <script src="/static/js/main.js?v=20250820-02"></script>
+    <script src="/static/js/core.js?v=20250820-06"></script>
+    <script src="/static/js/ui-utils.js?v=20250820-06"></script>
+    <script src="/static/js/trend-charts.js?v=20250820-06"></script>
+    <script src="/static/js/websocket.js?v=20250820-06"></script>
+    <script src="/static/js/monitor.js?v=20250820-06"></script>
+    <script src="/static/js/file-manager.js?v=20250820-06"></script>
+    <script src="/static/js/file-manager-utils.js?v=20250820-06"></script>
+    <script src="/static/js/settings.js?v=20250820-06"></script>
+    <script src="/static/js/remote-control.js?v=20250820-06"></script>
+    <script src="/static/js/main.js?v=20250820-06"></script>
 </head>
 
 <body>
@@ -425,27 +425,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-function toggleRemoteControl() {
-    fetch('/toggle-remote-control')
-        .then(response => response.json())
-        .then(data => {
-            if(data.status === 'ok') {
-                console.log('Remote control toggled');
-                // Update UI state
-            }
-        })
-        .catch(error => console.error('Error:', error));
-}
-
-// Add WebSocket connection
-const ws = new WebSocket('ws://localhost:8000/ws');
-ws.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    // Handle server messages
-};
-</script>
 </body>
 
 </html>

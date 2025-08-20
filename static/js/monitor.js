@@ -287,7 +287,7 @@ function createMonitorElement(screenshot, index, grid) {
 
     if (isCollapsed) {
         // Use placeholder image if collapsed
-        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+        img.src = '';
         img.style.display = 'none';
         monitorDiv.classList.add('collapsed');
     } else {
@@ -297,7 +297,7 @@ function createMonitorElement(screenshot, index, grid) {
             img.style.display = 'block';
         } else {
             // Show placeholder if no screenshot data
-            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+            img.src = '';
             img.style.display = 'none';
             monitorDiv.classList.add('collapsed');
         }
@@ -345,7 +345,7 @@ function createCollapsedMonitorElement(monitorIndex, grid) {
 
     const img = document.createElement('img');
     img.className = 'monitor-image';
-    img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+    img.src = '';
     img.style.display = 'none';
     img.alt = `Secondary Monitor ${monitorIndex + 1}`;
 
@@ -384,7 +384,7 @@ function updateExistingMonitorElement(screenshot, monitorDiv) {
 
     if (isCollapsed) {
         // Use placeholder image if collapsed
-        img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+        img.src = '';
         img.style.display = 'none';
         monitorDiv.classList.add('collapsed');
     } else {
@@ -394,7 +394,7 @@ function updateExistingMonitorElement(screenshot, monitorDiv) {
             img.style.display = 'block';
         } else {
             // Show placeholder if no screenshot data
-            img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNDAwIiB5PSIzMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+5YyF5a2Q5YyF5a2Q8L3RleHQ+PC9zdmc+';
+            img.src = '';
             img.style.display = 'none';
             monitorDiv.classList.add('collapsed');
         }
