@@ -104,7 +104,7 @@ class ForegroundPathDetector:
 
 if __name__ == "__main__":
     import time
-    time.sleep(5)  # 等待5秒以确保环境准备就绪
+    time.sleep(5)  # 本地调试用
     # 使用示例
     detector = ForegroundPathDetector()
     result_type, path = detector.get_foreground_path()
