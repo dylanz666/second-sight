@@ -67,7 +67,7 @@ function setupScreenshotClickEvents() {
 
 function setupImageEvents(img) {
     if (!img) return;
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    ['dragenter', 'dragover', 'dragleave', 'drop', 'contextmenu'].forEach(eventName => {
         img.addEventListener(eventName, preventDefaults, false);
     });
 
