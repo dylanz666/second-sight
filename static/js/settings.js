@@ -11,7 +11,7 @@ async function openQualitySettings() {
         const data = await response.json();
 
         // Debug: Log data returned from backend
-        console.log('Quality settings data from backend:', data);
+        // console.log('Quality settings data from backend:', data);
         addLog('Settings', `Received backend data: ${JSON.stringify(data)}`, 'info');
 
         // Get actual settings from nested settings object
@@ -224,7 +224,7 @@ async function refreshCacheStats() {
         const data = await response.json();
 
         // Debug: Log data returned from backend
-        console.log('Cache statistics data from backend:', data);
+        // console.log('Cache statistics data from backend:', data);
         addLog('Cache', `Received cache data: ${JSON.stringify(data)}`, 'info');
 
         // Handle possible data structure differences

@@ -103,7 +103,12 @@ async function dropToUploadFiles(droppedFiles) {
         showNotification(warningMsg, 'warning', 3000);
         return;
     }
-    if (!confirm(droppedFiles.length + ` files will be uploaded to the remote server.\n\nTarget folder:${selectedPath}.\n\nDo you want to continue?`)) {
+    if (selectedPath == "My Computer") {
+        showNotification("Please set path in file manager area!", 'warning', 3000);
+        return;
+    }
+    const targetFolder = selectedPath ? selectedPath : 'Downloads';
+    if (!confirm(droppedFiles.length + ` files will be uploaded to the remote server.\n\nTarget folder: ${targetFolder}\n\nDo you want to continue?`)) {
         return;
     }
 
@@ -226,7 +231,7 @@ async function loadFileList() {
                 folderDisplay = data.current_folder;
             } else if (data.current_folder && data.current_folder !== 'Downloads') {
                 // Downloads subdirectory
-                folderDisplay = `Downloads/${data.current_folder}`;
+                folderDisplay = `Downloads\\${data.current_folder}`;
             } else {
                 // Downloads root directory
                 folderDisplay = 'Downloads';
@@ -258,7 +263,7 @@ async function loadFileList() {
             }
             if (data.current_folder && data.current_folder !== 'Downloads') {
                 // Downloads subdirectory
-                folderDisplay = `Downloads/${data.current_folder}`;
+                folderDisplay = `Downloads\\${data.current_folder}`;
             } else {
                 // Downloads root directory
                 folderDisplay = 'Downloads';

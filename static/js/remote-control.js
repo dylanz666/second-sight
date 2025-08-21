@@ -99,7 +99,7 @@ function handleScreenshotClick(event) {
     const percentY = (y / rect.height) * 100;
 
     const monitorIndex = getMonitorIndexFromImage(event.target);
-    console.log(`Preparing to send remote click: Pixels(${x.toFixed(1)}, ${y.toFixed(1)}), Percentage(${percentX.toFixed(2)}%, ${percentY.toFixed(2)}%), Monitor index: ${monitorIndex}`);
+    // console.log(`Preparing to send remote click: Pixels(${x.toFixed(1)}, ${y.toFixed(1)}), Percentage(${percentX.toFixed(2)}%, ${percentY.toFixed(2)}%), Monitor index: ${monitorIndex}`);
     sendRemoteClick(percentX, percentY, monitorIndex, true); // Add percentage flag
 }
 
@@ -228,7 +228,7 @@ async function sendRemoteClick(x, y, monitorIndex = 0, usePercentage = false) {
 
         if (result.success) {
             window.addLog && window.addLog('Remote Control', `Click successful: ${coordType}(${x.toFixed(2)}, ${y.toFixed(2)})`, 'success');
-            console.log('Remote click successful');
+            // console.log('Remote click successful');
         } else {
             window.addLog && window.addLog('Remote Control', `Click failed: ${result.message}`, 'error');
             console.error('Remote click failed:', result.message);
@@ -368,7 +368,7 @@ async function sendRemoteText() {
 
 // For debugging remote keyboard actions
 function waitFiveSeconds() {
-    console.log('Waiting 5 seconds to ensure previous operations are completed...');
+    // console.log('Waiting 5 seconds to ensure previous operations are completed...');
     return new Promise(resolve => setTimeout(resolve, 5000));
 }
 

@@ -2733,10 +2733,11 @@ async def open_folder(data: dict):
             upload_dir = os.path.join(DEFAULT_UPLOAD_DIR, folder_path)
     else:
         upload_dir = DEFAULT_UPLOAD_DIR
+    print(f"Resolved upload directory: {upload_dir}")
     if not upload_dir:
         return JSONResponse({"success": False, "message": "Folder path is required"})
     try:
-        subprocess.Popen(f'explorer {upload_dir}')
+        subprocess.Popen(f'explorer "{upload_dir}"')
         return JSONResponse({"success": True, "message": f"Opened folder: {upload_dir}"})
     except Exception as e:
         return JSONResponse(

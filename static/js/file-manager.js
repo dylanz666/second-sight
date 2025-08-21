@@ -120,7 +120,6 @@ function closePathModal() {
 
 // Load system directory list
 async function loadSystemDirectories(path = '', restoreSelection = true) {
-
     const pathList = document.getElementById('modalPathList');
     const upButton = document.getElementById('upButton');
 
@@ -397,6 +396,9 @@ function navigateToSystemPath(path) {
 
     // Then load directory contents
     loadSystemDirectories(path);
+
+    selectedPath = path;
+    selectedPathName = path;
 }
 
 // Delete system path
@@ -467,7 +469,7 @@ async function loadModalPathList(path = '', restoreSelection = true) {
     pathList.innerHTML = '<div class="loading-placeholder">Loading directory list...</div>';
 
     // Construct request URL
-    const url = path ? `${getServerBaseUrl()}/directories?path=${encodeURIComponent(path)}` : `${getServerBaseUrl()}/directories`;
+    const url = path ? `${getServerBaseUrl()}/directories?path=${path}` : `${getServerBaseUrl()}/directories`;
 
     // Create AbortController for timeout control
     const controller = new AbortController();
@@ -494,7 +496,7 @@ async function loadModalPathList(path = '', restoreSelection = true) {
         let displayPath;
         if (data.current_path && data.current_path !== '') {
             // Show server-returned current path
-            displayPath = `📂 Downloads/${data.current_path}`;
+            displayPath = `📂 Downloads\\${data.current_path}`;
         } else {
             // Default to show Downloads root directory
             displayPath = '📂 Downloads';
@@ -605,7 +607,7 @@ function populateModalPathList(items, currentSelectedPath) {
             itemPath = item.path;
         } else if (currentModalPath && currentModalPath !== '') {
             // If in a directory, path is current directory + folder name
-            itemPath = `${currentModalPath}/${item.name}`;
+            itemPath = `${currentModalPath}\\${item.name}`;
         } else {
             // If in root directory, path is just folder name
             itemPath = item.name;
@@ -616,8 +618,8 @@ function populateModalPathList(items, currentSelectedPath) {
         }
 
         // Escape special characters in path to prevent JavaScript syntax errors
-        const escapedPath = itemPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const escapedName = item.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const escapedPath = itemPath.replace(/\//g, '\\\\').replace(/'/g, "\\'");
+        const escapedName = itemPath.replace(/\//g, '\\\\').replace(/'/g, "\\'");
 
         // Handle folder count display: -1 indicates timeout or error, display as "-"
         const folderCountDisplay = item.file_count === -1 ? '-' : (item.file_count || 0);
@@ -755,9 +757,9 @@ function navigateUp() {
     }
 
     // Calculate parent directory path
-    const pathParts = currentModalPath.split('/');
+    const pathParts = currentModalPath.split('\\');
     pathParts.pop(); // Remove last part
-    const parentPath = pathParts.join('/');
+    const parentPath = pathParts.join('\\');
 
     // Update current path display immediately
     updateModalPathDisplay(parentPath);

@@ -181,7 +181,7 @@ function updatePathSelectionUI() {
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         } else {
             // Downloads subdirectory path
-            displayPath = `Downloads/${selectedPath}`;
+            displayPath = `Downloads\\${selectedPath}`;
             pathBtn.innerHTML = 'Selected Path';
             pathBtn.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
         }
@@ -248,7 +248,7 @@ function updateCreateFolderLocation() {
             locationText = 'Downloads';
         } else {
             // Downloads subdirectory path
-            locationText = `Downloads/${selectedPath}`;
+            locationText = `Downloads\\${selectedPath}`;
         }
     } else {
         // When no path is selected, default to showing Downloads
@@ -395,8 +395,6 @@ function refreshPathList() {
         /^[A-Z]:\\/.test(currentModalPath) ||
         currentModalPath === 'My Computer'
     );
-    console.log('DEBUG: refreshPathList - currentModalPath:', currentModalPath);
-    console.log('DEBUG: refreshPathList - isSystemPath:', isSystemPath);
 
     if (isSystemPath) {
         // If it's a system path, call system directory loading function
@@ -413,6 +411,10 @@ function refreshPathList() {
 
 // Select current path and close modal
 function selectCurrentPath() {
+    if (selectedPath == "My Computer") {
+        showNotification("Please select specific path by hit 'ENTER' entry on above file list!", 'warning', 3000);
+        return;
+    }
     // When no folder is selected in the popup, use the same value as currentModalPath
     let finalSelectedPath;
     if (selectedPath !== null && selectedPath !== undefined && selectedPath !== '') {
@@ -451,7 +453,7 @@ function selectCurrentPath() {
         pathDisplay = selectedPath;
     } else {
         // Downloads path (including empty string representing Downloads root directory)
-        pathDisplay = selectedPath === '' ? 'Downloads' : `Downloads/${selectedPath}`;
+        pathDisplay = selectedPath === '' ? 'Downloads' : `Downloads\\${selectedPath}`;
     }
     const successMsg = `Selected folder: ${pathDisplay}`;
     addLog('Path selection', successMsg, 'info');
