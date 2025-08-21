@@ -67,7 +67,7 @@ function setupScreenshotClickEvents() {
 
 function setupImageEvents(img) {
     if (!img) return;
-    ['dragenter', 'dragover', 'dragleave', 'drop', 'contextmenu'].forEach(eventName => {
+    ['dragenter', 'dragover', 'dragleave', 'drop', 'contextmenu', 'keydown'].forEach(eventName => {
         img.addEventListener(eventName, preventDefaults, false);
     });
 
@@ -79,6 +79,7 @@ function setupImageEvents(img) {
     img.removeEventListener('mouseup', handleScreenshotMouseUp);
     img.removeEventListener('wheel', handleScreenshotWheel);
     img.removeEventListener('drop', handleScreenshotDrop);
+    img.removeEventListener('keydown', typeText);
     img.addEventListener('click', handleScreenshotClick, { passive: true });
     img.addEventListener('dblclick', handleScreenshotDoubleClick, { passive: true });
     img.addEventListener('contextmenu', handleScreenshotRightClick, { passive: true });
@@ -87,9 +88,10 @@ function setupImageEvents(img) {
     img.addEventListener('mouseup', handleScreenshotMouseUp, { passive: true });
     img.addEventListener('wheel', handleScreenshotWheel, { passive: true });
     img.addEventListener('drop', handleScreenshotDrop, { passive: true });
+    img.addEventListener('keydown', typeText, { passive: true });
 }
 
-function handleScreenshotClick(event) {
+function handleScreenshotClick(event) {    
     const rect = event.target.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -189,6 +191,12 @@ function handleScreenshotDrop(event) {
     const files = dt.files;
 
     dropToUploadFiles(files);
+}
+
+function typeText(event) {
+    const key = event.key;
+
+    sendRemoteText(key);
 }
 
 function setupDragEvents() {
@@ -338,9 +346,9 @@ async function sendRemoteScroll(x, y, clicks, monitorIndex = 0, usePercentage = 
     }
 }
 
-async function sendRemoteText() {
+async function sendRemoteText(userInputText = "") {
     const textInput = document.getElementById('remoteTextInput');
-    const text = textInput.value.trim();
+    const text = userInputText ? userInputText : textInput.value.trim();
     if (!text) {
         window.showNotification && window.showNotification('Please enter text to send', 'warning');
         return;
