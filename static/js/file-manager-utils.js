@@ -97,126 +97,111 @@ async function uploadFiles() {
 }
 
 async function dropToUploadFiles(droppedFiles) {
+    // Check if any files were dropped
     if (droppedFiles.length === 0) {
         const warningMsg = 'No files selected';
-        addLog('Upload File', warningMsg, 'warning');
-        showNotification(warningMsg, 'warning', 3000);
+        logAndNotify('Upload File', warningMsg, 'warning');
         return;
     }
-    const foregroundPathResponse = await fetch(`${getServerBaseUrl()}/foreground-path`);
-    if (!foregroundPathResponse.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const formData = new FormData();
-    for (let i = 0; i < droppedFiles.length; i++) {
-        formData.append('files', droppedFiles[i]);
-    }
-    
-    const data = await foregroundPathResponse.json();
-    if (data && data.path != null && data.path != undefined && data.path != '' && data.path != 'none') {
-        formData.append('folder_path', data.path);
 
+    // Extract common logic for logging and notifications
+    function logAndNotify(action, message, type) {
+        addLog(action, message, type);
+        showNotification(message, type, type === 'warning' ? 3000 : 5000);
+    }
+
+    // Extract core file upload logic
+    function uploadFiles(formData, shouldRefreshAndOpen = false, targetFolder = '') {
         const xhr = new XMLHttpRequest();
-        // Listen for upload completion
-        xhr.addEventListener('load', async function () {
+
+        xhr.addEventListener('load', async () => {
             if (xhr.status === 200) {
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    addLog('Upload File', response.message, 'success');
-                    showNotification(response.message, 'success', 5000);
-                } catch (error) {
-                    const errorMsg = 'Failed to parse response: ' + error.message;
-                    addLog('Upload File', errorMsg, 'error');
-                    showNotification(errorMsg, 'error', 5000);
-                }
-            } else {
-                const errorMsg = 'Upload failed: HTTP ' + xhr.status;
-                addLog('Upload File', errorMsg, 'error');
-                showNotification(errorMsg, 'error', 5000);
-            }
-        });
-        // Listen for upload errors
-        xhr.addEventListener('error', function () {
-            const errorMsg = 'Network error, upload failed';
-            addLog('Upload File', errorMsg, 'error');
-            showNotification(errorMsg, 'error', 5000);
-        });
-        // Send request
-        xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
-        xhr.send(formData);
-        return;
-    }
+                    logAndNotify('Upload File', response.message, 'success');
 
-    if (selectedPath == "My Computer") {
-        showNotification("Please set path in file manager area!", 'warning', 3000);
-        return;
-    }
-    const targetFolder = selectedPath ? selectedPath : 'Downloads';
-    if (!confirm(droppedFiles.length + ` files will be uploaded to the remote server.\n\nTarget folder: ${targetFolder}\n\nDo you want to continue?`)) {
-        return;
-    }
-
-    // Upload files
-    try {        
-        // If a folder is selected, add it to the request
-        if (selectedPath !== null && selectedPath !== undefined) {
-            formData.append('folder_path', selectedPath);
-        }
-
-        const xhr = new XMLHttpRequest();
-        // Listen for upload completion
-        xhr.addEventListener('load', async function () {
-            if (xhr.status === 200) {
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    addLog('Upload File', response.message, 'success');
-                    showNotification(response.message, 'success', 5000);
-
-                    // Refresh file list
-                    loadFileList();
-
-                    // Open folder in remote server
-                    const openFolderResponse = await fetch(`${getServerBaseUrl()}/folder/open`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            folder_path: selectedPath
-                        })
-                    })
-                    if (openFolderResponse.ok) {
-                        addLog('Upload File', 'Open folder in remote server', 'success');
-                        showNotification('Open folder in remote server successfully', 'success', 3000);
-                    } else {
-                        const errorData = await openFolderResponse.json();
-                        addLog('Upload File', 'Failed to open folder in remote server: ' + (errorData.detail || 'Unknown error'), 'error');
-                        showNotification('Failed to open folder in remote server', 'error', 3000);
+                    // Refresh list and open folder only when needed
+                    if (shouldRefreshAndOpen) {
+                        loadFileList();
+                        await openRemoteFolder(targetFolder);
                     }
                 } catch (error) {
-                    const errorMsg = 'Failed to parse response: ' + error.message;
-                    addLog('Upload File', errorMsg, 'error');
-                    showNotification(errorMsg, 'error', 5000);
+                    logAndNotify('Upload File', `Failed to parse response: ${error.message}`, 'error');
                 }
             } else {
-                const errorMsg = 'Upload failed: HTTP ' + xhr.status;
-                addLog('Upload File', errorMsg, 'error');
-                showNotification(errorMsg, 'error', 5000);
+                logAndNotify('Upload File', `Upload failed: HTTP ${xhr.status}`, 'error');
             }
         });
-        // Listen for upload errors
-        xhr.addEventListener('error', function () {
-            const errorMsg = 'Network error, upload failed';
-            addLog('Upload File', errorMsg, 'error');
-            showNotification(errorMsg, 'error', 5000);
+
+        xhr.addEventListener('error', () => {
+            logAndNotify('Upload File', 'Network error, upload failed', 'error');
         });
-        // Send request
-        xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
+
+        xhr.open('POST', `${getServerBaseUrl()}/upload/multiple`);
         xhr.send(formData);
+    }
+
+    // Extract logic for opening remote folder
+    async function openRemoteFolder(folderPath) {
+        try {
+            const response = await fetch(`${getServerBaseUrl()}/folder/open`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folder_path: folderPath })
+            });
+
+            if (response.ok) {
+                logAndNotify('Upload File', 'Open folder in remote server', 'success');
+            } else {
+                const errorData = await response.json();
+                logAndNotify('Upload File', `Failed to open folder: ${errorData.detail || 'Unknown error'}`, 'error');
+            }
+        } catch (error) {
+            logAndNotify('Upload File', `Failed to open folder: ${error.message}`, 'error');
+        }
+    }
+
+    try {
+        // Get foreground path from server
+        const foregroundPathResponse = await fetch(`${getServerBaseUrl()}/foreground-path`);
+        if (!foregroundPathResponse.ok) {
+            throw new Error(`HTTP error! status: ${foregroundPathResponse.status}`);
+        }
+        const data = await foregroundPathResponse.json();
+
+        // Build form data with dropped files
+        const formData = new FormData();
+        for (const file of droppedFiles) {
+            formData.append('files', file);
+        }
+
+        // Scenario 1: Upload using foreground path if valid
+        if (data?.path && data.path !== 'none' && data.path.trim()) {
+            formData.append('folder_path', data.path);
+            uploadFiles(formData, false); // No need to refresh or open folder
+            return;
+        }
+
+        // Scenario 2: No valid foreground path - check selected path
+        if (selectedPath === "My Computer") {
+            logAndNotify('Upload File', 'Please set path in file manager area!', 'warning');
+            return;
+        }
+
+        const targetFolder = selectedPath || 'Downloads';
+        // Confirm upload with user
+        if (!confirm(`${droppedFiles.length} files will be uploaded to:\n${targetFolder}\nContinue?`)) {
+            return;
+        }
+
+        // Scenario 3: Upload using selected path (with post-upload actions)
+        if (selectedPath) {
+            formData.append('folder_path', selectedPath);
+        }
+        uploadFiles(formData, true, targetFolder); // Need refresh and folder opening
+
     } catch (error) {
-        const errorMsg = 'Upload failed: ' + error.message;
-        addLog('Upload File', errorMsg, 'error');
-        showNotification(errorMsg, 'error', 5000);
+        logAndNotify('Upload File', `Upload failed: ${error.message}`, 'error');
     }
 }
 

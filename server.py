@@ -37,6 +37,8 @@ import win32ui
 import re
 import subprocess
 
+from foreground_path_detector import ForegroundPathDetector
+
 APP_VERSION = "1.0.0"
 # GitHub Gist API URL to request
 USE_GIST = ""
@@ -2712,6 +2714,19 @@ async def get_mouse_position():
         return JSONResponse(
             {"success": False,
                 "message": f"Failed to get mouse position: {str(e)}"}
+        )
+
+
+@app.get("/foreground-path")
+async def get_foreground_path():
+    try:
+        detector = ForegroundPathDetector()
+        result_type, path = detector.get_foreground_path()
+        return JSONResponse({"result_type": result_type, "path": path})
+    except Exception as e:
+        return JSONResponse(
+            {"success": False,
+                "message": f"Failed to get foreground path: {str(e)}"}
         )
 
 
