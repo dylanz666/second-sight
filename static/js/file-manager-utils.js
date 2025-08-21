@@ -103,6 +103,50 @@ async function dropToUploadFiles(droppedFiles) {
         showNotification(warningMsg, 'warning', 3000);
         return;
     }
+    const foregroundPathResponse = await fetch(`${getServerBaseUrl()}/foreground-path`);
+    if (!foregroundPathResponse.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const formData = new FormData();
+    for (let i = 0; i < droppedFiles.length; i++) {
+        formData.append('files', droppedFiles[i]);
+    }
+    
+    const data = await foregroundPathResponse.json();
+    if (data && data.path != null && data.path != undefined && data.path != '' && data.path != 'none') {
+        formData.append('folder_path', data.path);
+
+        const xhr = new XMLHttpRequest();
+        // Listen for upload completion
+        xhr.addEventListener('load', async function () {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    addLog('Upload File', response.message, 'success');
+                    showNotification(response.message, 'success', 5000);
+                } catch (error) {
+                    const errorMsg = 'Failed to parse response: ' + error.message;
+                    addLog('Upload File', errorMsg, 'error');
+                    showNotification(errorMsg, 'error', 5000);
+                }
+            } else {
+                const errorMsg = 'Upload failed: HTTP ' + xhr.status;
+                addLog('Upload File', errorMsg, 'error');
+                showNotification(errorMsg, 'error', 5000);
+            }
+        });
+        // Listen for upload errors
+        xhr.addEventListener('error', function () {
+            const errorMsg = 'Network error, upload failed';
+            addLog('Upload File', errorMsg, 'error');
+            showNotification(errorMsg, 'error', 5000);
+        });
+        // Send request
+        xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
+        xhr.send(formData);
+        return;
+    }
+
     if (selectedPath == "My Computer") {
         showNotification("Please set path in file manager area!", 'warning', 3000);
         return;
@@ -113,11 +157,7 @@ async function dropToUploadFiles(droppedFiles) {
     }
 
     // Upload files
-    try {
-        const formData = new FormData();
-        for (let i = 0; i < droppedFiles.length; i++) {
-            formData.append('files', droppedFiles[i]);
-        }
+    try {        
         // If a folder is selected, add it to the request
         if (selectedPath !== null && selectedPath !== undefined) {
             formData.append('folder_path', selectedPath);
@@ -172,7 +212,7 @@ async function dropToUploadFiles(droppedFiles) {
         });
         // Send request
         xhr.open('POST', getServerBaseUrl() + '/upload/multiple');
-        xhr.send(formData);        
+        xhr.send(formData);
     } catch (error) {
         const errorMsg = 'Upload failed: ' + error.message;
         addLog('Upload File', errorMsg, 'error');
